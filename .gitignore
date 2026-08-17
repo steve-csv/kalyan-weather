@@ -1,0 +1,18 @@
+# Secrets — never commit these.
+wxagent/local_config.py
+
+# Personal record. Your own forecast performance is yours; publishing it is a
+# deliberate choice (Guide s29.1 argues for it eventually), not a default.
+logs/
+
+# Caches and generated intermediates.
+.cache/
+__pycache__/
+*.pyc
+
+# The working forecast output. Only the public build in docs/ is published;
+# these contain the local server's refresh controls and the Windy map key.
+forecasts/
+
+# Local Claude Code permissions — machine-specific, contains your paths.
+.claude/settings.local.json

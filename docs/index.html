@@ -1,0 +1,2321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rain forecast — Kalyan West</title>
+<style>
+:root{
+  color-scheme: light;
+  --surface-1:#fcfcfb; --plane:#f9f9f7;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+  --series-1:#2a78d6;
+  /* Ordinal ramp, light surface: progressively DARKER as the value grows.
+     All five steps are declared - a missing custom property resolves to
+     nothing and the mark renders black, which is how two donut slices came
+     out solid black on the first build. */
+  --seq-100:#cde2fb; --seq-250:#86b6ef; --seq-350:#5598e7;
+  --seq-400:#3987e5; --seq-450:#2a78d6; --seq-550:#1c5cab; --seq-650:#104281;
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --surface-1:#1a1a19; --plane:#0d0d0d;
+    --text-primary:#ffffff; --text-secondary:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --series-1:#3987e5;
+    /* Same ramp stepped for the dark surface: progressively LIGHTER as the
+       value grows, so magnitude still reads as "more ink against the page". */
+    --seq-100:#104281; --seq-250:#184f95; --seq-350:#256abf;
+    --seq-400:#2a78d6; --seq-450:#3987e5; --seq-550:#5598e7; --seq-650:#86b6ef;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --surface-1:#1a1a19; --plane:#0d0d0d;
+  --text-primary:#ffffff; --text-secondary:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+  --series-1:#3987e5;
+  --seq-100:#104281; --seq-250:#184f95; --seq-400:#2a78d6; --seq-550:#5598e7; --seq-650:#9ec5f4;
+}
+
+/* ---- weather mood -------------------------------------------------------
+   The page takes a tint from the day being forecast: warm and bright when it
+   is dry, progressively cooler and greyer as the rain gets heavier.
+
+   The tint is applied to the PAGE PLANE only - never to the chart surface or
+   to any mark. Charts keep their validated palette against an unchanged
+   surface, so tinting the page cannot quietly break a contrast ratio. It is
+   also kept low-saturation: this is a forecast people read in a hurry, not a
+   mood board, and a strong wash would fight the data. */
+/* A restrained slate-blue range rather than saturated weather colours. The
+   page plane shifts through cool greys as the rain gets heavier, and --mood
+   (the accent used on headings, the hero figure and the sky) is a muted
+   steel blue rather than a vivid one. --sky tints the animated layer.
+   Saturation is kept low deliberately: this sits behind a page of numbers,
+   and a strong wash competes with the data it is meant to frame. */
+/* Weather-reactive colour. The page is a GRADIENT sky rather than a flat
+   fill - that is what makes it read as weather instead of a tinted document.
+   Cards keep their own near-neutral surface on top, so the colour underneath
+   can be bold without touching the contrast of any text or chart. */
+:root[data-wx="sunny"]  { --plane:#ffe9b8; --g1:#fff6dd; --g2:#ffcf78;
+                          --mood:#d98416; --sky:#ffb545; }
+:root[data-wx="light"]  { --plane:#cfe8ff; --g1:#e8f5ff; --g2:#9dcdf2;
+                          --mood:#1f79c9; --sky:#5fb0ea; }
+:root[data-wx="wet"]    { --plane:#aed3f0; --g1:#cfe6f8; --g2:#6fa8d8;
+                          --mood:#15629f; --sky:#3d8fcc; }
+:root[data-wx="heavy"]  { --plane:#8fb0d4; --g1:#a9c6e2; --g2:#5878a6;
+                          --mood:#0f4b86; --sky:#2f6ba6; }
+:root[data-wx="severe"] { --plane:#b9a3bd; --g1:#d3c0d2; --g2:#7d5f83;
+                          --mood:#8c2f4a; --sky:#6a4470; }
+
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"]))[data-wx="sunny"]  { --plane:#20180a; --g1:#2c2110; --g2:#120d05; --mood:#e8a33c; --sky:#c07d22; }
+  :root:where(:not([data-theme="light"]))[data-wx="light"]  { --plane:#0d1c2e; --g1:#12283f; --g2:#07111c; --mood:#4aa3e8; --sky:#2f7cb8; }
+  :root:where(:not([data-theme="light"]))[data-wx="wet"]    { --plane:#0a1e33; --g1:#0f2b47; --g2:#050f1a; --mood:#3f97dd; --sky:#2a6f9f; }
+  :root:where(:not([data-theme="light"]))[data-wx="heavy"]  { --plane:#0b1c33; --g1:#13294a; --g2:#040b16; --mood:#5b9ede; --sky:#2b5f96; }
+  :root:where(:not([data-theme="light"]))[data-wx="severe"] { --plane:#241026; --g1:#33163a; --g2:#120612; --mood:#e05c7e; --sky:#8a4a86; }
+}
+:root[data-theme="dark"][data-wx="sunny"]  { --plane:#20180a; --g1:#2c2110; --g2:#120d05; --mood:#e8a33c; --sky:#c07d22; }
+:root[data-theme="dark"][data-wx="light"]  { --plane:#0d1c2e; --g1:#12283f; --g2:#07111c; --mood:#4aa3e8; --sky:#2f7cb8; }
+:root[data-theme="dark"][data-wx="wet"]    { --plane:#0a1e33; --g1:#0f2b47; --g2:#050f1a; --mood:#3f97dd; --sky:#2a6f9f; }
+:root[data-theme="dark"][data-wx="heavy"]  { --plane:#0b1c33; --g1:#13294a; --g2:#040b16; --mood:#5b9ede; --sky:#2b5f96; }
+:root[data-theme="dark"][data-wx="severe"] { --plane:#241026; --g1:#33163a; --g2:#120612; --mood:#e05c7e; --sky:#8a4a86; }
+
+*{box-sizing:border-box}
+body{
+  margin:0; color:var(--text-primary);
+  font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;
+  padding:0 0 72px;
+  /* Sky gradient: light at the horizon, deeper overhead. `fixed` keeps it
+     still while the content scrolls, so it behaves like a sky rather than a
+     long painted strip. --plane remains the flat fallback and is what the
+     translucent header mixes against. */
+  background:var(--plane);
+  background-image:linear-gradient(180deg,var(--g2) 0%,var(--g1) 46%,var(--plane) 100%);
+  background-attachment:fixed;
+  transition:background-color .6s ease;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+
+/* ---- animated weather scene ------------------------------------------
+   Drawn in CSS against the page, behind the content, so it costs no network
+   request and cannot be blocked by a CSP. It sits at low opacity and never
+   takes pointer events - the forecast has to stay readable over it.
+   Everything here is disabled under prefers-reduced-motion: a full-screen
+   field of falling streaks is a genuine vestibular problem for some readers,
+   and the page must work without it. */
+.sky{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.sky>*{position:absolute}
+
+/* Sun: a disc with a slowly turning ray corona, not a blurred blob. */
+.sunwrap{top:-60px;right:-30px;width:330px;height:330px;opacity:.95}
+.sunwrap .glow{position:absolute;inset:-40%;border-radius:50%;
+  background:radial-gradient(circle,var(--sky) 0%,transparent 58%);
+  opacity:.55;animation:sunpulse 11s ease-in-out infinite}
+.sunwrap svg{position:absolute;inset:0;width:100%;height:100%;
+  color:var(--sky);animation:spin 140s linear infinite}
+@keyframes sunpulse{0%,100%{transform:scale(1);opacity:.55}
+                    50%{transform:scale(1.06);opacity:.75}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Clouds: actual silhouettes, drawn as overlapping lobes in SVG. */
+.cloud{animation:drift linear infinite;color:var(--sky)}
+.cloud svg{display:block;width:100%;height:auto}
+@keyframes drift{from{transform:translateX(-38vw)}to{transform:translateX(138vw)}}
+
+.rainlayer{inset:0;opacity:0}
+.rainlayer i{position:absolute;top:-14%;width:1.4px;border-radius:1px;
+  background:linear-gradient(to bottom,transparent,var(--sky));
+  animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(118vh)}}
+
+.flash{inset:0;background:#fff;opacity:0}
+.flash.on{animation:zap 1.5s ease-out}
+@keyframes zap{0%{opacity:0}4%{opacity:.30}9%{opacity:0}
+               14%{opacity:.18}20%{opacity:0}100%{opacity:0}}
+
+@media (prefers-reduced-motion: reduce){
+  .sun,.cloud,.rainlayer i,.flash{animation:none!important}
+  .rainlayer{display:none}
+}
+
+/* ---- app shell -------------------------------------------------------- */
+header{
+  position:sticky;top:0;z-index:20;
+  background:color-mix(in srgb,var(--plane) 88%,transparent);
+  backdrop-filter:saturate(1.4) blur(12px);
+  -webkit-backdrop-filter:saturate(1.4) blur(12px);
+  border-bottom:2px solid var(--mood);
+  padding:14px 16px;margin:0 0 18px;
+  display:flex;justify-content:space-between;align-items:center;gap:14px;
+  flex-wrap:wrap;
+}
+.hero .fig{color:var(--mood)}
+
+/* Cards float above the coloured sky. A slightly translucent surface lets a
+   hint of the weather colour through while keeping text on a near-neutral
+   background, so contrast never depends on the mood. */
+.card,.skoda,.rbar{position:relative;z-index:1}
+.card,.skoda{
+  box-shadow:0 1px 2px rgba(0,0,0,.06),0 14px 34px -22px rgba(0,0,0,.5);
+}
+.skoda{background:color-mix(in srgb, var(--surface-1) 92%, var(--mood))}
+.card>h2:first-child{
+  display:flex;align-items:center;gap:9px;
+}
+.card>h2:first-child::before{
+  content:'';width:3px;height:16px;border-radius:2px;background:var(--mood);
+  flex:none;
+}
+.wrap{max-width:1080px;margin:0 auto}
+h1{font-size:22px;margin:0 0 2px;font-weight:650;letter-spacing:-0.01em}
+h2{font-size:15px;margin:0 0 14px;font-weight:650;letter-spacing:-0.005em}
+.sub{color:var(--text-secondary);font-size:13px;margin:0}
+.muted{color:var(--muted)}
+.card{
+  /* Mixed with a trace of the weather colour so cards sit in the scene rather
+     than on top of it. The proportion is small on purpose: text and charts
+     must keep a near-neutral background whatever the mood. */
+  background:color-mix(in srgb, var(--surface-1) 92%, var(--mood));
+  border:1px solid var(--border);
+  border-radius:var(--radius); padding:20px; margin-bottom:16px;
+}
+.grid{display:grid;gap:16px}
+@media(min-width:820px){ .g2{grid-template-columns:1fr 1fr} .g3{grid-template-columns:repeat(3,1fr)} }
+
+/* header */
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.navbtn{
+  background:var(--surface-1);color:var(--text-secondary);border:1px solid var(--border);
+  border-radius:999px;padding:7px 14px;cursor:pointer;font:inherit;font-size:13px;
+  text-decoration:none;display:inline-block;
+}
+.navbtn:hover{color:var(--text-primary)}
+.nav{display:flex;gap:8px}
+.tabs{display:inline-flex;gap:4px;background:var(--surface-1);border:1px solid var(--border);
+  border-radius:999px;padding:4px}
+.tabs button{
+  background:transparent;color:var(--text-secondary);border:0;border-radius:999px;
+  padding:7px 16px;cursor:pointer;font:inherit;font-size:13px;font-weight:550;
+}
+.tabs button[aria-selected="true"]{background:var(--series-1);color:#fff}
+.tabs button:hover:not([aria-selected="true"]){color:var(--text-primary)}
+
+/* hero */
+.hero{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.hero .fig{font-size:56px;font-weight:670;line-height:1;letter-spacing:-0.02em}
+.hero .cap{color:var(--text-secondary);font-size:14px;max-width:34ch}
+.headline{margin:14px 0 0;font-size:17px;font-weight:600;line-height:1.45}
+
+/* status pill: color NEVER alone - always icon + text */
+.pill{
+  display:inline-flex;align-items:center;gap:7px;border-radius:999px;
+  padding:5px 13px;font-size:13px;font-weight:600;
+  border:1px solid var(--border);background:var(--plane);color:var(--text-primary);
+}
+.pill .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.s-none .dot{background:var(--muted)} .s-good .dot{background:var(--good)}
+.s-warning .dot{background:var(--warning)} .s-serious .dot{background:var(--serious)}
+.s-critical .dot{background:var(--critical)}
+
+/* stat tiles */
+.tiles{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.tile{background:var(--plane);border:1px solid var(--border);border-radius:11px;padding:13px 15px}
+.tile .lab{font-size:12px;color:var(--muted);margin-bottom:5px}
+.tile .val{font-size:24px;font-weight:640;line-height:1.15;letter-spacing:-0.01em}
+.tile .note{font-size:12px;color:var(--text-secondary);margin-top:3px}
+
+/* meter (confidence) */
+.meter{display:flex;gap:3px;margin-top:7px}
+.meter i{height:6px;flex:1;border-radius:2px;background:var(--grid)}
+.meter i.on{background:var(--series-1)}
+
+svg{display:block;width:100%;height:auto;overflow:visible}
+.tick{font-size:11px;fill:var(--muted);font-variant-numeric:tabular-nums}
+.vlab{font-size:11px;fill:var(--text-secondary);font-weight:600}
+.gl{stroke:var(--grid);stroke-width:1}
+.base{stroke:var(--axis);stroke-width:1}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;padding:7px 9px;border-bottom:1px solid var(--border)}
+td{padding:8px 9px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}
+
+a{color:var(--series-1)}
+.lk{display:block;padding:11px 0;border-bottom:1px solid var(--border);text-decoration:none;color:inherit}
+.lk:last-child{border-bottom:none}
+.lk b{color:var(--series-1);font-weight:600;font-size:14px}
+.lk span{display:block;color:var(--text-secondary);font-size:12.5px;margin-top:3px;line-height:1.5}
+.lk:hover b{text-decoration:underline}
+
+.quote{
+  border-left:2px solid var(--axis); padding:2px 0 2px 14px; margin:14px 0 0;
+  color:var(--text-secondary); font-size:13px; line-height:1.6;
+}
+.warn{
+  border-left:2px solid var(--warning); padding:10px 0 10px 14px; margin:14px 0 0;
+  color:var(--text-secondary); font-size:13px; line-height:1.6;
+}
+footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-align:center}
+
+/* windy embed */
+.windybox{background:var(--plane);border:1px solid var(--border);border-radius:11px;
+  padding:18px;text-align:center}
+.wmsg{font-size:13px;color:var(--text-secondary);margin-top:10px;line-height:1.6}
+#windy{width:100%;height:420px;border-radius:10px;overflow:hidden;margin-top:12px}
+@media(max-width:640px){#windy{height:320px}}
+
+/* climate driver tiles */
+.dgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.dtile{text-align:left;background:var(--plane);border:1px solid var(--border);
+  border-left:3px solid var(--muted);border-radius:11px;padding:12px 13px;
+  cursor:pointer;font:inherit;color:var(--text-primary);min-height:44px}
+.dtile:hover{border-color:var(--series-1)}
+.dtile.sel{outline:2px solid var(--series-1);outline-offset:-2px}
+.dtile.d-good{border-left-color:var(--good)}
+.dtile.d-bad{border-left-color:var(--critical)}
+.dtile.d-neu{border-left-color:var(--muted)}
+.dname{font-size:11px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.dval{font-size:19px;font-weight:650;margin:3px 0 1px;letter-spacing:-.01em}
+.dsub{font-size:11.5px;color:var(--text-secondary);line-height:1.4}
+.dspark{width:100%;height:22px;margin-top:7px;color:var(--series-1)}
+.dtext{margin-top:12px;padding:12px 14px;background:var(--plane);
+  border:1px solid var(--border);border-radius:10px;
+  font-size:13.5px;line-height:1.65;color:var(--text-secondary);min-height:46px}
+
+/* week summary */
+.summary .sbig{font-size:17px;font-weight:620;margin:0 0 6px;line-height:1.45}
+.sstrip{display:flex;gap:6px;align-items:flex-end;margin:16px 0 8px}
+.sday{flex:1;text-align:center;min-width:0}
+.sbarwrap{height:78px;display:flex;align-items:flex-end;justify-content:center}
+.sbar{width:100%;max-width:34px;border-radius:5px 5px 0 0;background:var(--series-1)}
+.sday.obs .sbar{background:var(--muted)}
+.sval{font-size:12px;font-weight:600;margin-top:5px;font-variant-numeric:tabular-nums}
+.slab{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.skey{display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin-bottom:6px}
+.skey i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.skey .kobs{background:var(--muted)} .skey .kfc{background:var(--series-1)}
+.sdet{border-top:1px solid var(--border);padding-top:10px;margin-top:12px}
+.sdet>summary{cursor:pointer;font-weight:620;font-size:14px;padding:4px 0;list-style:none}
+.sdet>summary::-webkit-details-marker{display:none}
+.sdet>summary::before{content:'▸ ';color:var(--muted)}
+.sdet[open]>summary::before{content:'▾ '}
+.sdet p{color:var(--text-secondary);font-size:13.5px;line-height:1.65;margin:8px 0}
+
+/* Sam - the forecast assistant */
+.skoda{background:var(--surface-1);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.sk-head{display:flex;align-items:center;gap:11px;margin-bottom:4px}
+.sk-av{width:38px;height:38px;border-radius:50%;background:var(--series-1);
+  color:#fff;display:grid;place-items:center;font-size:19px;flex:none}
+.sk-name{font-weight:650;font-size:15px}
+.sk-role{font-size:12px;color:var(--muted)}
+.sk-log{max-height:340px;overflow-y:auto;margin:14px 0 12px;
+  display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
+.sk-msg{max-width:88%;padding:10px 13px;border-radius:13px;font-size:13.5px;
+  line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.sk-q{align-self:flex-end;background:var(--series-1);color:#fff;
+  border-bottom-right-radius:4px}
+.sk-a{align-self:flex-start;background:var(--plane);
+  border:1px solid var(--border);border-bottom-left-radius:4px}
+.sk-a b{font-weight:640}
+.sk-form{display:flex;gap:8px}
+.sk-in{flex:1;background:var(--plane);color:var(--text-primary);
+  border:1px solid var(--border);border-radius:999px;padding:12px 16px;
+  font:inherit;font-size:14px;min-height:44px}
+.sk-in:focus{outline:2px solid var(--series-1);outline-offset:-1px}
+.sk-send{background:var(--series-1);color:#fff;border:0;border-radius:999px;
+  padding:0 20px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;
+  min-height:44px}
+.sk-chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+.sk-chip{background:var(--plane);border:1px solid var(--border);
+  color:var(--text-secondary);border-radius:999px;padding:7px 13px;
+  font:inherit;font-size:12.5px;cursor:pointer}
+.sk-chip:hover{color:var(--text-primary);border-color:var(--series-1)}
+
+/* refresh bar - only rendered when served over http, never in the file build */
+.rbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:var(--surface-1);border:1px solid var(--border);
+  border-radius:var(--radius);padding:12px 16px;margin-bottom:16px}
+.rbtn{background:var(--series-1);color:#fff;border:0;border-radius:999px;
+  padding:10px 20px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;
+  min-height:44px}
+.rbtn:disabled{opacity:.5;cursor:default}
+.rbtn:active{transform:scale(.98)}
+.rmsg{font-size:13px;color:var(--text-secondary);flex:1;min-width:180px}
+
+/* alerts */
+:root{ --alert-edge:rgba(11,11,11,0.18) }
+:root[data-theme="dark"]{ --alert-edge:rgba(255,255,255,0.18) }
+@media (prefers-color-scheme: dark){ :root:where(:not([data-theme="light"])){ --alert-edge:rgba(255,255,255,0.18) } }
+.alert{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--border)}
+.alert:last-child{border-bottom:none}
+.ai{font-size:20px;line-height:1.2;flex:none}
+.at{font-weight:620;font-size:14.5px;margin-bottom:4px}
+.ab{color:var(--text-secondary);font-size:13.5px;line-height:1.6}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.05em;
+  padding:2px 7px;border-radius:5px;vertical-align:2px;margin-right:6px;
+  background:var(--plane);border:1px solid var(--border);color:var(--text-secondary)}
+.a-critical .tag,.t-critical{background:var(--critical);color:#fff;border-color:transparent}
+.a-warning  .tag,.t-warning {background:var(--serious); color:#111;border-color:transparent}
+.a-watch    .tag,.t-watch   {background:var(--warning); color:#111;border-color:transparent}
+.t-high{background:var(--critical);color:#fff;border-color:transparent}
+.t-moderate{background:var(--warning);color:#111;border-color:transparent}
+
+/* plain day */
+.pday{display:flex;gap:13px;padding:13px 0;border-bottom:1px solid var(--border)}
+.pday:last-child{border-bottom:none}
+.pic{font-size:22px;flex:none;line-height:1.1}
+.pd{font-size:12px;color:var(--muted);margin-bottom:2px}
+.ph{font-weight:620;font-size:15px;margin-bottom:3px}
+.pt{color:var(--text-secondary);font-size:13.5px;line-height:1.6}
+.pa{font-size:13px;color:var(--text-primary);margin-top:4px;font-style:italic}
+.pc{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* radar */
+.radarbar{display:flex;align-items:center;gap:10px;margin-top:16px;
+  font-size:12.5px;color:var(--text-secondary);flex-wrap:wrap}
+.rdot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.rdot.live{background:var(--good);animation:rpulse 2.4s ease-in-out infinite}
+.rdot.dead{background:var(--critical);animation:none}
+@keyframes rpulse{0%,100%{opacity:1}50%{opacity:.35}}
+.radar-fallback{background:var(--plane);border:1px solid var(--border);
+  border-radius:10px;padding:16px;font-size:13px;color:var(--text-secondary);
+  line-height:1.6}
+.radar{display:grid;gap:14px;margin-top:14px}
+@media(min-width:700px){ .radar{grid-template-columns:1fr 1fr} }
+.radar figure{margin:0}
+.radar img{width:100%;border-radius:10px;border:1px solid var(--border);background:#000}
+.radar figcaption{font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.5}
+.qs{margin:0 0 4px;padding-left:20px;color:var(--text-secondary);font-size:13.5px;line-height:1.8}
+.sysrow{padding:12px 0;border-bottom:1px solid var(--border)}
+.sysrow:last-child{border-bottom:none}
+
+#tip{
+  position:fixed;pointer-events:none;opacity:0;transition:opacity .1s;
+  background:var(--text-primary);color:var(--surface-1);border-radius:8px;
+  padding:7px 10px;font-size:12.5px;line-height:1.45;z-index:50;white-space:nowrap;
+  box-shadow:0 4px 14px rgba(0,0,0,.18);
+}
+.hit{fill:transparent;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="sky" id="sky" aria-hidden="true"></div>
+<div class="wrap" id="app"></div>
+<div id="tip"></div>
+
+<script>
+const DAILY = {"site": "Kalyan West", "issued": "17 Aug 2026, 17:26 IST", "validDate": "Monday 17 August 2026", "leadHours": 0, "season": "Southwest monsoon", "regime": "ACTIVE MONSOON SURGE", "regimeNote": "Strong terrain-normal westerlies meeting deep moisture. This is the fully-loaded orographic engine of Handbook Ch.14.", "mechanism": "Deep moist WSW current -> forced ascent on the windward Ghats and coastal convergence -> widespread, repeated, persistent rain. Ghat crest heavily enhanced; Kalyan sits in the transition belt and picks up both coastal bands and terrain enhancement.", "synoptic": "<p style='margin:0 0 10px'><b>Season:</b> Southwest monsoon. Monsoon mechanisms are the primary framework: monsoon trough position, offshore trough, onshore 850hPa flow and orographic lift against the Ghats. Convective triggers are secondary.</p><p style='margin:0 0 10px'><b>Monsoon trough:</b> axis near <b>29.0°N</b> (minimum 1002.3 hPa along the 80°E transect) — <b>break-leaning</b>.   The trough axis is displaced north toward the Himalayan foothills. Handbook Ch.13: this is the break-monsoon signal - rain concentrates in the sub-Himalayan belt while the west coast, Mumbai and Pune can turn surprisingly dry, sometimes for a week.</p><p style='margin:0 0 10px'><b>Cross-coast gradient:</b> Cross-coast pressure gradient (sea minus inland) is -0.5 hPa — the inland heat low is not pulling flow onshore, weakening moisture transport (Guide s2.3).</p><div class=\"quote\">Both features argue against significant rain. Handbook Ch.13: expect a drier, hotter, humid-but-rainless run of days until the trough moves back south.</div>", "weekRegime": null, "probability": 100, "probHeavy": 0, "members": 31, "modelAgreement": "3/3", "rainLo": 6.3, "rainHi": 13.5, "rainMedian": 9.8, "categoryLo": "Light rain", "categoryHi": "Light rain", "status": "good", "statusIcon": "◔", "spreadWarning": "", "models": [{"name": "ECMWF", "mm": 13.5, "band": "Light rain", "status": "good"}, {"name": "GFS", "mm": 9.8, "band": "Light rain", "status": "good"}, {"name": "ICON", "mm": 6.3, "band": "Light rain", "status": "good"}], "character": "continuous / steady", "characterNote": "Long unbroken run of modest hourly rates - the signature of deep layered cloud under broad ascent rather than convective cells.", "wetHours": 24, "longestRun": 24, "peakRate": 1.2, "hourly": [{"h": 0, "mm": 0.3}, {"h": 1, "mm": 0.3}, {"h": 2, "mm": 0.3}, {"h": 3, "mm": 0.6}, {"h": 4, "mm": 0.6}, {"h": 5, "mm": 0.6}, {"h": 6, "mm": 0.5}, {"h": 7, "mm": 0.5}, {"h": 8, "mm": 0.5}, {"h": 9, "mm": 0.9}, {"h": 10, "mm": 0.9}, {"h": 11, "mm": 0.9}, {"h": 12, "mm": 1.2}, {"h": 13, "mm": 1.2}, {"h": 14, "mm": 1.2}, {"h": 15, "mm": 0.3}, {"h": 16, "mm": 0.3}, {"h": 17, "mm": 0.3}, {"h": 18, "mm": 0.4}, {"h": 19, "mm": 0.4}, {"h": 20, "mm": 0.4}, {"h": 21, "mm": 0.3}, {"h": 22, "mm": 0.3}, {"h": 23, "mm": 0.3}], "windows": [{"label": "Early morning", "start": 0, "end": 6, "mm": 2.7, "peak": 0.6, "risk": "low-moderate"}, {"label": "Morning", "start": 6, "end": 12, "mm": 4.2, "peak": 0.9, "risk": "low-moderate"}, {"label": "Afternoon", "start": 12, "end": 17, "mm": 4.2, "peak": 1.2, "risk": "low-moderate"}, {"label": "Evening", "start": 17, "end": 21, "mm": 1.5, "peak": 0.4, "risk": "low-moderate"}, {"label": "Night", "start": 21, "end": 24, "mm": 0.9, "peak": 0.3, "risk": "low-moderate"}], "confidence": {"occurrence": "high", "amount": "moderate-high", "timing": "moderate-high", "rationale": "31-member ensemble puts measurable rain at 100%. Lead time 0h (Nowcast) - Radar and current observations outrank model rainfall output. Give a specific timing window; update frequently.", "occurrenceRank": 5, "amountRank": 4, "timingRank": 4}, "ingredients": {"dewPoint": 24.3, "spread": 0.8, "rh925": 97.0, "rh850": 88.0, "rh700": 74.0, "pwat": 63.0, "depthClass": "deep", "moistureNote": "Moisture is deep through 700 hPa. This supports widespread and persistent rain wherever lift exists, not just shallow showers.", "wind850Dir": "WSW", "wind850Speed": 12.3, "wind925Dir": "WSW", "wind925Speed": 10.9, "orographic": 12.1, "forcingClass": "strong", "liftNote": "Strong onshore flow aimed close to square-on at the Ghats. The orographic engine is loaded; expect repeated spells rather than isolated showers.", "capePeak": 770.0, "capeClass": "Moderately unstable", "shear": 11.6, "shearClass": "moderate", "stormMode": "Moderate shear. Storms can sustain themselves somewhat longer and may travel; watch for cells regenerating along outflow boundaries."}, "gradient": [{"name": "Mumbai - Santacruz", "zone": "coastal", "lo": 4.6, "hi": 16.2, "wind": "WSW 11.4 m/s", "terrain": "+11.2 (onshore)", "home": false}, {"name": "Thane", "zone": "transition", "lo": 4.3, "hi": 12.0, "wind": "WSW 11.8 m/s", "terrain": "+11.6 (onshore)", "home": false}, {"name": "Kalyan West", "zone": "transition", "lo": 6.3, "hi": 13.5, "wind": "WSW 12.3 m/s", "terrain": "+12.1 (onshore)", "home": true}, {"name": "Badlapur", "zone": "transition", "lo": 7.9, "hi": 13.5, "wind": "WSW 12.3 m/s", "terrain": "+12.1 (onshore)", "home": false}, {"name": "Igatpuri", "zone": "ghat", "lo": 6.3, "hi": 20.4, "wind": "WSW 13.1 m/s", "terrain": "+12.9 (upslope)", "home": false}, {"name": "Matheran", "zone": "ghat", "lo": 6.7, "hi": 11.4, "wind": "WSW 12.1 m/s", "terrain": "+11.9 (upslope)", "home": false}, {"name": "Malshej Ghat", "zone": "ghat", "lo": 5.0, "hi": 10.8, "wind": "WSW 14.2 m/s", "terrain": "+14.2 (upslope)", "home": false}, {"name": "Lonavala", "zone": "ghat", "lo": 9.6, "hi": 12.9, "wind": "WSW 13.2 m/s", "terrain": "+13.2 (upslope)", "home": false}, {"name": "Pune", "zone": "leeward", "lo": 0.0, "hi": 1.8, "wind": "WSW 14.8 m/s", "terrain": "+14.7 (descent)", "home": false}], "outlook": [{"day": "Tue 18 Aug", "short": "Tue", "regime": "Moderate Onshore Flow", "lo": 3.2, "hi": 6.9, "chance": "100%"}, {"day": "Wed 19 Aug", "short": "Wed", "regime": "Mixed Monsoon", "lo": 2.9, "hi": 4.5, "chance": "100%"}, {"day": "Thu 20 Aug", "short": "Thu", "regime": "Mixed Monsoon", "lo": 3.9, "hi": 4.8, "chance": "100%"}, {"day": "Fri 21 Aug", "short": "Fri", "regime": "Mixed Monsoon", "lo": 3.9, "hi": 7.2, "chance": "100%"}, {"day": "Sat 22 Aug", "short": "Sat", "regime": "Mixed Monsoon", "lo": 4.5, "hi": 5.7, "chance": "100%"}], "thresholds": {"orogModerate": 7.7, "orogStrong": 10.3, "orogVeryStrong": 14.0}, "tideUrl": "https://www.imd.gov.in/pages/tide_tables.php", "imdUrls": {"Mumbai radar": "https://mausam.imd.gov.in/imd_latest/contents/index_radar.php", "Nowcast / warnings": "https://mausam.imd.gov.in/", "Rainfall information": "https://mausam.imd.gov.in/responsive/rainfallinformation.php"}, "heavyThreshold": 64.5, "windyMapKey": "", "lat": 19.2437, "lon": 73.1305, "gradientVerdict": "Rain shadow intact — the Ghat crest is running about infx the leeward total. Classic westerly regime.", "alerts": [], "plainWeek": [{"day": "Monday 17 August", "short": "Mon", "iso": "2026-08-17", "icon": "🌥️", "headline": "Light rain — near certain.", "detail": "Continuous spells through much of the day. Heaviest through the morning.", "advice": "Umbrella. No disruption expected.", "confidence": "High confidence on rain, fairly high on amount.", "isWeekend": false, "facts": {"band": "Light rain", "rainLo": 6.3, "rainHi": 13.5, "pct": 100, "character": "continuous / steady", "peakRate": 1.2, "heaviestWindow": "Morning", "onlyWindow": false, "confOccurrence": "high", "confAmount": "moderate-high"}}, {"day": "Tuesday 18 August", "short": "Tue", "iso": "2026-08-18", "icon": "🌥️", "headline": "Light rain — near certain.", "detail": "Continuous spells through much of the day. Heaviest pre-dawn.", "advice": "Umbrella. No disruption expected.", "confidence": "High confidence on rain, fairly high on amount.", "isWeekend": false, "facts": {"band": "Light rain", "rainLo": 3.2, "rainHi": 6.9, "pct": 100, "character": "continuous / steady", "peakRate": 0.8, "heaviestWindow": "Early morning", "onlyWindow": false, "confOccurrence": "high", "confAmount": "moderate-high"}}, {"day": "Wednesday 19 August", "short": "Wed", "iso": "2026-08-19", "icon": "🌥️", "headline": "Light rain — near certain.", "detail": "Continuous spells through much of the day. Heaviest through the afternoon.", "advice": "Umbrella. No disruption expected.", "confidence": "High confidence on rain, fairly high on amount.", "isWeekend": false, "facts": {"band": "Light rain", "rainLo": 2.9, "rainHi": 4.5, "pct": 100, "character": "continuous / steady", "peakRate": 0.3, "heaviestWindow": "Afternoon", "onlyWindow": false, "confOccurrence": "high", "confAmount": "moderate-high"}}, {"day": "Thursday 20 August", "short": "Thu", "iso": "2026-08-20", "icon": "🌥️", "headline": "Light rain — near certain.", "detail": "Continuous spells through much of the day. Heaviest through the afternoon.", "advice": "Umbrella. No disruption expected.", "confidence": "High confidence on rain, moderate on amount.", "isWeekend": false, "facts": {"band": "Light rain", "rainLo": 3.9, "rainHi": 4.8, "pct": 100, "character": "continuous / steady", "peakRate": 0.4, "heaviestWindow": "Afternoon", "onlyWindow": false, "confOccurrence": "high", "confAmount": "moderate"}}, {"day": "Friday 21 August", "short": "Fri", "iso": "2026-08-21", "icon": "🌥️", "headline": "Light rain — near certain.", "detail": "Continuous spells through much of the day. Heaviest through the afternoon.", "advice": "Umbrella. No disruption expected.", "confidence": "Fairly high confidence on rain, moderate on amount.", "isWeekend": false, "facts": {"band": "Light rain", "rainLo": 3.9, "rainHi": 7.2, "pct": 100, "character": "continuous / steady", "peakRate": 0.5, "heaviestWindow": "Afternoon", "onlyWindow": false, "confOccurrence": "moderate-high", "confAmount": "moderate"}}, {"day": "Saturday 22 August", "short": "Sat", "iso": "2026-08-22", "icon": "🌥️", "headline": "Light rain — near certain.", "detail": "Continuous spells through much of the day. Heaviest pre-dawn.", "advice": "Umbrella. No disruption expected.", "confidence": "Fairly high confidence on rain, moderate on amount.", "isWeekend": true, "facts": {"band": "Light rain", "rainLo": 4.5, "rainHi": 5.7, "pct": 100, "character": "continuous / steady", "peakRate": 0.3, "heaviestWindow": "Early morning", "onlyWindow": false, "confOccurrence": "moderate-high", "confAmount": "moderate"}}, {"day": "Sunday 23 August", "short": "Sun", "iso": "2026-08-23", "icon": "🌥️", "headline": "Light rain — near certain.", "detail": "Continuous spells through much of the day. Heaviest pre-dawn.", "advice": "Umbrella. No disruption expected.", "confidence": "Moderate confidence on rain, very low on amount.", "isWeekend": true, "facts": {"band": "Light rain", "rainLo": 3.9, "rainHi": 5.4, "pct": 100, "character": "continuous / steady", "peakRate": 0.3, "heaviestWindow": "Early morning", "onlyWindow": false, "confOccurrence": "moderate", "confAmount": "very low"}}], "areas": [{"key": "kalyan_belt", "name": "Kalyan–Dombivli", "character": "HOME belt. Guide s11's Thane–Kalyan–Karjat transition — picks up coastal bands AND terrain enhancement, so it often runs between the suburbs and the Ghats rather than tracking either.", "weekMm": 37.6, "accumulation": "around 38 mm", "wettestDay": "Mon 17", "plain": "Widespread light. Wettest Monday.", "rank": 1, "home": true}, {"key": "ghats", "name": "Matheran–Lonavala (central Ghats)", "character": "The central crest and the Bhor Ghat gap. Where the orographic engine does its classic work; trekking and hill-station calls hang here.", "weekMm": 27.9, "accumulation": "around 24–31 mm", "wettestDay": "Mon 17", "plain": "Widespread light. Wettest Monday.", "rank": 2, "home": false}, {"key": "badlapur_belt", "name": "Ambernath–Badlapur–Karjat", "character": "Ulhas valley into the foothills. First to feel Ghat enhancement, and the belt where pre-monsoon storms most often fire.", "weekMm": 24.5, "accumulation": "around 24 mm", "wettestDay": "Mon 17", "plain": "Widespread light. Wettest Monday.", "rank": 3, "home": false}, {"key": "ghats_north", "name": "Igatpuri (northern Ghats)", "character": "Thal Ghat. Squarely in the path of the monsoon westerly and among the wettest places in the state — when the current is aimed slightly north, this is where it lands hardest.", "weekMm": 22.8, "accumulation": "around 23 mm", "wettestDay": "Mon 17", "plain": "Widespread light. Wettest Monday.", "rank": 4, "home": false}, {"key": "ghats_east", "name": "Malshej (eastern Ghats)", "character": "Furthest inland of the crest sites. Needs a deeper moist layer to get properly wet, so it is the first of the three to fall away when the moisture is shallow — a useful read on depth, not just strength.", "weekMm": 19.6, "accumulation": "around 20 mm", "wettestDay": "Tue 18", "plain": "Widespread light. Wettest Tuesday.", "rank": 5, "home": false}, {"key": "suburbs", "name": "Mumbai suburbs", "character": "Bandra to Dahisar and the eastern suburbs. Santacruz is the IMD reference gauge most headline Mumbai rainfall figures come from.", "weekMm": 13.9, "accumulation": "around 14 mm", "wettestDay": "Mon 17", "plain": "Widespread light. Wettest Monday.", "rank": 6, "home": false}, {"key": "thane_belt", "name": "Thane & Bhiwandi", "character": "Creek belt. Urban heat plus coastal convergence; Bhiwandi matters for warehousing and transport decisions.", "weekMm": 10.7, "accumulation": "around 11 mm", "wettestDay": "Mon 17", "plain": "Widespread light. Wettest Monday.", "rank": 7, "home": false}], "areasPartial": true, "areasTotal": 11, "weekend": {"verdict": "Rain both days, but nothing heavy.", "plans": "Outdoor plans are fine with an umbrella. Nothing should get called off.", "days": ["Saturday 22 August", "Sunday 23 August"]}, "thermal": {"headline": "No heat or cold criteria met. Warmest day Sat 22 Aug at 30°C", "caveat": "Normals are ERA5, 10-year mean over a +/-7-day window — **not** IMD's official 1991–2020 normals, so every departure figure here carries that difference. IMD also requires the criteria at two or more stations in a subdivision on two consecutive days before declaring; a single point cannot make that call. This is a pattern-recognition aid, never a substitute for an official IMD heat warning.", "stationType": "coastal", "days": [{"day": "Mon 17 Aug", "tmax": 26.2, "tmin": 23.6, "depMax": -2.6000000000000014, "depMin": -0.9699999999999989, "heatIndex": 26.2, "heatFlag": "", "coldFlag": "", "note": ""}, {"day": "Tue 18 Aug", "tmax": 29.1, "tmin": 23.6, "depMax": 0.6900000000000013, "depMin": -1.0299999999999976, "heatIndex": 34.75482326175564, "heatFlag": "", "coldFlag": "", "note": ""}, {"day": "Wed 19 Aug", "tmax": 28.7, "tmin": 24.3, "depMax": 0.39000000000000057, "depMin": -0.35999999999999943, "heatIndex": 33.72228658123554, "heatFlag": "", "coldFlag": "", "note": ""}, {"day": "Thu 20 Aug", "tmax": 28.5, "tmin": 25.0, "depMax": 0.629999999999999, "depMin": 0.5300000000000011, "heatIndex": 33.2007960575556, "heatFlag": "", "coldFlag": "", "note": ""}, {"day": "Fri 21 Aug", "tmax": 28.3, "tmin": 24.8, "depMax": 0.03999999999999915, "depMin": 0.3100000000000023, "heatIndex": 32.93128384752643, "heatFlag": "", "coldFlag": "", "note": ""}, {"day": "Sat 22 Aug", "tmax": 29.7, "tmin": 24.2, "depMax": 1.1799999999999997, "depMin": -0.40000000000000213, "heatIndex": 35.344265321713046, "heatFlag": "", "coldFlag": "", "note": ""}, {"day": "Sun 23 Aug", "tmax": 28.4, "tmin": 24.5, "depMax": -0.4700000000000024, "depMin": -0.08999999999999986, "heatIndex": 32.803932602341135, "heatFlag": "", "coldFlag": "", "note": ""}]}, "systems": {"trough": "Offshore trough running roughly 21–24°N (3° of latitude), deepest 1.3 hPa below the surrounding field. Guide s12.1: this promotes convergence, organises coastal convection and helps maintain the onshore flow.", "troughPresent": true, "cycloneWindow": false, "list": []}, "dayparts": [{"label": "Early morning", "mm": 2.7}, {"label": "Morning", "mm": 4.2}, {"label": "Afternoon", "mm": 4.2}, {"label": "Evening", "mm": 1.5}, {"label": "Night", "mm": 0.9}], "heatmap": {"days": ["Mon 17", "Tue 18", "Wed 19", "Thu 20", "Fri 21", "Sat 22", "Sun 23"], "parts": ["Pre-dawn", "Morning", "Afternoon", "Evening", "Night"], "cells": [[2.7, 3.0, 1.2, 1.2, 1.5, 1.8, 1.8], [4.2, 1.8, 1.2, 1.2, 1.8, 0.9, 1.8], [4.2, 1.7, 1.3, 1.6, 2.2, 1.0, 1.0], [1.5, 0.4, 0.5, 0.5, 1.1, 0.5, 0.5], [0.9, 0.0, 0.3, 0.3, 0.6, 0.3, 0.3]]}, "nowcast": {"verdict": "Rain modelled from about 18:00, 2 mm over the window, steady.", "trend": "steady", "hours": [{"t": "18:00", "mm": 0.4}, {"t": "19:00", "mm": 0.4}, {"t": "20:00", "mm": 0.4}, {"t": "21:00", "mm": 0.3}, {"t": "22:00", "mm": 0.3}, {"t": "23:00", "mm": 0.3}], "radar": [{"url": "https://mausam.imd.gov.in/Radar/caz_mum.gif?t=202608171726", "name": "MAX-Z (maximum reflectivity)", "why": "The default read. Shows the strongest echo in the column, so growing cells stand out before they reach the ground. Guide s16: animate it — one frame is not a forecast."}, {"url": "https://mausam.imd.gov.in/Radar/sri_mum.gif?t=202608171726", "name": "Surface Rainfall Intensity", "why": "Reflectivity converted to a rain rate at the surface. Closer to what you will actually feel than raw MAX-Z, but inherits every assumption in the Z-R conversion."}, {"url": "https://mausam.imd.gov.in/Radar/ppi_mum.gif?t=202608171726", "name": "PPI (Z)", "why": "Single-elevation scan. Useful for structure close to the radar."}, {"url": "https://mausam.imd.gov.in/Radar/pac_mum.gif?t=202608171726", "name": "Precipitation Accumulation", "why": "How much has already fallen. The check on whether a spell that is clearing has already done its damage."}, {"url": "https://mausam.imd.gov.in/Radar/ppv_mum.gif?t=202608171726", "name": "PPI (V) — Doppler velocity", "why": "Motion toward and away from the radar. This is where band movement is read directly rather than inferred by eye across frames."}], "radarPage": "https://mausam.imd.gov.in/imd_latest/contents/index_radar.php", "rainviewer": "https://www.rainviewer.com/map.html?loc=19.2437,73.1305,8", "questions": ["Is precipitation already present, and how far is it from Kalyan?", "What direction and speed is the echo moving?", "Is it strengthening, weakening or holding intensity?", "Is new development occurring upstream or along its boundary?", "Will the echo repeat over the same place, or is it one fast-moving band?"], "limits": ["The beam rises with distance, so distant shallow rain can be partly missed.", "Hills, buildings and filtering produce gaps and artifacts.", "Reflectivity aloft is not the same as rain reaching the ground.", "Bands change shape and speed — a straight-line arrival estimate will drift."]}, "public": true};
+const WEEKLY = null;      /* null on the standalone single-view pages */
+const LINKS = [{"title": "Pressure - monsoon trough (north India)", "url": "https://www.windy.com/?ecmwf,pressure,24.000,80.000,4", "why": "Handbook Ch.13: trough hugging the Himalayan foothills = break signal; trough back over the plains = active signal. Check this first - it tells you more about the week's character than anything else."}, {"title": "Pressure - offshore trough (Konkan coast)", "url": "https://www.windy.com/?ecmwf,pressure,18.500,72.500,5", "why": "Guide s12.1: an elongated low parallel to the west coast promotes convergence, organises coastal convection and maintains onshore flow."}, {"title": "Wind at 850 hPa - the moisture-transport layer", "url": "https://www.windy.com/?ecmwf,wind,850h,19.244,73.130,7", "why": "Guide s10.1: 850 hPa wind is the useful first approximation of the monsoon low-level jet. Check the angle against the Ghats, not just the speed."}, {"title": "Wind at 925 hPa - very-low-level flow", "url": "https://www.windy.com/?ecmwf,wind,925h,19.244,73.130,7", "why": "Guide s10.1: shows the flow closest to the surface without the friction distortion of the 10 m wind."}, {"title": "Relative humidity at 700 hPa - moisture depth", "url": "https://www.windy.com/?ecmwf,rh,700h,19.244,73.130,7", "why": "Guide s4.4: the single best check on whether cloud can grow deep. Humid at the surface but dry here means shallow cloud and disappointing rain."}, {"title": "Relative humidity at 850 hPa", "url": "https://www.windy.com/?ecmwf,rh,850h,19.244,73.130,7", "why": "The middle rung of the moisture-depth ladder."}, {"title": "CAPE - convective potential", "url": "https://www.windy.com/?ecmwf,cape,19.244,73.130,7", "why": "Handbook Ch.24: how much energy is available IF something triggers it. Never read CAPE as a rainfall amount."}, {"title": "Radar - what is actually happening now", "url": "https://www.windy.com/?radar,19.244,73.130,9", "why": "Guide s16: for the next 0-3 hours this outranks every model. Animate it - a single frame is not a forecast."}, {"title": "Satellite - cloud texture and growth", "url": "https://www.windy.com/?satellite,19.244,73.130,7", "why": "Guide s17: smooth sheets mean layered cloud; bright bubbling towers mean growing convection."}, {"title": "Rain accumulation - checked LAST", "url": "https://www.windy.com/?ecmwf,rainAccu,19.244,73.130,7", "why": "Guide learning rule: identify the mechanism first. The rain layer is the output of everything above, not the starting point."}, {"title": "Point meteogram for this location", "url": "https://www.windy.com/19.244/73.130?19.244,73.130,10", "why": "Handbook Ch.20: where the precise numbers live - dew point against temperature, wind by level, hourly precipitation."}];
+const MLINKS = [{"title": "ECMWF rain accumulation", "url": "https://www.windy.com/?ecmwf,rainAccu,19.244,73.130,7", "why": "Handbook Ch.21: best global model overall, specifically strong for precipitation and cloud. Default read 2-7 days out."}, {"title": "GFS rain accumulation", "url": "https://www.windy.com/?gfs,rainAccu,19.244,73.130,7", "why": "Handbook Ch.21: updates 4x daily, catches fast-evolving situations sooner, but historically trails ECMWF on precipitation."}, {"title": "ICON rain accumulation", "url": "https://www.windy.com/?icon,rainAccu,19.244,73.130,7", "why": "Handbook Ch.21: strong competitive third model, used as a genuine tie-breaker rather than just a second opinion."}];
+let D = DAILY;                  /* the view currently on screen */
+let VIEW = DAILY.page === 'weekly' ? 'week' : 'today';
+
+/* ---------- theme ---------- */
+/* localStorage throws outright on an opaque origin (data: URLs, some file://
+   setups, private browsing). Unguarded, that exception kills the whole script
+   before anything renders and the page comes up blank - so every access is
+   wrapped and the theme simply falls back to the OS setting. */
+function storeGet(k){ try { return localStorage.getItem(k); } catch (e) { return null; } }
+function storeSet(k, v){ try { localStorage.setItem(k, v); } catch (e) { /* no-op */ } }
+
+const saved = storeGet('wx-theme');
+if (saved) document.documentElement.setAttribute('data-theme', saved);
+
+/* Tint the page from the day being shown. Derived from the IMD band, so it
+   tracks the actual forecast rather than a guess at "nice weather". */
+function applyMood(){
+  const days = (DAILY && DAILY.plainWeek) || (WEEKLY && WEEKLY.plainWeek) || [];
+  const head = (days[0] && days[0].headline || '').toLowerCase();
+  let mood = 'light';
+  if (/^(dry|mostly dry)/.test(head)) mood = 'sunny';
+  else if (/very heavy|extremely heavy/.test(head)) mood = 'severe';
+  else if (/heavy/.test(head)) mood = 'heavy';
+  else if (/moderate/.test(head)) mood = 'wet';
+  else if (/light/.test(head)) mood = 'light';
+  document.documentElement.setAttribute('data-wx', mood);
+}
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme')
+    || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  storeSet('wx-theme', next);
+}
+
+/* ---------- helpers ---------- */
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nn = v => (v === null || v === undefined) ? '--' : v;
+
+const tip = document.getElementById('tip');
+function showTip(e, html){
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY - r.height - 10;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y < 8) y = e.clientY + 18;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function hideTip(){ tip.style.opacity = 0; }
+
+/* ---------- column chart (magnitude over time, single series) ---------- */
+function columns(rows, opts){
+  const W = 980, H = 190, PT = 22, PB = 26, PL = 34, PR = 8;
+  const max = Math.max(opts.max || 0, ...rows.map(r => r.v), 0.1);
+  const n = rows.length;
+  const band = (W - PL - PR) / n;
+  // Bars capped at 24px, with a 2px surface gap between neighbours.
+  const bw = Math.max(3, Math.min(24, band - 2));
+  const y = v => H - PB - (v / max) * (H - PT - PB);
+
+  let g = '';
+  // recessive gridlines + ticks
+  const steps = 4;
+  for (let i = 0; i <= steps; i++){
+    const v = max * i / steps, yy = y(v);
+    g += `<line class="gl" x1="${PL}" x2="${W-PR}" y1="${yy}" y2="${yy}"/>`;
+    g += `<text class="tick" x="${PL-7}" y="${yy+3.5}" text-anchor="end">${
+      v >= 10 ? v.toFixed(0) : v.toFixed(1)}</text>`;
+  }
+  g += `<line class="base" x1="${PL}" x2="${W-PR}" y1="${H-PB}" y2="${H-PB}"/>`;
+
+  rows.forEach((r, i) => {
+    const cx = PL + band * i + band / 2;
+    const x = cx - bw / 2;
+    const hh = Math.max(0, H - PB - y(r.v));
+    if (r.v > 0){
+      // 4px rounded data-end, square at the baseline
+      const rr = Math.min(4, bw / 2, hh);
+      const fill = r.fill || 'var(--series-1)';
+      g += `<path d="M${x},${H-PB} L${x},${H-PB-hh+rr} Q${x},${H-PB-hh} ${x+rr},${H-PB-hh}
+        L${x+bw-rr},${H-PB-hh} Q${x+bw},${H-PB-hh} ${x+bw},${H-PB-hh+rr}
+        L${x+bw},${H-PB} Z" fill="${fill}"/>`;
+    }
+    if (r.label) g += `<text class="tick" x="${cx}" y="${H-PB+15}" text-anchor="middle">${esc(r.label)}</text>`;
+    g += `<rect class="hit" x="${PL+band*i}" y="${PT-10}" width="${band}" height="${H-PT-PB+20}"
+      data-tip="${esc(r.tip)}"/>`;
+  });
+
+  // label only the extreme, never every bar
+  const peak = rows.reduce((a,b) => b.v > a.v ? b : a, rows[0] || {v:0});
+  if (peak && peak.v > 0){
+    const pi = rows.indexOf(peak);
+    const cx = PL + band * pi + band / 2;
+    g += `<text class="vlab" x="${cx}" y="${y(peak.v)-7}" text-anchor="middle">${
+      peak.v >= 10 ? peak.v.toFixed(0) : peak.v.toFixed(1)}${opts.unit||''}</text>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.aria||'')}">${g}</svg>`;
+}
+
+/* ---------- donut: share of a day's rain by time of day ----------------
+   A pie/donut is only defensible for part-to-whole, at a glance, with few
+   segments - which is exactly this: five ordered slices of one day's rain.
+   It is NOT used for the nine-area comparison, where the values are close and
+   numerous and a bar chart reads far better.
+   The slices are an ORDERED ramp (dawn -> night), not categorical hues, and
+   every value is repeated in the table beneath so nothing is gated behind
+   colour or a hover. */
+function donut(rows, opts){
+  const W = 460, H = 260, cx = 130, cy = 130, r = 96, inner = 58;
+  const total = rows.reduce((a, b) => a + b.v, 0);
+  if (total <= 0){
+    return `<p class="sub">No rain to break down for this day.</p>`;
+  }
+
+  let a0 = -Math.PI / 2, g = '';
+  const GAP = 0.016;                       // surface gap between slices, in rad
+
+  rows.forEach((r0, i) => {
+    const frac = r0.v / total;
+    if (frac <= 0) return;
+    const a1 = a0 + frac * Math.PI * 2;
+    const s = a0 + GAP / 2, e = Math.max(s, a1 - GAP / 2);
+    const large = (e - s) > Math.PI ? 1 : 0;
+    const p = (rad, radius) => [cx + radius * Math.cos(rad), cy + radius * Math.sin(rad)];
+    const [x1, y1] = p(s, r), [x2, y2] = p(e, r);
+    const [x3, y3] = p(e, inner), [x4, y4] = p(s, inner);
+    g += `<path d="M${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2}
+      L${x3},${y3} A${inner},${inner} 0 ${large} 0 ${x4},${y4} Z"
+      fill="${r0.fill}"/>`;
+    g += `<rect class="hit" x="0" y="0" width="${W}" height="${H}"
+      style="pointer-events:none"/>`;
+    a0 = a1;
+  });
+
+  // Hero figure in the hole - the number the chart is actually about.
+  g += `<text x="${cx}" y="${cy - 4}" text-anchor="middle"
+     style="font-size:26px;font-weight:660;fill:var(--text-primary)">${total.toFixed(0)}</text>`;
+  g += `<text x="${cx}" y="${cy + 15}" text-anchor="middle"
+     style="font-size:11px;fill:var(--muted)">mm total</text>`;
+
+  // Legend: identity never rests on colour alone.
+  rows.forEach((r0, i) => {
+    const y = 26 + i * 21;
+    const pct = total ? (r0.v / total * 100) : 0;
+    g += `<rect x="266" y="${y - 9}" width="11" height="11" rx="3" fill="${r0.fill}"/>`;
+    g += `<text x="284" y="${y}" style="font-size:12px;fill:var(--text-primary)">${esc(r0.label)}</text>`;
+    g += `<text x="${W - 6}" y="${y}" text-anchor="end"
+       style="font-size:12px;fill:var(--text-secondary);font-variant-numeric:tabular-nums">${r0.v.toFixed(1)} mm · ${pct.toFixed(0)}%</text>`;
+  });
+
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.aria || '')}">${g}</svg>`;
+}
+
+/* ---------- heatmap: week x time of day -------------------------------- */
+function heatmap(days, parts, cells, opts){
+  const W = 980, LEFT = 96, TOP = 26, CH = 34, PAD = 4;
+  const H = TOP + parts.length * CH + 16;
+  const colW = (W - LEFT - 8) / days.length;
+  const max = Math.max(...cells.flat(), 0.1);
+  let g = '';
+
+  days.forEach((d, i) => {
+    g += `<text class="tick" x="${LEFT + colW * i + colW / 2}" y="${TOP - 10}"
+       text-anchor="middle">${esc(d)}</text>`;
+  });
+
+  parts.forEach((p, r) => {
+    const y = TOP + r * CH;
+    g += `<text class="tick" x="${LEFT - 10}" y="${y + CH / 2 + 4}"
+       text-anchor="end">${esc(p)}</text>`;
+    days.forEach((d, c) => {
+      const v = cells[r][c] || 0;
+      const t = Math.min(1, v / max);
+      // One hue, light->dark. Opacity carries magnitude against the surface,
+      // so it reads correctly in both themes without a second palette.
+      const op = v <= 0.05 ? 0 : 0.14 + t * 0.86;
+      const x = LEFT + colW * c;
+      g += `<rect x="${x + PAD / 2}" y="${y + PAD / 2}"
+         width="${colW - PAD}" height="${CH - PAD}" rx="5"
+         fill="var(--series-1)" fill-opacity="${op.toFixed(3)}"/>`;
+      if (v <= 0.05){
+        g += `<rect x="${x + PAD / 2}" y="${y + PAD / 2}"
+           width="${colW - PAD}" height="${CH - PAD}" rx="5"
+           fill="none" stroke="var(--grid)"/>`;
+      }
+      g += `<rect class="hit" x="${x}" y="${y}" width="${colW}" height="${CH}"
+         data-tip="${esc(d + ' ' + p + ' — ' + v.toFixed(1) + ' mm')}"/>`;
+    });
+  });
+
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.aria || '')}">${g}</svg>`;
+}
+
+/* ---------- horizontal bars ---------- */
+function hbars(rows, opts){
+  const W = 980, RH = 34, PL = opts.labelWidth || 168, PR = 62;
+  const H = rows.length * RH + 12;
+  const max = Math.max(...rows.map(r => r.v), 0.1);
+  let g = '';
+  rows.forEach((r, i) => {
+    const y = i * RH + 6;
+    const bh = Math.min(24, RH - 12);
+    const len = Math.max(0, (r.v / max) * (W - PL - PR));
+    const rr = Math.min(4, bh / 2, len);
+    g += `<text class="tick" x="0" y="${y+bh/2+4}" style="fill:var(--text-primary);font-size:12.5px">${esc(r.label)}</text>`;
+    if (r.sub) g += `<text class="tick" x="${PL-10}" y="${y+bh/2+4}" text-anchor="end">${esc(r.sub)}</text>`;
+    if (len > 0){
+      g += `<path d="M${PL},${y} L${PL+len-rr},${y} Q${PL+len},${y} ${PL+len},${y+rr}
+        L${PL+len},${y+bh-rr} Q${PL+len},${y+bh} ${PL+len-rr},${y+bh} L${PL},${y+bh} Z"
+        fill="${r.fill || 'var(--series-1)'}"/>`;
+    }
+    g += `<text class="vlab" x="${PL+len+9}" y="${y+bh/2+4}">${esc(r.valLabel)}</text>`;
+    g += `<rect class="hit" x="0" y="${y-4}" width="${W}" height="${RH}" data-tip="${esc(r.tip)}"/>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.aria||'')}">${g}</svg>`;
+}
+
+function meter(rank){
+  let s = '<div class="meter">';
+  for (let i = 1; i <= 5; i++) s += `<i class="${i <= rank ? 'on' : ''}"></i>`;
+  return s + '</div>';
+}
+
+/* ---------- weekly layout ---------- */
+function renderWeekly(){
+  const T = D.thresholds;
+  let h = '';
+  h += `<header>
+    <div>
+      <h1>Mumbai MMR — week ahead</h1>
+      <p class="sub">${esc(D.validDate)} · issued ${esc(D.issued)} · ${esc(D.season)}</p>
+    </div>
+    ${navHtml('week')}
+  </header>`;
+
+  h += `<div class="card">
+    <div class="hero"><div class="fig" style="font-size:38px">${esc(D.weekRegime.label)}</div></div>
+    <p class="headline" style="font-weight:400;font-size:15px;color:var(--text-secondary)">${esc(D.weekRegime.note)}</p>
+    <div class="quote">Built from wind-pattern analysis — the 850 hPa terrain-normal component,
+      the monsoon trough position and the offshore trough — not from a rainfall total.</div>
+  </div>`;
+
+  h += summaryHtml();
+  h += windyMapHtml();
+  h += driversHtml();
+  h += skodaHtml();
+
+  /* ---- alerts ---- */
+  if (D.alerts && D.alerts.length){
+    h += `<div class="card"><h2>⚡ Major weather shifts this week</h2>
+      ${D.alerts.map(a => `<div class="alert a-${esc(a.severity)}">
+        <div class="ai">${esc(a.icon)}</div>
+        <div><div class="at"><span class="tag">${esc(a.label)}</span> ${esc(a.title)}</div>
+        <div class="ab">${esc(a.body)}</div></div></div>`).join('')}
+    </div>`;
+  } else {
+    h += `<div class="card"><h2>⚡ Major weather shifts this week</h2>
+      <p class="sub" style="margin:0">None — the pattern holds steady all week.</p></div>`;
+  }
+
+  /* ---- area by area across the MMR ---- */
+  if (D.areas && D.areas.length){
+    const maxWk = Math.max(...D.areas.map(a => a.weekMm), 1);
+    h += `<div class="card"><h2>Across the MMR — area by area</h2>
+      <p class="sub" style="margin:-6px 0 14px">The MMR is not one forecast.
+        Ranked wettest first; ★ marks your home belt.</p>
+      ${hbars(D.areas.map(a => ({
+        label: a.name + (a.home ? '  ★' : ''),
+        v: a.weekMm, valLabel: a.weekMm.toFixed(0) + ' mm',
+        fill: a.home ? 'var(--seq-550)' : 'var(--seq-400)',
+        tip: `<b>${esc(a.name)}</b><br>~${a.weekMm.toFixed(0)} mm this week<br>Wettest ${esc(a.wettestDay)} (${a.wettestMm.toFixed(0)} mm)`
+      })), {labelWidth:230, aria:'Weekly rainfall by MMR area'})}
+      <div class="scroll"><table><thead><tr><th>Area</th><th class="num">Week</th>
+        <th>Wettest</th><th>What to expect</th></tr></thead><tbody>
+      ${D.areas.map(a => `<tr><td>${esc(a.name)}${a.home ? ' ★' : ''}</td>
+        <td class="num">~${a.weekMm.toFixed(0)} mm</td><td>${esc(a.wettestDay)}</td>
+        <td>${esc(a.plain)}</td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="quote"><b>${esc(D.areas[0].name)}</b> takes about
+        ${D.areas[0].weekMm.toFixed(0)} mm this week against
+        ${D.areas[D.areas.length-1].weekMm.toFixed(0)} mm for
+        <b>${esc(D.areas[D.areas.length-1].name)}</b> — across a region you can
+        drive over in two hours. A single "Mumbai" number hides all of that.</div>
+    </div>`;
+  }
+
+  /* ---- systems ---- */
+  if (D.systems){
+    const sy = D.systems;
+    h += `<div class="card"><h2>Low pressure systems, troughs and storms</h2>
+      <p style="margin:0 0 12px">${esc(sy.trough)}</p>`;
+    if (sy.list && sy.list.length){
+      h += sy.list.map(s => `<div class="sysrow">
+        <div class="at"><span class="tag t-${esc(s.relevance)}">${esc(s.relevance)}</span> ${esc(s.headline)}</div>
+        <div class="ab">${esc(s.reasoning)}</div>
+        <div class="pc">Closest approach ~${s.distanceKm} km · minimum ${s.pressure} hPa · moves ${s.movedKm} km</div>
+      </div>`).join('');
+    } else {
+      h += `<p class="sub">No significant low pressure area or depression tracked
+        within range this week.</p>`;
+    }
+    if (sy.cycloneWindow){
+      h += `<div class="quote"><b>Cyclone season.</b> This month falls in an
+        Arabian Sea cyclone window. IMD's official cyclone bulletins are
+        authoritative; this tool is not.</div>`;
+    }
+    h += `</div>`;
+  }
+
+  /* ---- heat & cold gradient ---- */
+  if (D.thermalRows && D.thermalRows.length){
+    h += `<div class="card"><h2>Heat and cold across the region</h2>
+      <p class="sub" style="margin:-6px 0 12px">A gradient, not a number: coastal
+        Mumbai is sea-breeze protected, Kalyan sits just inland of that
+        protection, the plateau is exposed.</p>
+      <div class="scroll"><table><thead><tr><th>Place</th><th>IMD type</th>
+        <th class="num">Warmest</th><th class="num">Coolest night</th>
+        <th class="num">Peak feels-like</th><th>Flag</th></tr></thead><tbody>
+      ${D.thermalRows.map(t => {
+        let flag = '';
+        if (t.heatSpell >= 2) flag = '<span class="tag t-critical">heatwave criteria</span>';
+        else if (t.heatSpell === 1) flag = '<span class="tag t-watch">one hot day</span>';
+        else if (t.coldSpell >= 2) flag = '<span class="tag t-watch">cold criteria</span>';
+        else if (t.peakFeels >= 41) flag = '<span class="tag t-warning">danger (feels-like)</span>';
+        else if (t.peakFeels >= 32) flag = '<span class="tag t-watch">extreme caution</span>';
+        return `<tr><td>${esc(t.place)}</td><td class="muted">${esc(t.type)}</td>
+          <td class="num">${t.warmest === null ? '--' : t.warmest.toFixed(0)+'°'}</td>
+          <td class="num">${t.coolest === null ? '--' : t.coolest.toFixed(0)+'°'}</td>
+          <td class="num">${t.peakFeels === null ? '--' : t.peakFeels.toFixed(0)+'°'}</td>
+          <td>${flag}</td></tr>`;
+      }).join('')}
+      </tbody></table></div></div>`;
+  }
+
+  /* forcing chart - the spine */
+  const fRows = D.windRows.map(r => ({
+    v: Math.max(0, r.orographic), label: r.short,
+    fill: r.orographic >= T.orogVeryStrong ? 'var(--seq-650)'
+        : r.orographic >= T.orogStrong ? 'var(--seq-550)'
+        : r.orographic >= T.orogModerate ? 'var(--seq-400)' : 'var(--seq-250)',
+    tip: `<b>${esc(r.day)}</b><br>850 hPa ${esc(r.dir)} ${r.speed.toFixed(1)} m/s<br>Terrain-normal ${r.orographic.toFixed(1)} m/s — ${esc(r.forcing)}`
+  }));
+  h += `<div class="card"><h2>Orographic forcing — the spine of this outlook</h2>
+    <p class="sub" style="margin:-6px 0 12px">Component of the 850 hPa wind aimed square at the Ghat face (m/s).
+      Deeper shade = stronger forcing.</p>
+    ${columns(fRows,{max:T.orogVeryStrong*1.15,unit:' m/s',aria:'Daily orographic forcing'})}
+    <div class="scroll"><table><thead><tr><th>Day</th><th>850 hPa wind</th>
+      <th class="num">Speed</th><th class="num">Terrain-normal</th><th>Forcing</th></tr></thead><tbody>
+      ${D.windRows.map(r => `<tr><td>${esc(r.day)}</td><td>${esc(r.dir)}</td>
+        <td class="num">${r.speed.toFixed(1)} m/s</td>
+        <td class="num">${r.orographic >= 0 ? '+' : ''}${r.orographic.toFixed(1)} m/s</td>
+        <td>${esc(r.forcing)}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="quote">A fast wind blowing <i>parallel</i> to the ridge lifts almost nothing; a
+      moderate wind blowing straight at it lifts a great deal. Reference:
+      ${T.orogModerate.toFixed(1)} m/s &asymp; 15 kt (a loaded engine),
+      ${T.orogStrong.toFixed(1)} m/s &asymp; 20 kt.</div></div>`;
+
+  /* trough */
+  h += `<div class="card"><h2>Monsoon trough through the week</h2>
+    <div class="scroll"><table><thead><tr><th>Day</th><th class="num">Trough axis</th><th>Phase</th></tr></thead><tbody>
+    ${D.troughRows.map(r => `<tr><td>${esc(r.day)}</td><td class="num">${esc(r.axis)}</td>
+      <td><span class="pill s-${r.phase.indexOf('break') === 0 ? 'warning' : r.phase.indexOf('active') === 0 ? 'good' : 'none'}">
+      <span class="dot"></span>${esc(r.phase)}</span></td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="quote">A trough hugging the foothills (&ge;28&deg;N) for several consecutive days is
+      the break signal. A trough back over the plains is the active signal. Watch the
+      <i>direction of travel</i> across the week, not any single day.</div></div>`;
+
+  /* MMR matrix */
+  const zoneOrder = {coastal:0, transition:1, ghat:2, leeward:3};
+  h += `<div class="card"><h2>Rainfall across the MMR</h2>
+    <div class="scroll"><table><thead><tr><th>Site</th><th>Zone</th>
+      ${D.siteRows[0].cells.map(c => `<th class="num">${esc(c.short)}</th>`).join('')}
+      <th class="num">Week</th></tr></thead><tbody>
+    ${D.siteRows.map(s => `<tr><td>${esc(s.name)}${s.home ? ' &#9733;' : ''}</td>
+      <td class="muted" style="font-size:12px">${esc(s.zone)}</td>
+      ${s.cells.map(c => `<td class="num" title="${esc(c.tip)}">${c.hi >= 1
+        ? c.lo.toFixed(0) + '–' + c.hi.toFixed(0) : '—'}</td>`).join('')}
+      <td class="num"><b>~${s.week.toFixed(0)}</b></td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="quote">Cells show the <b>range across ECMWF, GFS and ICON</b> in mm/24h, never a
+      single number. The week column sums daily medians — an order-of-magnitude figure only.</div>
+    <div class="quote">The ghat-versus-Pune contrast is the diagnostic. A large contrast confirms a
+      classic westerly regime with the rain shadow intact; a small one means deep moisture and broad
+      ascent are overwhelming it — usually an inland system, and a wetter event for everyone.</div></div>`;
+
+  /* narratives */
+  h += `<div class="card"><h2>Day by day</h2>
+    ${D.narratives.map(n => `<div style="padding:13px 0;border-bottom:1px solid var(--border)">
+      <div style="font-weight:600;margin-bottom:4px">${esc(n.day)} — ${esc(n.regime)}</div>
+      <div style="color:var(--text-secondary);font-size:13.5px;line-height:1.6">${esc(n.text)}</div>
+    </div>`).join('')}</div>`;
+
+  if (D.synoptic){
+    h += `<div class="card"><h2>Synoptic setting</h2>
+      <div style="color:var(--text-secondary);font-size:13.5px;line-height:1.65">${D.synoptic}</div></div>`;
+  }
+
+  h += `<div class="grid g2">
+    <div class="card"><h2>Check it on Windy</h2>
+      ${LINKS.map(l => `<a class="lk" href="${esc(l.url)}" target="_blank" rel="noopener">
+        <b>${esc(l.title)}</b><span>${esc(l.why)}</span></a>`).join('')}</div>
+    <div class="card"><h2>Official sources</h2>
+      ${Object.entries(D.imdUrls).map(([k,v]) => `<a class="lk" href="${esc(v)}" target="_blank" rel="noopener"><b>${esc(k)}</b></a>`).join('')}
+      <a class="lk" href="${esc(D.tideUrl)}" target="_blank" rel="noopener"><b>Tide tables</b>
+        <span>Never synthesised here — look them up when rain reaches the heavy band.</span></a></div></div>`;
+
+  h += `<footer>Independent interpretation, not an official IMD product.<br>
+    Days 1–2: category is defensible. Days 3–5: trend and risk window only.
+    Days 6–7: scenario, confidence explicitly low.</footer>`;
+
+  document.getElementById('app').innerHTML = h;
+  document.querySelectorAll('.hit').forEach(el => {
+    el.addEventListener('mousemove', e => showTip(e, el.dataset.tip));
+    el.addEventListener('mouseleave', hideTip);
+  });
+  bindAll();
+  skodaGreet();
+}
+
+/* ==========================================================================
+   Sam - answers questions about this week's forecast.
+
+   Runs entirely in the page against the forecast payload. No network call, no
+   model: the artifact CSP blocks external hosts and the local file must work
+   offline, so anything requiring a server would be dead in both places.
+
+   The design rule that matters: Sam only ever states what is IN the data.
+   Every answer is assembled from payload fields. When he cannot answer he says
+   so and offers what he does hold, rather than improvising - a weather
+   assistant that guesses is worse than no assistant.
+   ========================================================================== */
+
+const SK = (() => {
+  const WD = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+  /* ---- voice -----------------------------------------------------------
+     Sam reads aloud in the user's head, so he gets the cadence of someone
+     answering a question rather than a database printing a row. The openers
+     rotate on a hash of the question, not at random: asking the same thing
+     twice should give the same reply, and a colleague who repeated himself
+     differently every time would be unsettling rather than natural.
+     Personality is in the framing only - never in the facts. */
+
+  function seed(q){
+    let h = 0;
+    for (let i = 0; i < q.length; i++) h = ((h << 5) - h + q.charCodeAt(i)) | 0;
+    return Math.abs(h);
+  }
+  function pickOne(list, q){ return list[seed(q) % list.length]; }
+
+  const OPEN_RAIN = [
+    "Right —", "So,", "Okay —", "Here's the picture:", "Looking at it:",
+  ];
+  const OPEN_GOOD = [
+    "Good news —", "You're fine here —", "Nothing to worry about —",
+  ];
+  const OPEN_BAD = [
+    "Heads up —", "Worth planning around this —", "This one needs care —",
+  ];
+  const OPEN_UNSURE = [
+    "Honestly, this one's marginal —", "I'd hedge here —",
+    "Not a confident call —",
+  ];
+
+  function opener(q, mood){
+    const bank = mood === 'good' ? OPEN_GOOD
+               : mood === 'bad' ? OPEN_BAD
+               : mood === 'unsure' ? OPEN_UNSURE
+               : OPEN_RAIN;
+    return pickOne(bank, q);
+  }
+
+  /* Mood from the day itself, so the tone matches the content. */
+  function moodOf(entry){
+    const h = (entry.headline || '').toLowerCase();
+    if (/very heavy|extremely heavy/.test(h)) return 'bad';
+    if (/heavy/.test(h)) return 'bad';
+    if (/^mostly dry|^dry/.test(h)) return 'good';
+    if (/possible|unlikely/.test(h)) return 'unsure';
+    return 'neutral';
+  }
+
+  /* Strip source citations. They belong in the written bulletin, which is the
+     technical record; in conversation "Guide s12.1:" is just noise in front of
+     the sentence that actually answers the question. */
+  function deCite(s){
+    let t = (s || '')
+      // bracketed asides first: "(Guide s11.1)"
+      .replace(/\s*\((?:Guide|Handbook)[^)]*\)/gi, '')
+      // then inline references, longest form first
+      .replace(/\b(?:Guide|Handbook)\s+Case Study\s+[A-F]\b/gi, '')
+      .replace(/\b(?:Guide|Handbook)\s+Ch\.?\s*\d+(?:\/\d+)*\b/gi, '')
+      .replace(/\b(?:Guide|Handbook)\s*(?:§|s)?\s*\d+(?:\.\d+)*\b/gi, '')
+      // Removing a citation can strand the connector that introduced it -
+      // "the orographic engine of ." - so drop a dangling preposition that is
+      // now sitting immediately before punctuation or the end of the string.
+      .replace(/\s+\b(?:of|in|per|from|see|via)\b\s*(?=[.,;:)]|$)/gi, '')
+      .replace(/\s*:\s*(?=[.,;)]|$)/g, '')
+      // A citation that introduced a clause ("...field. Guide s12.1: this...")
+      // leaves its colon stranded after the previous sentence's full stop.
+      .replace(/([.!?])\s*:\s*/g, '$1 ')
+      .replace(/\s+([.,;:])/g, '$1')
+      // ASCII arrows read as code in a chat bubble.
+      .replace(/\s*->\s*/g, ' → ')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/^[\s:—–-]+/, '')
+      .trim();
+    // A citation at the head of a sentence leaves the next word lowercase.
+    t = t.replace(/(^|[.!?]\s+|\n)([a-z])/g, (m, pre, ch) => pre + ch.toUpperCase());
+    return t;
+  }
+
+  /* Sam reads from BOTH payloads, never from D.
+     D is whichever view is on screen, and it swaps when the reader taps a tab.
+     Reading from it made his knowledge depend on the tab: on the MMR week view
+     D has no plainWeek, so he answered "the weekend isn't inside the current
+     seven-day window" while the daily payload held it all along. What he knows
+     must not change based on what is being displayed. */
+  function pick(key){
+    const a = DAILY && DAILY[key];
+    if (a && (!Array.isArray(a) || a.length)) return a;
+    const b = WEEKLY && WEEKLY[key];
+    if (b && (!Array.isArray(b) || b.length)) return b;
+    return null;
+  }
+
+  function week(){ return pick('plainWeek') || []; }
+  function areas(){ return pick('areas') || []; }
+  function alerts(){ return pick('alerts') || []; }
+  function thermal(){ return pick('thermal'); }
+  function thermalRows(){ return pick('thermalRows') || []; }
+  function systems(){ return pick('systems'); }
+  function nowcast(){ return pick('nowcast'); }
+  function issued(){ return pick('issued') || ''; }
+  function weekendMeta(){ return pick('weekend'); }
+
+  /* ---- dates ----------------------------------------------------------
+     Every forecast entry is resolved to a real Date, and relative words are
+     resolved against the reader's CLOCK, not against the array index. The
+     naive version treated days[0] as "today", which is wrong the moment the
+     page is a few hours old - open yesterday's build this morning and it
+     cheerfully answers "today" with yesterday's forecast. */
+
+  const MONTHS = ['january','february','march','april','may','june','july',
+                  'august','september','october','november','december'];
+
+  function midnight(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function today(){ return midnight(new Date()); }
+  function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+  function sameDay(a, b){ return a.getTime() === b.getTime(); }
+
+  /* Parse "Saturday 15 August" (the stored label) into a Date. The year is not
+     in the label, so it is inferred from the issue date and corrected for a
+     December-January rollover. */
+  function parseLabel(label){
+    if (!label) return null;
+    const m = label.match(/(\d{1,2})\s+([A-Za-z]+)/);
+    if (!m) return null;
+    const dom = parseInt(m[1], 10);
+    const mon = MONTHS.indexOf(m[2].toLowerCase());
+    if (mon < 0) return null;
+    let year = new Date().getFullYear();
+    const issued = (D.issued || '').match(/(\d{4})/);
+    if (issued) year = parseInt(issued[1], 10);
+    let dt = new Date(year, mon, dom);
+    // A window spanning New Year would otherwise land 12 months out.
+    const ref = today();
+    if (dt - ref > 300 * 864e5) dt = new Date(year - 1, mon, dom);
+    if (ref - dt > 300 * 864e5) dt = new Date(year + 1, mon, dom);
+    return dt;
+  }
+
+  function dated(){
+    return week().map(d => ({ entry: d, date: parseLabel(d.day) }))
+                 .filter(x => x.date);
+  }
+
+  function windowText(){
+    const ds = dated();
+    if (!ds.length) return 'the current forecast window';
+    const f = ds[0].date, l = ds[ds.length - 1].date;
+    const fmt = (x) => x.toLocaleDateString(undefined,
+                        { weekday:'short', day:'numeric', month:'short' });
+    return `${fmt(f)} to ${fmt(l)}`;
+  }
+
+  /* Resolve a target Date from the question, or null. */
+  function targetDate(q){
+    const ref = today();
+    if (/\bday after tomorrow\b/.test(q)) return addDays(ref, 2);
+    if (/\btomorrow\b|\btmrw\b|\btmr\b/.test(q)) return addDays(ref, 1);
+    if (/\btoday\b|\btonight\b|\bthis evening\b|\bright now\b|\bnow\b/.test(q)) return ref;
+    if (/\byesterday\b/.test(q)) return addDays(ref, -1);
+
+    // "15 aug", "aug 15", "15th", "on the 15", "15/8"
+    let m = q.match(/\b(\d{1,2})\s*(?:st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/);
+    if (!m) {
+      const m2 = q.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})\b/);
+      if (m2) m = [m2[0], m2[2], m2[1]];
+    }
+    if (m){
+      const dom = parseInt(m[1], 10);
+      const mon = MONTHS.findIndex(x => x.startsWith(m[2]));
+      if (mon >= 0){
+        const hit = dated().find(x => x.date.getDate() === dom && x.date.getMonth() === mon);
+        return hit ? hit.date : new Date(ref.getFullYear(), mon, dom);
+      }
+    }
+    m = q.match(/\b(\d{1,2})\s*(?:st|nd|rd|th)\b/);
+    if (m){
+      const dom = parseInt(m[1], 10);
+      const hit = dated().find(x => x.date.getDate() === dom);
+      if (hit) return hit.date;
+    }
+
+    // Weekday name -> the occurrence inside the window.
+    for (let i = 0; i < 7; i++){
+      const name = WD[i].toLowerCase();
+      if (new RegExp('\\b' + name + '\\b').test(q)){
+        const hit = dated().find(x => x.date.getDay() === i);
+        if (hit) return hit.date;
+        for (let k = 1; k <= 7; k++){
+          const cand = addDays(ref, k);
+          if (cand.getDay() === i) return cand;
+        }
+      }
+    }
+    // Bare day-of-month as a last resort, e.g. "rain on 16".
+    m = q.match(/\bon\s+(\d{1,2})\b/) || q.match(/\b(\d{1,2})\b/);
+    if (m){
+      const dom = parseInt(m[1], 10);
+      if (dom >= 1 && dom <= 31){
+        const hit = dated().find(x => x.date.getDate() === dom);
+        if (hit) return hit.date;
+      }
+    }
+    return null;
+  }
+
+  /* Entry for a date, or a structured miss explaining why. */
+  function findDay(q){
+    const want = targetDate(q);
+    if (!want) return null;
+    const ds = dated();
+    const hit = ds.find(x => sameDay(x.date, want));
+    if (hit) return hit.entry;
+    return { _miss: true, wanted: want };
+  }
+
+  function findArea(q){
+    const list = areas();
+    if (!list.length) return null;
+    const alias = {
+      'kalyan':'kalyan_belt','dombivli':'kalyan_belt',
+      'thane':'thane_belt','bhiwandi':'thane_belt',
+      'colaba':'island_city','island city':'island_city','south mumbai':'island_city',
+      'suburb':'suburbs','andheri':'suburbs','borivali':'suburbs','bandra':'suburbs',
+      'santacruz':'suburbs','chembur':'suburbs','powai':'suburbs',
+      'navi mumbai':'navi_mumbai','panvel':'navi_mumbai','vashi':'navi_mumbai',
+      'badlapur':'badlapur_belt','ambernath':'badlapur_belt','karjat':'badlapur_belt',
+      'vasai':'north_mmr','virar':'north_mmr','palghar':'north_mmr',
+      'alibag':'south_mmr','raigad':'south_mmr',
+      'matheran':'ghats','lonavala':'ghats','khandala':'ghats','ghat':'ghats',
+      'trek':'ghats'
+    };
+    for (const k in alias){
+      if (q.includes(k)){
+        const hit = list.find(a => a.key === alias[k]);
+        if (hit) return hit;
+      }
+    }
+    for (const a of list){
+      if (q.includes((a.name || '').toLowerCase().split('—')[0].trim().toLowerCase())) return a;
+    }
+    return null;
+  }
+
+  /* ---- answer builders ---- */
+  function missAnswer(miss){
+    const want = miss.wanted;
+    const ref = today();
+    const label = want.toLocaleDateString(undefined,
+                    { weekday:'long', day:'numeric', month:'long' });
+    if (want < ref){
+      return `${label} is in the past — I only carry the forward forecast `
+           + `(${windowText()}). The "what fell" table further down the page `
+           + `has recent rainfall.`;
+    }
+    return `I don't have ${label}. This forecast covers ${windowText()} — `
+         + `seven days, no further. Beyond that the honest answer is that `
+         + `nobody can say much specific.`;
+  }
+
+  function staleNote(){
+    // The page is a static build; if it is not from today, say so before
+    // answering a question about "today".
+    const ds = dated();
+    if (!ds.length) return '';
+    const first = ds[0].date;
+    const gap = Math.round((today() - first) / 864e5);
+    if (gap <= 0) return '';
+    return `\n\n_Heads up: this page was built ${gap} day${gap > 1 ? 's' : ''} `
+         + `ago (data from ${issued() || 'an earlier run'}). Refresh it for a `
+         + `current read._`;
+  }
+
+  function dayAnswer(d, q){
+    if (d && d._miss) return missAnswer(d);
+    q = q || d.day || '';
+    const head = (d.headline || '').replace(/\.$/, '');
+    let s = `${opener(q, moodOf(d))} **${d.day}**: ${head.toLowerCase()}.`;
+    if (d.detail) s += `\n\n${d.detail}`;
+    if (d.advice) s += `\n\n${d.advice}`;
+    if (d.confidence) s += `\n\n_${d.confidence}_`;
+    return s + staleNote();
+  }
+
+  function isWeekendDay(p){
+    // Prefer the flag, but fall back to the day name so this still works on a
+    // page rendered before the flag existed.
+    if (typeof p.isWeekend === 'boolean') return p.isWeekend;
+    return /saturday|sunday/i.test(p.day || '');
+  }
+
+  function weekendAnswer(){
+    const wk = week().filter(isWeekendDay);
+    const meta = weekendMeta();
+    if (!wk.length){
+      return "The weekend isn't inside the current seven-day window. Ask me "
+           + "again closer to the time.";
+    }
+    let s = meta ? `**${meta.verdict}** ${meta.plans}\n\n` : '';
+    s += wk.map(d => {
+      const head = (d.headline || '').replace(/\.$/, '');
+      let t = `**${d.day}** — ${head.toLowerCase()}.`;
+      if (d.detail) t += `\n${d.detail}`;
+      if (d.advice) t += `\n${d.advice}`;
+      return t;
+    }).join('\n\n');
+    return s;
+  }
+
+  function areaAnswer(a){
+    let s = `**${a.name}** — ${a.accumulation || (a.weekMm ? '~' + a.weekMm.toFixed(0) + ' mm' : '')} this week.`;
+    if (a.plain) s += `\n${a.plain}`;
+    if (a.wettestDay) s += `\nWettest day: ${a.wettestDay}.`;
+    if (a.character) s += `\n\n${a.character}`;
+    return s;
+  }
+
+  function alertAnswer(){
+    const list = alerts();
+    if (!list.length){
+      return "Nothing flagged this week, happily — the pattern just holds "
+           + "steady the whole way through. Worth saying that's my own read "
+           + "rather than an IMD warning, so check them for anything official.";
+    }
+    const lead = list.length === 1
+      ? "One thing worth knowing about:"
+      : `${list.length} things worth knowing about:`;
+    return lead + "\n\n"
+         + list.map(a => `${a.icon} **${a.title}**\n${a.body}`).join('\n\n');
+  }
+
+  function heatAnswer(){
+    const t = thermal(), rows = thermalRows();
+    if (!t && !rows.length) return "I don't have the heat/cold outlook on this page.";
+    let s = t ? `**${t.headline}.**` : '';
+    if (rows.length){
+      s += '\n\n' + rows.map(r =>
+        `${r.place}: warmest ${r.warmest == null ? '--' : r.warmest.toFixed(0) + '°C'}`
+        + (r.peakFeels != null ? `, feels like up to ${r.peakFeels.toFixed(0)}°C` : '')
+      ).join('\n');
+    } else if (t && t.days && t.days.length){
+      const hot = t.days.reduce((a,b) => (b.tmax||-99) > (a.tmax||-99) ? b : a);
+      const feel = t.days.reduce((a,b) => (b.heatIndex||-99) > (a.heatIndex||-99) ? b : a);
+      s += `\n\nWarmest ${hot.day} at ${hot.tmax.toFixed(0)}°C.`;
+      if (feel.heatIndex != null)
+        s += ` Peak feels-like ${feel.heatIndex.toFixed(0)}°C on ${feel.day}.`;
+    }
+    if (t && t.caveat) s += `\n\n_${t.caveat}_`;
+    return s;
+  }
+
+  function systemAnswer(){
+    const sy = systems();
+    if (!sy) return "I don't have the systems analysis on this page.";
+    let s = sy.trough ? sy.trough + '\n\n' : '';
+    if (sy.list && sy.list.length){
+      s += sy.list.map(x => `**${x.headline}**\n${x.reasoning}`).join('\n\n');
+    } else {
+      s += "No significant low pressure area or depression tracked within "
+         + "range this week.";
+    }
+    if (sy.cycloneWindow){
+      s += "\n\nThis month sits in an Arabian Sea cyclone window. For anything "
+         + "beyond casual tracking, IMD's cyclone bulletins are the authority — "
+         + "not me.";
+    }
+    return s;
+  }
+
+  function whyAnswer(){
+    const regime = pick('regime'), mech = pick('mechanism');
+    if (regime || mech){
+      let s = regime ? `**${regime}**` : '';
+      const note = pick('regimeNote');
+      if (note) s += ` — ${note}`;
+      if (mech) s += `\n\n${mech}`;
+      return s;
+    }
+    const wr = pick('weekRegime');
+    if (wr) return `**${wr.label}.** ${wr.note}`;
+    return "I don't have the mechanism breakdown loaded.";
+  }
+
+  function nowAnswer(){
+    const nc = nowcast();
+    if (!nc || !nc.verdict)
+      return "No short-range read on this page. The radar links above are the "
+           + "better call for the next couple of hours anyway.";
+    return `${nc.verdict}\n\nFor the next 0–3 hours radar beats every model `
+         + `here — the IMD radar images are further down this page.`;
+  }
+
+  function compareAnswer(){
+    const list = areas();
+    if (list.length < 2){
+      return "I don't have enough areas on this page to compare. The **MMR "
+           + "week** page has the full nine-area breakdown.";
+    }
+    const w = list[0], d = list[list.length - 1];
+    let s = `Wettest: **${w.name}** (${w.accumulation || w.weekMm.toFixed(0)+' mm'}).\n`
+          + `Driest: **${d.name}** (${d.accumulation || d.weekMm.toFixed(0)+' mm'}).\n\n`
+          + `Rain isn't uniform across the MMR — coast, transition belt and `
+          + `Ghats behave differently in the same setup.`;
+    // Never present a ranking from an incomplete field as the final word.
+    const total = pick('areasTotal') || 9;
+    if (list.length < total){
+      s += `\n\n_Note: I have ${list.length} of ${total} areas loaded here. `
+         + `The MMR week view carries the full ranking._`;
+    }
+    return s;
+  }
+
+  function helpAnswer(){
+    return "I only know this week's forecast — nothing live, nothing beyond "
+         + "seven days. Within that, ask me things like:\n"
+         + "• how's the weekend looking\n"
+         + "• will it rain on Sunday\n"
+         + "• what about Thane, the Ghats, Navi Mumbai\n"
+         + "• anything I should watch out for\n"
+         + "• is it going to be hot\n"
+         + "• any low pressure system around\n"
+         + "• why is it raining\n"
+         + "• which part of the MMR gets the most";
+  }
+
+  /* ---- routing ---- */
+  function answer(raw){
+    const q = (raw || '').toLowerCase().trim();
+    if (!q) return helpAnswer();
+
+    if (/^(hi|hello|hey|namaste|yo|good morning|good evening)\b/.test(q))
+      return "Hello. What would you like to know? " + helpAnswer();
+
+    if (/thank|thanks|cheers|great|nice work/.test(q))
+      return "Any time. Shout if you want the weekend or a particular "
+           + "suburb checked.";
+
+    if (/help|what can you|how do i use/.test(q)) return helpAnswer();
+    if (/weekend|saturday|sunday/.test(q) && !/only (sat|sun)/.test(q)){
+      if (/weekend/.test(q)) return weekendAnswer();
+    }
+    if (/warn|alert|danger|risk|flood/.test(q)) return alertAnswer();
+    if (/heat|hot|temperature|cold|cool|humid/.test(q)) return heatAnswer();
+    if (/low pressure|lpa|depression|cyclone|system|trough|iod/.test(q))
+      return systemAnswer();
+    if (/^why|why is|why are|reason|because|mechanism|cause/.test(q))
+      return whyAnswer();
+    if (/right now|currently|at the moment|next few hours|nowcast/.test(q))
+      return nowAnswer();
+    if (/wettest|driest|compare|which (place|area|part)|most rain/.test(q))
+      return compareAnswer();
+
+    const day = findDay(q);
+    const area = findArea(q);
+    if (day && day._miss) return missAnswer(day);
+    if (day && area){
+      return `${dayAnswer(day, q)}\n\n_That's the Kalyan-anchored day forecast. `
+           + `For ${area.name} specifically I only hold the weekly figure: `
+           + `${area.accumulation || (area.weekMm ? '~'+area.weekMm.toFixed(0)+' mm' : 'n/a')}, `
+           + `wettest ${area.wettestDay || 'n/a'}._`;
+    }
+    if (day) return dayAnswer(day, q);
+    if (area) return areaAnswer(area);
+
+    // A place was clearly meant but no area data is loaded anywhere.
+    if (!areas().length && /ghat|lonavala|matheran|thane|vasai|virar|palghar|alibag|panvel|navi|badlapur|karjat|borivali|andheri|bandra|colaba|suburb|dombivli|bhiwandi|pune/.test(q)){
+      const d0 = week()[0];
+      return "I don't have per-area figures loaded — those come from the "
+           + "weekly MMR run.\n\n"
+           + (d0 ? `For Kalyan: ${d0.headline}` : '');
+    }
+
+    if (/rain|wet|shower|spell|umbrella/.test(q)){
+      const days = week();
+      if (days.length) return `Here's the week:\n\n`
+        + days.map(d => `**${d.short || d.day}** — ${d.headline}`).join('\n');
+    }
+
+    return "Sorry — I can't match that to anything I hold. I'd rather say so "
+         + "than guess at it.\n\n" + helpAnswer();
+  }
+
+  // Every answer goes through deCite, so no route can leak a citation.
+  return { answer: (q) => deCite(answer(q)), help: helpAnswer };
+})();
+
+/* ---------- live Windy map (tap to load) --------------------------------
+   Windy's Map Forecast API is a browser library, not a data feed - it embeds
+   the real interactive map. Two consequences shape this:
+
+   1. It pulls scripts from api.windy.com and unpkg.com, so it cannot run
+      anywhere external hosts are blocked. The published artifact is exactly
+      that case, so the card explains rather than showing a dead frame.
+   2. Every load consumes Windy session quota. Loading on demand means a phone
+      glancing at the forecast twice a day costs nothing. */
+function windyMapHtml(){
+  if (!D.windyMapKey) return '';
+  const blocked = !!D.artifact;
+  if (blocked){
+    return `<div class="card"><h2>Live Windy map</h2>
+      <p class="sub" style="margin:0">Can't run on this shared page — it needs
+      scripts from windy.com, and claude.ai blocks external sources. Open the
+      forecast from your own PC or the tunnel link and the map loads inline.</p>
+      </div>`;
+  }
+  return `<div class="card"><h2>Live Windy map</h2>
+    <p class="sub" style="margin:-6px 0 12px">The real Windy map, centred on
+      Kalyan. Loads only when you ask, so it doesn't burn quota on every visit.</p>
+    <div id="windyBox" class="windybox">
+      <button class="rbtn" id="windyLoad" type="button">Load live map</button>
+      <div class="wmsg">Wind, rain, radar, pressure and CAPE layers — scrub
+        forward through time once loaded.</div>
+    </div></div>`;
+}
+
+let windyLoaded = false;
+
+function loadWindyMap(){
+  if (windyLoaded) return;
+  const box = document.getElementById('windyBox');
+  if (!box || !D.windyMapKey) return;
+  windyLoaded = true;
+  box.innerHTML = '<div class="wmsg">Loading Windy…</div><div id="windy"></div>';
+
+  const fail = (why) => {
+    windyLoaded = false;
+    box.innerHTML = `<div class="wmsg">Couldn't load the map: ${esc(why)}.
+      <br>The layer links further down still work.</div>
+      <button class="rbtn" id="windyLoad" type="button">Try again</button>`;
+    bindWindy();
+  };
+
+  loadScript('https://unpkg.com/leaflet@1.4.0/dist/leaflet.js')
+    .then(() => loadScript('https://api.windy.com/assets/map-forecast/libBoot.js'))
+    .then(() => {
+      if (typeof windyInit !== 'function') return fail('library did not initialise');
+      windyInit({
+        key: D.windyMapKey,
+        lat: D.lat || 19.2437, lon: D.lon || 73.1305, zoom: 8,
+        verbose: false, overlay: 'rain',
+      }, () => {
+        const m = document.querySelector('#windyBox .wmsg');
+        if (m) m.remove();
+      });
+    })
+    .catch(() => fail('network blocked or offline'));
+}
+
+function loadScript(src){
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.async = true;
+    s.onload = res; s.onerror = () => rej(new Error(src));
+    document.head.appendChild(s);
+  });
+}
+
+function bindWindy(){
+  const b = document.getElementById('windyLoad');
+  if (b && !b.dataset.bound){
+    b.dataset.bound = '1';
+    b.addEventListener('click', loadWindyMap);
+  }
+}
+
+/* ---------- background climate drivers ---------------------------------- */
+function driversHtml(){
+  const d = (DAILY && DAILY.drivers) || (WEEKLY && WEEKLY.drivers);
+  if (!d) return '';
+
+  const tiles = [];
+
+  if (d.enso){
+    const e = d.enso;
+    const tone = e.phase === 'El Nino' ? 'bad' : e.phase === 'La Nina' ? 'good' : 'neu';
+    tiles.push({tone, name:'ENSO', value:`${e.phase}`,
+      sub:`Niño 3.4 ${e.anomaly >= 0 ? '+' : ''}${e.anomaly.toFixed(2)}°C · ${e.when}`,
+      spark:e.recent, text:e.text});
+  }
+  if (d.iod){
+    const i = d.iod;
+    const tone = i.phase === 'positive' ? 'good' : i.phase === 'negative' ? 'bad' : 'neu';
+    tiles.push({tone, name:'IOD', value:i.phase,
+      sub:`proxy DMI ${i.dmi >= 0 ? '+' : ''}${i.dmi.toFixed(2)}°C`,
+      text:i.text});
+  }
+  if (d.mjo){
+    const m = d.mjo;
+    const tone = m.favourability === 'favourable' ? 'good'
+               : m.favourability === 'unfavourable' ? 'bad' : 'neu';
+    tiles.push({tone, name:'MJO', value:`Phase ${m.phase}`,
+      sub:`${m.region} · ${m.lon.toFixed(0)}°E · ${m.favourability}`,
+      spark:m.track, text:m.text});
+  }
+  if (d.miso){
+    const s = d.miso;
+    const near = s.lat >= 15 && s.lat < 22;
+    tiles.push({tone: near ? 'good' : 'neu', name:'MISO',
+      value:`${s.lat.toFixed(0)}°N`,
+      sub:s.regime + (s.eta ? ` · ~${s.eta}d away` : ''),
+      spark:s.track, text:s.text});
+  }
+  if (!tiles.length) return '';
+
+  return `<div class="card"><h2>Background climate drivers</h2>
+    <p class="sub" style="margin:-6px 0 14px">These tilt the season's odds.
+      They do not forecast any single day — the week-to-week pattern does that.</p>
+    <div class="dgrid">
+      ${tiles.map((t, i) => `<button class="dtile d-${t.tone}" type="button"
+          data-drv="${i}" aria-expanded="false">
+        <div class="dname">${esc(t.name)}</div>
+        <div class="dval">${esc(t.value)}</div>
+        <div class="dsub">${esc(t.sub)}</div>
+        ${t.spark && t.spark.length > 2 ? sparkSvg(t.spark) : ''}
+      </button>`).join('')}
+    </div>
+    <div class="dtext" id="dtext">Tap any driver for what it means.</div>
+    ${d.coherence ? `<div class="quote">${mdBold(d.coherence.replace(/^>\s*/, ''))}</div>` : ''}
+  </div>`;
+}
+
+/* Tiny inline sparkline for a driver's recent track. */
+function sparkSvg(vals){
+  const w = 96, h = 22;
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const span = (hi - lo) || 1;
+  const pts = vals.map((v, i) =>
+    `${(i / (vals.length - 1) * w).toFixed(1)},${(h - (v - lo) / span * h).toFixed(1)}`
+  ).join(' ');
+  return `<svg class="dspark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"
+    aria-hidden="true"><polyline points="${pts}" fill="none"
+    stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"
+    stroke-linecap="round" opacity=".75"/></svg>`;
+}
+
+function bindDrivers(){
+  const grid = document.querySelector('.dgrid');
+  if (!grid || grid.dataset.bound) return;
+  grid.dataset.bound = '1';
+  const d = (DAILY && DAILY.drivers) || (WEEKLY && WEEKLY.drivers) || {};
+  const texts = [d.enso, d.iod, d.mjo, d.miso].filter(Boolean).map(x => x.text);
+  grid.addEventListener('click', ev => {
+    const btn = ev.target.closest('.dtile');
+    if (!btn) return;
+    grid.querySelectorAll('.dtile').forEach(b => {
+      b.classList.toggle('sel', b === btn);
+      b.setAttribute('aria-expanded', String(b === btn));
+    });
+    const out = document.getElementById('dtext');
+    if (out) out.textContent = texts[+btn.dataset.drv] || '';
+  });
+}
+
+/* ---------- week summary: what happened, what's coming, and why ---------- */
+function summaryHtml(){
+  const s = (DAILY && DAILY.summary) || (WEEKLY && WEEKLY.summary);
+  if (!s || !s.days || !s.days.length) return '';
+
+  const maxMm = Math.max(...s.days.map(d => d.hi), 1);
+  const strip = s.days.map(d => {
+    const pct = Math.max(4, Math.round(d.hi / maxMm * 100));
+    // Observed days are visually distinct from forecast ones - a reader must
+    // be able to see where measurement stops and prediction begins.
+    const cls = d.observed ? 'sday obs' : 'sday fc';
+    return `<div class="${cls}" title="${esc(d.day)}: ${d.hi.toFixed(1)} mm — ${esc(d.note)}">
+      <div class="sbarwrap"><div class="sbar" style="height:${pct}%"></div></div>
+      <div class="sval">${d.hi < 1 ? '–' : d.hi.toFixed(0)}</div>
+      <div class="slab">${esc(d.day.split(' ').slice(0,2).join(' '))}</div>
+    </div>`;
+  }).join('');
+
+  return `<section class="card summary">
+    <h2>The week in context — ${esc(s.start)} to ${esc(s.end)}</h2>
+    <p class="sbig">${esc(s.headline)}</p>
+    <p class="sub" style="margin:0 0 14px">${esc(s.outlook)}</p>
+
+    <div class="sstrip">${strip}</div>
+    <div class="skey">
+      <span><i class="kobs"></i> measured</span>
+      <span><i class="kfc"></i> forecast</span>
+    </div>
+
+    <details class="sdet" open>
+      <summary>Why the weather is doing this</summary>
+      ${s.meteorology.map(t => `<p>${mdBold(t)}</p>`).join('')}
+    </details>
+
+    <details class="sdet">
+      <summary>Why the region splits the way it does</summary>
+      ${s.geography.map(t => `<p>${mdBold(t)}</p>`).join('')}
+    </details>
+  </section>`;
+}
+
+/* Only bold + italic are honoured, and only after escaping, so nothing in the
+   data can inject markup. */
+function mdBold(t){
+  return esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+               .replace(/\*(.+?)\*/g, '<i>$1</i>');
+}
+
+function skodaHtml(){
+  return `<div class="skoda">
+    <div class="sk-head">
+      <div class="sk-av">🌂</div>
+      <div>
+        <div class="sk-name">Sam</div>
+        <div class="sk-role">Answers from this week's forecast — nothing else</div>
+      </div>
+    </div>
+    <div class="sk-log" id="skLog"></div>
+    <form class="sk-form" id="skForm">
+      <input class="sk-in" id="skIn" placeholder="Ask about this week's weather…"
+             autocomplete="off" aria-label="Ask Sam about the forecast">
+      <button class="sk-send" type="submit">Ask</button>
+    </form>
+    <div class="sk-chips" id="skChips">
+      ${["How's the weekend?","Any warnings?","What about the Ghats?",
+         "Why is it raining?","Wettest place this week?"]
+        .map(c => `<button class="sk-chip" type="button">${c}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+/* Handlers are bound in JS rather than written as onclick/onsubmit attributes.
+   A page served under a nonce-based Content-Security-Policy runs the script tag
+   but silently refuses inline attribute handlers - which would leave every
+   button here looking normal and doing nothing. Binding avoids depending on
+   the host's CSP at all. */
+function skodaBind(){
+  const form = document.getElementById('skForm');
+  if (form && !form.dataset.bound){
+    form.dataset.bound = '1';
+    form.addEventListener('submit', skAsk);
+  }
+  const chips = document.getElementById('skChips');
+  if (chips && !chips.dataset.bound){
+    chips.dataset.bound = '1';
+    chips.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('.sk-chip');
+      if (btn) skChip(btn);
+    });
+  }
+}
+
+function skPush(text, who){
+  const log = document.getElementById('skLog');
+  if (!log) return;
+  const el = document.createElement('div');
+  el.className = 'sk-msg ' + (who === 'q' ? 'sk-q' : 'sk-a');
+  // Minimal markdown: bold and italics only, escaped first.
+  el.innerHTML = esc(text)
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/_(.+?)_/g, '<i>$1</i>');
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+}
+
+function skAsk(ev){
+  if (ev) ev.preventDefault();
+  const input = document.getElementById('skIn');
+  if (!input) return false;
+  const q = input.value.trim();
+  if (!q) return false;
+  skPush(q, 'q');
+  input.value = '';
+  setTimeout(() => skPush(SK.answer(q), 'a'), 160);
+  return false;
+}
+
+function skChip(btn){
+  const input = document.getElementById('skIn');
+  if (!input) return;
+  input.value = btn.textContent;
+  skAsk(null);
+}
+
+/* ---------- refresh (only when served by wxagent serve) ---------- */
+/* Two conditions, both required:
+   - an http(s) origin, because opened straight from disk there is no server;
+   - not the published artifact, which IS https but is a static snapshot on
+     claude.ai with no /api/refresh behind it. Showing the button there would
+     give a control that always fails - worse than no control at all. */
+/* A public static host is https but has no /api/refresh behind it, exactly
+   like the artifact - so the refresh control is suppressed there too rather
+   than shipping a button that always fails. */
+const SERVED = (location.protocol === 'http:' || location.protocol === 'https:')
+               && !D.artifact && !D.public;
+
+function refreshBarHtml(){
+  if (!SERVED) return '';
+  return `<div class="rbar">
+    <button class="rbtn" id="rbtn" type="button">Refresh forecast</button>
+    <div class="rmsg" id="rmsg">Rebuilds today's forecast on your PC. Takes about a minute.</div>
+  </div>`;
+}
+
+let pollTimer = null;
+
+async function doRefresh(){
+  const btn = document.getElementById('rbtn');
+  const msg = document.getElementById('rmsg');
+  if (!btn || !msg) return;
+  btn.disabled = true;
+  msg.textContent = 'Starting…';
+  try {
+    const r = await fetch('/api/refresh', {method:'POST'});
+    const j = await r.json();
+    msg.textContent = j.message || j.status;
+    if (r.status === 202){
+      pollStatus();
+    } else {
+      btn.disabled = false;   // cooldown or already-running: let them retry
+    }
+  } catch (e) {
+    msg.textContent = 'Could not reach the PC. Is it awake and on the same WiFi?';
+    btn.disabled = false;
+  }
+}
+
+async function pollStatus(){
+  const btn = document.getElementById('rbtn');
+  const msg = document.getElementById('rmsg');
+  clearTimeout(pollTimer);
+  try {
+    const r = await fetch('/api/status');
+    const s = await r.json();
+    if (s.running){
+      msg.textContent = 'Rebuilding on the PC…';
+      pollTimer = setTimeout(pollStatus, 4000);
+      return;
+    }
+    if (s.last_result === 'ok'){
+      msg.textContent = 'Done — reloading.';
+      setTimeout(() => location.reload(), 700);
+      return;
+    }
+    if (s.last_result){
+      msg.textContent = 'Failed: ' + (s.last_error || s.last_result);
+    }
+  } catch (e) {
+    msg.textContent = 'Lost contact with the PC.';
+  }
+  if (btn) btn.disabled = false;
+}
+
+/* ---------- navigation ---------- */
+/* Two forms of nav: separate files cross-link; the single-page (artifact)
+   build swaps views in place, so one URL carries the whole forecast. */
+function navHtml(current){
+  if (WEEKLY){
+    return `<div class="tabs" role="tablist" id="viewTabs">
+      <button role="tab" type="button" data-view="today" aria-selected="${current==='today'}">Today</button>
+      <button role="tab" type="button" data-view="week" aria-selected="${current==='week'}">MMR week</button>
+    </div>`;
+  }
+  const other = current === 'today'
+    ? '<a class="navbtn" href="./mmr.html">MMR week &rsaquo;</a>'
+    : '<a class="navbtn" href="./index.html">&lsaquo; Today</a>';
+  const theme = D.artifact ? '' :
+    '<button class="navbtn" id="themeBtn" type="button">Light / dark</button>';
+  return `<div class="nav">${other}${theme}</div>`;
+}
+
+function showView(which){
+  VIEW = which;
+  D = (which === 'week') ? WEEKLY : DAILY;
+  render();
+  scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ---------- build ---------- */
+const statusText = {none:'No meaningful rain', good:'Light', warning:'Moderate',
+                    serious:'Heavy', critical:'Very heavy'};
+
+function render(){
+  if (D.page === 'weekly') return renderWeekly();
+  const c = D.confidence, ing = D.ingredients;
+  const probTxt = D.probability !== null ? D.probability + '%' : D.modelAgreement;
+  let h = '';
+
+  h += `<header>
+    <div>
+      <h1>${esc(D.site)} — rain forecast</h1>
+      <p class="sub">${esc(D.validDate)} · issued ${esc(D.issued)} · ${esc(D.season)}</p>
+    </div>
+    ${navHtml('today')}
+  </header>` + refreshBarHtml();
+
+  /* ---- major weather shift alerts, above everything ---- */
+  if (D.alerts && D.alerts.length){
+    h += `<div class="card" style="border-color:var(--alert-edge)">
+      <h2>⚡ Major weather shifts — next 7 days</h2>
+      ${D.alerts.map(a => `<div class="alert a-${esc(a.severity)}">
+        <div class="ai">${esc(a.icon)}</div>
+        <div><div class="at"><span class="tag">${esc(a.label)}</span> ${esc(a.title)}</div>
+        <div class="ab">${esc(a.body)}</div></div></div>`).join('')}
+    </div>`;
+  } else {
+    h += `<div class="card"><h2>⚡ Major weather shifts</h2>
+      <p class="sub" style="margin:0">No major shifts in the next seven days —
+        the pattern holds steady throughout.</p></div>`;
+  }
+
+  h += summaryHtml();
+  h += windyMapHtml();
+  h += driversHtml();
+  h += skodaHtml();
+
+  /* ---- the weekend, called out on its own ---- */
+  if (D.weekend && D.plainWeek){
+    const wk = D.plainWeek.filter(p => p.isWeekend);
+    if (wk.length){
+      h += `<div class="card"><h2>This weekend</h2>
+        <p style="margin:0 0 4px;font-size:16px;font-weight:620">${esc(D.weekend.verdict)}</p>
+        <p class="sub" style="margin:0 0 12px">${esc(D.weekend.plans)}</p>
+        ${wk.map(p => `<div class="pday">
+          <div class="pic">${esc(p.icon)}</div>
+          <div class="pbody">
+            <div class="pd">${esc(p.day)}</div>
+            <div class="ph">${esc(p.headline)}</div>
+            ${p.detail ? `<div class="pt">${esc(p.detail)}</div>` : ''}
+            ${p.advice ? `<div class="pa">${esc(p.advice)}</div>` : ''}
+            <div class="pc">${esc(p.confidence)}</div>
+          </div></div>`).join('')}
+      </div>`;
+    }
+  }
+
+  /* ---- plain English week ---- */
+  if (D.plainWeek && D.plainWeek.length){
+    h += `<div class="card"><h2>In plain English</h2>
+      <p class="sub" style="margin:-6px 0 14px">The forecast. Everything further
+        down is the working behind it.</p>`;
+    let prevAdvice = null, prevChar = null;
+    h += D.plainWeek.map(p => {
+      const showAdvice = p.advice && p.advice !== prevAdvice;
+      prevAdvice = p.advice;
+      return `<div class="pday">
+        <div class="pic">${esc(p.icon)}</div>
+        <div class="pbody">
+          <div class="pd">${esc(p.day)}</div>
+          <div class="ph">${esc(p.headline)}</div>
+          ${p.detail ? `<div class="pt">${esc(p.detail)}</div>` : ''}
+          ${showAdvice ? `<div class="pa">${esc(p.advice)}</div>` : ''}
+          <div class="pc">${esc(p.confidence)}</div>
+        </div></div>`;
+    }).join('');
+    h += `</div>`;
+  }
+
+  /* hero + headline */
+  h += `<div class="card">
+    <div class="hero">
+      <div class="fig">${esc(probTxt)}</div>
+      <div class="cap">chance of measurable rain (&ge;${D.heavyThreshold ? '2.5' : '2.5'} mm)
+        ${D.members ? `<br><span class="muted">from a ${D.members}-member ensemble</span>` : ''}</div>
+    </div>
+    <p class="headline">
+      <span class="pill s-${esc(D.status)}"><span class="dot"></span>${esc(D.statusIcon)}
+        ${esc(D.categoryLo === D.categoryHi ? D.categoryLo : D.categoryLo + ' to ' + D.categoryHi)}</span>
+      &nbsp;${D.rainLo.toFixed(0)}–${D.rainHi.toFixed(0)} mm expected · ${esc(D.character)}
+    </p>
+    <div class="quote">Report the <b>category</b>, not the millimetre figure — model agreement on
+      category is defensible, agreement on a number is not.</div>
+  </div>`;
+
+  /* tiles */
+  h += `<div class="card"><h2>At a glance</h2><div class="tiles">
+    <div class="tile"><div class="lab">Rain range</div><div class="val">${D.rainLo.toFixed(0)}–${D.rainHi.toFixed(0)}<span style="font-size:14px;font-weight:500"> mm</span></div>
+      <div class="note">median ${D.rainMedian.toFixed(0)} mm</div></div>
+    <div class="tile"><div class="lab">Peak hourly rate</div><div class="val">${D.peakRate}<span style="font-size:14px;font-weight:500"> mm/h</span></div>
+      <div class="note">${D.wetHours} wet hours, longest run ${D.longestRun} h</div></div>
+    <div class="tile"><div class="lab">Heavy-rain chance</div><div class="val">${D.probHeavy !== null ? D.probHeavy + '%' : '--'}</div>
+      <div class="note">&ge;${D.heavyThreshold} mm/24h (IMD heavy)</div></div>
+    <div class="tile"><div class="lab">Confidence — rain occurs</div><div class="val" style="font-size:17px">${esc(c.occurrence)}</div>${meter(c.occurrenceRank)}</div>
+    <div class="tile"><div class="lab">Confidence — amount</div><div class="val" style="font-size:17px">${esc(c.amount)}</div>${meter(c.amountRank)}</div>
+    <div class="tile"><div class="lab">Confidence — timing</div><div class="val" style="font-size:17px">${esc(c.timing)}</div>${meter(c.timingRank)}</div>
+  </div>
+  <div class="quote">${esc(c.rationale)}</div></div>`;
+
+  /* mechanism */
+  h += `<div class="card"><h2>Mechanism — why, before how much</h2>
+    <p style="margin:0 0 8px"><b>${esc(D.regime)}</b> — ${esc(D.regimeNote)}</p>
+    <p style="margin:0;color:var(--text-secondary);font-size:14px">${esc(D.mechanism)}</p>
+    <div class="quote">system &rarr; wind response &rarr; moisture transport &rarr; lifting zone
+      &rarr; expected rain footprint</div></div>`;
+
+  /* hourly */
+  const hourRows = D.hourly.map(r => ({
+    v: r.mm,
+    label: r.h % 3 === 0 ? String(r.h).padStart(2,'0') : '',
+    tip: `<b>${String(r.h).padStart(2,'0')}:00</b> — ${r.mm.toFixed(1)} mm/h`
+  }));
+  h += `<div class="card"><h2>Hour by hour — rainfall rate (mm/h)</h2>
+    ${columns(hourRows, {unit:' mm/h', aria:'Hourly rainfall rate through the day'})}
+    <div class="quote">A day's total is often dominated by a few intense bursts — plan around
+      the burst, not the daily average.</div></div>`;
+
+  /* windows + models */
+  h += `<div class="grid g2">`;
+  const wRows = D.windows.map(w => ({
+    label: w.label, sub: `${String(w.start).padStart(2,'0')}–${String(w.end).padStart(2,'0')}`,
+    v: w.mm, valLabel: w.mm.toFixed(1) + ' mm',
+    tip: `<b>${esc(w.label)}</b> — ${w.mm.toFixed(1)} mm, peak ${w.peak.toFixed(1)} mm/h<br>Risk: ${esc(w.risk)}`
+  }));
+  h += `<div class="card"><h2>When</h2>${hbars(wRows,{labelWidth:150,aria:'Rain by part of day'})}</div>`;
+
+  const mRows = D.models.map(m => ({
+    label: m.name, v: m.mm, valLabel: m.mm.toFixed(1) + ' mm',
+    tip: `<b>${esc(m.name)}</b> — ${m.mm.toFixed(1)} mm (${esc(m.band)})`
+  }));
+  h += `<div class="card"><h2>Model comparison</h2>${hbars(mRows,{labelWidth:110,aria:'24-hour total by model'})}
+    <div class="quote">No arithmetic mean is shown, deliberately — averaging models that represent
+      different physical scenarios hides the reason they disagree.</div>
+    ${D.spreadWarning ? `<div class="warn">${esc(D.spreadWarning)}</div>` : ''}</div>`;
+  h += `</div>`;
+
+  /* terrain gradient */
+  if (D.gradient.length){
+    // Ordinal ramp along the windward approach (coast -> transition -> crest),
+    // every step clear of the ordinal contrast floor in both modes. The
+    // leeward site is NOT a step on that ramp - it is the control the gradient
+    // is measured against, so it takes neutral ink rather than a blue step.
+    const ramp = {coastal:'var(--seq-250)', transition:'var(--seq-400)',
+                  ghat:'var(--seq-550)', leeward:'var(--axis)'};
+    const gRows = D.gradient.map(s => ({
+      label: s.name + (s.home ? '  ★' : ''), sub: s.zone,
+      v: s.hi, valLabel: `${s.lo.toFixed(0)}–${s.hi.toFixed(0)} mm`,
+      fill: ramp[s.zone] || 'var(--series-1)',
+      tip: `<b>${esc(s.name)}</b> (${esc(s.zone)})<br>${s.lo.toFixed(0)}–${s.hi.toFixed(0)} mm · 850 hPa ${esc(s.wind)}<br>Terrain: ${esc(s.terrain)}`
+    }));
+    h += `<div class="card"><h2>Coast &rarr; crest &rarr; rain shadow</h2>
+      <p class="sub" style="margin:-6px 0 12px">Shade deepens along the windward approach;
+        the leeward control is grey.</p>
+      ${hbars(gRows,{labelWidth:200,aria:'Rainfall across the terrain gradient'})}
+      ${D.gradientVerdict ? `<div class="quote">${esc(D.gradientVerdict)}</div>` : ''}
+      <div class="quote">The same westerly is <i>upslope</i> at Matheran and <i>descending</i> at
+        Pune — which is why Pune is carried as a control, not another forecast point.</div></div>`;
+  }
+
+  /* outlook */
+  if (D.outlook.length){
+    const oRows = D.outlook.map(d => ({
+      v: d.hi, label: d.short,
+      tip: `<b>${esc(d.day)}</b> — ${d.lo.toFixed(0)}–${d.hi.toFixed(0)} mm<br>${esc(d.regime)}${d.chance ? '<br>Rain chance ' + esc(d.chance) : ''}`
+    }));
+    h += `<div class="card"><h2>Days ahead — rainfall range (mm)</h2>
+      ${columns(oRows,{unit:' mm',aria:'Daily rainfall for the days ahead'})}
+      <div class="scroll"><table><thead><tr><th>Day</th><th>Regime</th><th class="num">Rain</th><th class="num">Chance</th></tr></thead><tbody>
+      ${D.outlook.map(d => `<tr><td>${esc(d.day)}</td><td>${esc(d.regime)}</td>
+        <td class="num">${d.lo.toFixed(0)}–${d.hi.toFixed(0)} mm</td><td class="num">${esc(d.chance||'--')}</td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="quote">At 3–5 days give the trend and risk window only — avoid exact hourly or
+        suburb-level claims at this range.</div></div>`;
+  }
+
+  /* ---- when in the day does it rain (donut + heatmap) ---- */
+  // `windows` carries the same per-daypart totals and has been in the payload
+  // all along, so the donut works on older builds too rather than waiting for
+  // the next full run.
+  D.dayparts = D.dayparts
+    || (D.windows || []).map(w => ({label: w.label, mm: w.mm}));
+
+  if (D.dayparts && D.dayparts.some(p => p.mm > 0)){
+    const ramp = ['var(--seq-250)','var(--seq-350)','var(--seq-450)',
+                  'var(--seq-550)','var(--seq-650)'];
+    const rows = D.dayparts.map((p, i) => ({
+      label: p.label, v: p.mm, fill: ramp[i % ramp.length]
+    }));
+    const total = rows.reduce((a,b) => a + b.v, 0);
+    h += `<div class="card"><h2>When it rains today</h2>
+      <p class="sub" style="margin:-6px 0 10px">Share of the day's rain by time
+        of day. Shade runs pre-dawn → night.</p>
+      ${donut(rows, {aria:"Share of today's rain by time of day"})}
+      <div class="scroll"><table><thead><tr><th>Time of day</th>
+        <th class="num">Rain</th><th class="num">Share</th></tr></thead><tbody>
+        ${rows.map(r => `<tr><td>${esc(r.label)}</td>
+          <td class="num">${r.v.toFixed(1)} mm</td>
+          <td class="num">${total ? (r.v/total*100).toFixed(0) : 0}%</td></tr>`).join('')}
+      </tbody></table></div></div>`;
+  }
+
+  if (D.heatmap && D.heatmap.cells && D.heatmap.cells.length){
+    const hm = D.heatmap;
+    h += `<div class="card"><h2>The week, hour block by hour block</h2>
+      <p class="sub" style="margin:-6px 0 12px">Darker means more rain. The
+        empty cells are your dry windows.</p>
+      ${heatmap(hm.days, hm.parts, hm.cells, {aria:'Rainfall by day and time of day'})}
+      <div class="quote">Read the columns for "which day", the rows for "what
+        time". A row that stays dark all week is a time of day worth avoiding
+        for anything outdoors.</div></div>`;
+  }
+
+  /* ---- nowcast + live radar ---- */
+  if (D.nowcast && D.nowcast.radar){
+    const nc = D.nowcast;
+    h += `<div class="card"><h2>Now — next few hours</h2>
+      <p class="sub" style="margin:-6px 0 12px">For the next 0–3 hours, radar
+        outranks every model on this page.</p>
+      ${nc.verdict ? `<p style="margin:0 0 14px">${esc(nc.verdict)}</p>` : ''}
+      ${nc.hours && nc.hours.length ? columns(nc.hours.map(x => ({
+          v:x.mm, label:x.t.slice(0,2),
+          tip:`<b>${esc(x.t)}</b> — ${x.mm.toFixed(1)} mm/h`
+        })), {unit:' mm/h', aria:'Next hours of modelled rainfall'}) : ''}
+      <div class="radarbar">
+        <span class="rdot" id="rdot"></span>
+        <span id="rstamp">Radar — loading…</span>
+        <button class="sk-chip" type="button" id="rnow">Refresh now</button>
+      </div>
+      <div class="radar" id="radarWrap">
+        ${nc.radar.slice(0,2).map(r => `<figure>
+          <img data-radar="${esc(r.url.split('?')[0])}" alt="${esc(r.name)}">
+          <figcaption><b>${esc(r.name)}</b><br>${esc(r.why)}</figcaption>
+        </figure>`).join('')}
+      </div>
+      <div style="margin-top:12px">
+        ${nc.radar.slice(2).map(r => `<a class="lk" href="${esc(r.url)}" target="_blank" rel="noopener">
+          <b>${esc(r.name)}</b><span>${esc(r.why)}</span></a>`).join('')}
+        <a class="lk" href="${esc(nc.radarPage)}" target="_blank" rel="noopener">
+          <b>IMD radar page (animated)</b><span>The sequence — which is the one that actually matters.</span></a>
+        <a class="lk" href="${esc(nc.rainviewer)}" target="_blank" rel="noopener">
+          <b>RainViewer animation</b><span>About 2 h of frames, easier to loop.</span></a>
+      </div>
+      <h2 style="margin-top:20px">The five-question radar scan</h2>
+      <ol class="qs">${nc.questions.map(q => `<li>${esc(q)}</li>`).join('')}</ol>
+      <div class="quote"><b>What radar will not tell you.</b>
+        ${nc.limits.map(esc).join(' ')}
+        This page deliberately does not compute arrival times from radar images —
+        inverting a colour scale and extrapolating it produces a number that
+        looks precise and is not. Use IMD's own nowcasts for anything
+        safety-critical.</div>
+    </div>`;
+  }
+
+  /* ---- systems ---- */
+  if (D.systems){
+    const sy = D.systems;
+    h += `<div class="card"><h2>Low pressure systems, troughs and storms</h2>
+      <p style="margin:0 0 12px">${esc(sy.trough)}</p>`;
+    if (sy.list && sy.list.length){
+      h += sy.list.map(s => `<div class="sysrow">
+        <div class="at"><span class="tag t-${esc(s.relevance)}">${esc(s.relevance)}</span> ${esc(s.headline)}</div>
+        <div class="ab">${esc(s.reasoning)}</div>
+        <div class="pc">Closest approach ~${s.distanceKm} km · minimum ${s.pressure} hPa · moves ${s.movedKm} km</div>
+      </div>`).join('');
+    } else {
+      h += `<p class="sub">No significant low pressure area or depression tracked
+        within range this week. Rain will be driven by the broad monsoon flow and
+        terrain rather than by an organised system.</p>`;
+    }
+    if (sy.cycloneWindow){
+      h += `<div class="quote"><b>Cyclone season.</b> This month falls in an
+        Arabian Sea cyclone window. For anything beyond casual tracking, IMD's
+        official cyclone bulletins are authoritative and this tool is not.</div>`;
+    }
+    h += `</div>`;
+  }
+
+  /* ---- heat & cold ---- */
+  if (D.thermal && D.thermal.days && D.thermal.days.length){
+    const th = D.thermal;
+    h += `<div class="card"><h2>Heat and cold — next 7 days</h2>
+      <p style="margin:0 0 12px"><b>${esc(th.headline)}.</b></p>
+      <div class="scroll"><table><thead><tr><th>Day</th><th class="num">Max</th>
+        <th class="num">vs normal</th><th class="num">Min</th>
+        <th class="num">Feels like</th><th>Flag</th></tr></thead><tbody>
+      ${th.days.map(d => {
+        let flag = '';
+        if (d.heatFlag === 'severe-criteria') flag = '<span class="tag t-critical">severe heat</span>';
+        else if (d.heatFlag === 'heatwave-criteria') flag = '<span class="tag t-warning">heatwave criteria</span>';
+        else if (d.coldFlag) flag = '<span class="tag t-watch">cold criteria</span>';
+        else if (d.heatIndex >= 41) flag = '<span class="tag t-warning">danger (feels-like)</span>';
+        else if (d.heatIndex >= 32) flag = '<span class="tag t-watch">extreme caution</span>';
+        return `<tr><td>${esc(d.day)}</td>
+          <td class="num">${d.tmax === null ? '--' : d.tmax.toFixed(0)+'°'}</td>
+          <td class="num">${d.depMax === null ? '--' : (d.depMax>=0?'+':'')+d.depMax.toFixed(1)}</td>
+          <td class="num">${d.tmin === null ? '--' : d.tmin.toFixed(0)+'°'}</td>
+          <td class="num">${d.heatIndex === null ? '--' : d.heatIndex.toFixed(0)+'°'}</td>
+          <td>${flag}</td></tr>`;
+      }).join('')}
+      </tbody></table></div>
+      <div class="quote">${esc(th.caveat)}</div></div>`;
+  }
+
+  /* ingredients */
+  h += `<div class="card"><h2>Ingredients — checked before the rain layer</h2><div class="scroll"><table>
+    <thead><tr><th>Ingredient</th><th class="num">Value</th><th>Reading</th></tr></thead><tbody>
+    <tr><td>Dew point</td><td class="num">${nn(ing.dewPoint)} °C</td><td>Temp − dew point spread ${nn(ing.spread)} °C</td></tr>
+    <tr><td>RH 925 / 850 / 700 hPa</td><td class="num">${nn(ing.rh925)} / ${nn(ing.rh850)} / ${nn(ing.rh700)} %</td><td>Moisture depth: <b>${esc(ing.depthClass)}</b></td></tr>
+    <tr><td>Precipitable water</td><td class="num">${nn(ing.pwat)} mm</td><td>${esc(ing.moistureNote)}</td></tr>
+    <tr><td>850 hPa wind</td><td class="num">${esc(ing.wind850Dir)} ${nn(ing.wind850Speed)} m/s</td><td>The moisture-transport layer</td></tr>
+    <tr><td>Terrain-normal component</td><td class="num">${nn(ing.orographic)} m/s</td><td>Orographic forcing: <b>${esc(ing.forcingClass)}</b> — ${esc(ing.liftNote)}</td></tr>
+    <tr><td>CAPE (peak)</td><td class="num">${nn(ing.capePeak)} J/kg</td><td><b>${esc(ing.capeClass)}</b> — potential, not certainty</td></tr>
+    <tr><td>Bulk shear 925→500</td><td class="num">${nn(ing.shear)} m/s</td><td><b>${esc(ing.shearClass)}</b> — ${esc(ing.stormMode)}</td></tr>
+    </tbody></table></div></div>`;
+
+  /* synoptic */
+  if (D.synoptic){
+    h += `<div class="card"><h2>Synoptic setting</h2>
+      <div style="color:var(--text-secondary);font-size:13.5px;line-height:1.65">${D.synoptic}</div></div>`;
+  }
+
+  /* links */
+  h += `<div class="grid g2">
+    <div class="card"><h2>Check it on Windy</h2>
+      <p class="sub" style="margin-bottom:8px">Pressure first, rain last — the morning-routine order.</p>
+      ${LINKS.map(l => `<a class="lk" href="${esc(l.url)}" target="_blank" rel="noopener">
+        <b>${esc(l.title)}</b><span>${esc(l.why)}</span></a>`).join('')}</div>
+    <div class="card"><h2>Compare the models</h2>
+      <p class="sub" style="margin-bottom:8px">Same layer, same place, one model at a time.</p>
+      ${MLINKS.map(l => `<a class="lk" href="${esc(l.url)}" target="_blank" rel="noopener">
+        <b>${esc(l.title)}</b><span>${esc(l.why)}</span></a>`).join('')}
+      <h2 style="margin-top:18px">Official sources</h2>
+      ${Object.entries(D.imdUrls).map(([k,v]) => `<a class="lk" href="${esc(v)}" target="_blank" rel="noopener"><b>${esc(k)}</b></a>`).join('')}
+      <a class="lk" href="${esc(D.tideUrl)}" target="_blank" rel="noopener"><b>Tide tables</b>
+        <span>Heavy rain near high tide is a materially worse flooding scenario — this page never
+        synthesises tide times, so check them here.</span></a>
+    </div></div>`;
+
+  h += `<footer>Independent interpretation, not an official IMD product.<br>
+    For flooding, lightning, transport and emergency decisions, follow IMD nowcasts, warnings and
+    local authority instructions.</footer>`;
+
+  document.getElementById('app').innerHTML = h;
+
+  document.querySelectorAll('.hit').forEach(el => {
+    el.addEventListener('mousemove', e => showTip(e, el.dataset.tip));
+    el.addEventListener('mouseleave', hideTip);
+  });
+  bindAll();
+  skodaGreet();
+}
+
+/* All interactive wiring in one place, re-run after every render. Nothing here
+   relies on inline on* attributes, so the page behaves the same under a strict
+   Content-Security-Policy as it does opened from disk. */
+/* ---------- live radar ------------------------------------------------
+   IMD overwrites these images in place roughly every 10 minutes, always at the
+   same URL. A page built once therefore shows whatever frame existed at build
+   time unless the browser is told to re-fetch, which is what the cache-busting
+   timestamp does here.
+
+   The published artifact runs under a CSP that blocks requests to external
+   hosts, so these images cannot load there at all. Rather than leave two
+   broken image boxes, the failure is detected and replaced with links that do
+   work. */
+const RADAR_MS = 5 * 60 * 1000;
+let radarTimer = null, radarFailed = false;
+
+function radarRefresh(manual){
+  const imgs = document.querySelectorAll('#radarWrap img[data-radar]');
+  if (!imgs.length) return;
+  const stamp = document.getElementById('rstamp');
+  const dot = document.getElementById('rdot');
+  const t = Date.now();
+  let pending = imgs.length, failed = 0;
+
+  imgs.forEach(img => {
+    const base = img.dataset.radar;
+    const probe = new Image();
+    probe.onload = () => {
+      img.src = probe.src;
+      if (--pending === 0) settle();
+    };
+    probe.onerror = () => { failed++; if (--pending === 0) settle(); };
+    probe.src = base + '?t=' + t;
+  });
+
+  function settle(){
+    if (failed === imgs.length){
+      radarFailed = true;
+      if (dot) dot.className = 'rdot dead';
+      if (stamp) stamp.textContent = 'Radar images blocked here';
+      showRadarFallback();
+      clearInterval(radarTimer);
+      return;
+    }
+    if (dot) dot.className = 'rdot live';
+    if (stamp){
+      stamp.textContent = 'Radar updated ' +
+        new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) +
+        ' · auto-refreshes every 5 min';
+    }
+  }
+}
+
+function showRadarFallback(){
+  const wrap = document.getElementById('radarWrap');
+  if (!wrap || wrap.dataset.fallback) return;
+  wrap.dataset.fallback = '1';
+  const nc = (DAILY && DAILY.nowcast) || {};
+  wrap.innerHTML = `<div class="radar-fallback">
+    <b>Live radar can't display on this shared page.</b><br>
+    It's hosted on claude.ai, which blocks images loaded from other sites —
+    IMD's radar server is one of those. The links still work:
+    <div style="margin-top:10px">
+      ${(nc.radar || []).map(r => `<a class="lk" href="${esc(r.url)}" target="_blank" rel="noopener"><b>${esc(r.name)}</b></a>`).join('')}
+      ${nc.radarPage ? `<a class="lk" href="${esc(nc.radarPage)}" target="_blank" rel="noopener"><b>IMD radar page (animated)</b></a>` : ''}
+    </div>
+    Open the forecast from your own PC or the tunnel link and the radar
+    displays inline and refreshes itself.</div>`;
+}
+
+function startRadar(){
+  if (!document.getElementById('radarWrap')) return;
+  radarRefresh(false);
+  clearInterval(radarTimer);
+  radarTimer = setInterval(() => { if (!radarFailed) radarRefresh(false); },
+                           RADAR_MS);
+  const btn = document.getElementById('rnow');
+  if (btn && !btn.dataset.bound){
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', () => radarRefresh(true));
+  }
+}
+
+function bindAll(){
+  applyMood();
+  buildSky();
+  bindWindy();
+  bindDrivers();
+  skodaBind();
+  startRadar();
+
+  const theme = document.getElementById('themeBtn');
+  if (theme && !theme.dataset.bound){
+    theme.dataset.bound = '1';
+    theme.addEventListener('click', toggleTheme);
+  }
+
+  const tabs = document.getElementById('viewTabs');
+  if (tabs && !tabs.dataset.bound){
+    tabs.dataset.bound = '1';
+    tabs.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('button[data-view]');
+      if (btn) showView(btn.dataset.view);
+    });
+  }
+
+  const rbtn = document.getElementById('rbtn');
+  if (rbtn && !rbtn.dataset.bound){
+    rbtn.dataset.bound = '1';
+    rbtn.addEventListener('click', doRefresh);
+  }
+}
+
+/* ---------- the animated sky -----------------------------------------
+   Density is driven by the actual forecast, so the animation is a reading of
+   the data rather than decoration: a light-rain day gets a few drops, a
+   very-heavy day gets a downpour and the occasional flash. */
+/* A cloud silhouette built from overlapping lobes on a flat base — the shape
+   people actually read as "cloud". Three variants so a sky with several does
+   not look like one asset repeated. */
+function cloudSvg(seed){
+  const shapes = [
+    'M18 62 Q18 44 34 42 Q39 25 58 26 Q74 20 84 34 Q104 33 106 50 '
+      + 'Q120 52 118 62 Z',
+    'M12 62 Q12 47 27 45 Q31 30 48 31 Q60 20 74 30 Q92 28 95 44 '
+      + 'Q112 46 110 62 Z',
+    'M20 62 Q16 46 33 44 Q36 28 55 29 Q70 22 80 36 Q99 36 100 50 '
+      + 'Q116 54 112 62 Z',
+  ];
+  return `<svg viewBox="0 0 130 66" aria-hidden="true">
+    <path d="${shapes[seed % shapes.length]}" fill="currentColor"/></svg>`;
+}
+
+function buildSky(){
+  const sky = document.getElementById('sky');
+  if (!sky) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches){
+    sky.innerHTML = '';
+    return;
+  }
+
+  const mood = document.documentElement.getAttribute('data-wx') || 'light';
+  // Sun stays visible on light-rain days too - that is what a Konkan monsoon
+  // day actually looks like between spells, and it reads better than an
+  // unbroken grey field.
+  const spec = {
+    sunny:  {drops:0,   clouds:2, sun:true,  flash:false},
+    light:  {drops:30,  clouds:4, sun:true,  flash:false},
+    wet:    {drops:65,  clouds:5, sun:false, flash:false},
+    heavy:  {drops:115, clouds:7, sun:false, flash:false},
+    severe: {drops:165, clouds:8, sun:false, flash:true},
+  }[mood] || {drops:30, clouds:4, sun:false, flash:false};
+
+  let html = '';
+  if (spec.sun){
+    // Disc plus a corona of tapered rays, drawn once and rotated slowly.
+    let rays = '';
+    for (let a = 0; a < 360; a += 30){
+      rays += `<rect x="49.2" y="6" width="1.6" height="13" rx="0.8"
+        fill="currentColor" opacity=".55"
+        transform="rotate(${a} 50 50)"/>`;
+    }
+    html += `<div class="sunwrap"><div class="glow"></div>
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        ${rays}<circle cx="50" cy="50" r="19" fill="currentColor" opacity=".38"/>
+      </svg></div>`;
+  }
+
+  for (let i = 0; i < spec.clouds; i++){
+    const w = 200 + Math.random() * 280;
+    const top = 3 + Math.random() * 54;
+    const dur = 80 + Math.random() * 90;
+    const op = (0.10 + Math.random() * 0.13).toFixed(2);
+    html += `<div class="cloud" style="width:${w}px;top:${top}vh;
+      opacity:${op};animation-duration:${dur}s;
+      animation-delay:-${(Math.random() * dur).toFixed(1)}s">
+      ${cloudSvg(i)}</div>`;
+  }
+
+  if (spec.drops){
+    let drops = '';
+    for (let i = 0; i < spec.drops; i++){
+      const dur = 0.55 + Math.random() * 0.75;
+      drops += `<i style="left:${Math.random() * 100}%;
+        height:${9 + Math.random() * 18}px;
+        animation-duration:${dur}s;
+        animation-delay:-${(Math.random() * dur).toFixed(2)}s;
+        opacity:${(0.18 + Math.random() * 0.32).toFixed(2)}"></i>`;
+    }
+    html += `<div class="rainlayer" style="opacity:1">${drops}</div>`;
+  }
+
+  html += '<div class="flash" id="flash"></div>';
+  sky.innerHTML = html;
+
+  if (spec.flash) scheduleFlash();
+}
+
+let flashTimer = null;
+function scheduleFlash(){
+  clearTimeout(flashTimer);
+  const next = 7000 + Math.random() * 16000;
+  flashTimer = setTimeout(() => {
+    const f = document.getElementById('flash');
+    if (f){
+      f.classList.remove('on');
+      void f.offsetWidth;              // restart the animation
+      f.classList.add('on');
+    }
+    scheduleFlash();
+  }, next);
+}
+
+function skodaGreet(){
+  const log = document.getElementById('skLog');
+  if (!log || log.childElementCount) return;
+  const days = (DAILY && DAILY.plainWeek) || (WEEKLY && WEEKLY.plainWeek) || [];
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
+  let opener = `${greet}. Ask me anything about this week's forecast.`;
+  if (days.length){
+    const wet = days.filter(d => !/^(dry|mostly dry)/i.test(d.headline || '')).length;
+    opener = `${greet}. I've got the next ${days.length} days in front of me`
+           + (wet ? ` — ${wet} of them with rain in` : '')
+           + ". What do you want to know?";
+  }
+  skPush(opener, 'a');
+}
+
+render();
+</script>
+</body>
+</html>
