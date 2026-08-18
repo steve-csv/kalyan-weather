@@ -289,6 +289,29 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
   border:1px solid var(--border);border-radius:10px;
   font-size:13.5px;line-height:1.65;color:var(--text-secondary);min-height:46px}
 
+/* track record */
+.tkey{display:flex;gap:15px;font-size:11.5px;color:var(--muted);margin-bottom:8px}
+.tkey i{display:inline-block;width:10px;height:10px;border-radius:3px;
+  margin-right:5px;vertical-align:-1px}
+.tkey .k-f{background:var(--series-1)}
+.tkey .k-o{background:var(--good)}
+.tkey .k-p{background:var(--muted);opacity:.5}
+.tstrip{display:flex;gap:5px;align-items:flex-end;margin:4px 0 10px;
+  overflow-x:auto;padding-bottom:4px}
+.tday{flex:1 0 26px;text-align:center;min-width:26px}
+.tbars{height:58px;display:flex;align-items:flex-end;justify-content:center;gap:2px}
+.tb{width:8px;border-radius:3px 3px 0 0}
+.tb.tf{background:var(--series-1)}
+.tb.to{background:var(--good)}
+.tb.to.tp{background:var(--muted);opacity:.45}
+.tday.bad .tb.to{background:var(--critical)}
+.tlab{font-size:10px;color:var(--muted);margin-top:5px}
+.tstats{display:flex;gap:10px;flex-wrap:wrap;margin:2px 0 12px}
+.tstat{background:var(--plane);border:1px solid var(--border);border-radius:9px;
+  padding:8px 11px;flex:1 1 100px}
+.tstat b{display:block;font-size:17px;font-weight:650;letter-spacing:-.01em}
+.tstat span{font-size:11px;color:var(--muted)}
+
 /* radar explainer + belts + animation */
 .rexp{margin-top:16px;border-top:1px solid var(--border);padding-top:16px}
 .rexp h3{font-size:14px;margin:0 0 10px;letter-spacing:-.01em}
@@ -782,6 +805,8 @@ function renderWeekly(){
     </div>`;
   }
 
+
+  h += trackHtml(D);
 
   /* ---- upstream drivers (Somali jet, mid-level dry air) ---- */
   if (D.upstream && D.upstream.available){
@@ -1600,6 +1625,60 @@ function driversHtml(){
   </div>`;
 }
 
+/* ---------- the track record ------------------------------------------- */
+/* The point of this card is that a reader can check the agent rather than
+   trust it. Each day shows what was forecast the day before against what
+   actually fell, so a bad call stays visible instead of being averaged away.
+   The most recent days deliberately show no verdict: ERA5 lags about five
+   days, and filling that gap with the model's own analysis would be the agent
+   marking its own homework. */
+function trackHtml(D){
+  const t = D.track;
+  if (!t || !t.available || !t.days || !t.days.length) return '';
+  const vals = t.days.flatMap(d => [d.fc || 0, d.obs || 0]);
+  const max = Math.max(8, ...vals);
+  const H = 54;
+  const bar = v => Math.max(2, Math.round((v || 0) / max * H));
+
+  const rows = t.days.map(d => {
+    const pending = d.obs === null || d.obs === undefined;
+    const cls = pending ? 'pend'
+      : (d.verdict === 'hit' || d.verdict === 'correct_dry') ? 'ok' : 'bad';
+    const tip = pending
+      ? `${d.label}: forecast ${(d.fc||0).toFixed(0)} mm — not yet verified`
+      : `${d.label}: forecast ${(d.fc||0).toFixed(0)} mm, actual ${(d.obs||0).toFixed(0)} mm`;
+    return `<div class="tday ${cls}" title="${esc(tip)}">
+      <div class="tbars">
+        <div class="tb tf" style="height:${bar(d.fc)}px"></div>
+        <div class="tb to${pending ? ' tp' : ''}" style="height:${pending ? 2 : bar(d.obs)}px"></div>
+      </div>
+      <div class="tlab">${esc(d.label.split(' ')[1] || d.label)}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="card"><h2>Track record — has it actually been right?</h2>
+    <p class="sub" style="margin:-6px 0 12px">Each pair of bars is one day:
+      what was forecast the evening before, against what actually fell.</p>
+    <p style="margin:0 0 14px">${mdBold(t.summary)}</p>
+    <div class="tkey">
+      <span><i class="k-f"></i>forecast</span>
+      <span><i class="k-o"></i>actual</span>
+      <span><i class="k-p"></i>not yet verified</span>
+    </div>
+    <div class="tstrip">${rows}</div>
+    <div class="tstats">
+      ${t.bandPct != null ? `<div class="tstat"><b>${t.bandPct}%</b><span>right rainfall band</span></div>` : ''}
+      ${t.maeWet != null ? `<div class="tstat"><b>${t.maeWet} mm</b><span>average error on wet days</span></div>` : ''}
+      <div class="tstat"><b>${t.verified}</b><span>days verified</span></div>
+    </div>
+    <div class="quote">Forecasts are the run issued the day <i>before</i> each
+      date, pulled from the archive — not today's model replayed over the past,
+      which would show fake skill. Truth is ERA5 reanalysis, which lags about
+      five days; the last few days show their forecast with the verdict still
+      pending rather than being scored against the model's own analysis.</div>
+  </div>`;
+}
+
 /* ---------- reading the radar, in plain words --------------------------- */
 /* The two images above are the products IMD publishes by default, and both
    are routinely misread. MAX-Z is the strongest echo anywhere in the column,
@@ -2284,6 +2363,8 @@ function render(){
     </div>`;
   }
 
+
+  h += trackHtml(D);
 
   /* ---- upstream drivers (Somali jet, mid-level dry air) ---- */
   if (D.upstream && D.upstream.available){
