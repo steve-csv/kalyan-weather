@@ -305,39 +305,65 @@ _TEMPLATE = r"""<!doctype html>
 <style>
 :root{
   color-scheme: light;
-  --surface-1:#fcfcfb; --plane:#f9f9f7;
-  --text-primary:#0b0b0b; --text-secondary:#52514e; --muted:#898781;
-  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
-  --series-1:#2a78d6;
+  /* Neutrals are cool with a slate-green cast rather than the warm sand this
+     page used to carry. The subject is a monsoon instrument, so the ground
+     reads like wet slate and the accents each do one job: marine for rain,
+     fern for dry-and-correct, ochre for sun-and-caution, brick for severe.
+     Nothing here is a decorative colour - if a mark is coloured, the colour
+     means something. */
+  --marine:#1e6fa8; --fern:#2f7d57; --ochre:#b5860b; --brick:#a83e2c;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --surface-1:#fbfcfc; --plane:#f1f4f3;
+  --text-primary:#0e1518; --text-secondary:#42545a;
+  /* Measured, not eyeballed: at #75868b this failed WCAG AA against the
+     card (3.3:1) and it is used for real label text, not just rules. */
+  --muted:#5e7176;
+  --grid:#dde5e3; --axis:#b7c5c4; --border:rgba(14,21,24,0.11);
+  --series-1:#1e6fa8;
   /* Ordinal ramp, light surface: progressively DARKER as the value grows.
      All five steps are declared - a missing custom property resolves to
      nothing and the mark renders black, which is how two donut slices came
      out solid black on the first build. */
-  --seq-100:#cde2fb; --seq-250:#86b6ef; --seq-350:#5598e7;
-  --seq-400:#3987e5; --seq-450:#2a78d6; --seq-550:#1c5cab; --seq-650:#104281;
-  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
-  --radius:14px;
+  --seq-100:#d6e7f2; --seq-250:#a3c9e0; --seq-350:#74abd0;
+  --seq-400:#4f92c1; --seq-450:#2f7fb2; --seq-550:#1e6fa8; --seq-650:#124d78;
+  --good:#2f7d57; --warning:#b5860b; --serious:#c2662f; --critical:#a83e2c;
+  --radius:13px;
 }
 @media (prefers-color-scheme: dark){
   :root:where(:not([data-theme="light"])){
     color-scheme: dark;
-    --surface-1:#1a1a19; --plane:#0d0d0d;
-    --text-primary:#ffffff; --text-secondary:#c3c2b7; --muted:#898781;
-    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
-    --series-1:#3987e5;
+    --marine:#5aa6db; --fern:#57b183; --ochre:#d8ab41; --brick:#d4705c;
+    --surface-1:#151d20; --plane:#0c1315;
+    --text-primary:#e8efee; --text-secondary:#a6b8bb; --muted:#7c9095;
+    --grid:#222e32; --axis:#33434a; --border:rgba(232,239,238,0.13);
+    --series-1:#5aa6db;
+    --good:#57b183; --warning:#d8ab41; --serious:#dc8b57; --critical:#d4705c;
     /* Same ramp stepped for the dark surface: progressively LIGHTER as the
        value grows, so magnitude still reads as "more ink against the page". */
-    --seq-100:#104281; --seq-250:#184f95; --seq-350:#256abf;
-    --seq-400:#2a78d6; --seq-450:#3987e5; --seq-550:#5598e7; --seq-650:#86b6ef;
+    --seq-100:#123f63; --seq-250:#1a5480; --seq-350:#236c9f;
+    --seq-400:#2e85bd; --seq-450:#469cd2; --seq-550:#6db4e0; --seq-650:#9dcdec;
   }
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
-  --surface-1:#1a1a19; --plane:#0d0d0d;
-  --text-primary:#ffffff; --text-secondary:#c3c2b7; --muted:#898781;
-  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
-  --series-1:#3987e5;
-  --seq-100:#104281; --seq-250:#184f95; --seq-400:#2a78d6; --seq-550:#5598e7; --seq-650:#9ec5f4;
+  --marine:#5aa6db; --fern:#57b183; --ochre:#d8ab41; --brick:#d4705c;
+  --surface-1:#151d20; --plane:#0c1315;
+  --text-primary:#e8efee; --text-secondary:#a6b8bb; --muted:#7c9095;
+  --grid:#222e32; --axis:#33434a; --border:rgba(232,239,238,0.13);
+  --series-1:#5aa6db;
+  --good:#57b183; --warning:#d8ab41; --serious:#dc8b57; --critical:#d4705c;
+  --seq-100:#123f63; --seq-250:#1a5480; --seq-350:#236c9f;
+  --seq-400:#2e85bd; --seq-450:#469cd2; --seq-550:#6db4e0; --seq-650:#9dcdec;
+}
+
+/* Motion: one easing curve for the whole page, and a single global stop.
+   Scattered durations and mismatched curves are most of what makes a page
+   feel improvised rather than made. */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important; animation-iteration-count:1 !important;
+    transition-duration:.001ms !important; scroll-behavior:auto !important;
+  }
 }
 
 /* ---- weather mood -------------------------------------------------------
@@ -359,15 +385,15 @@ _TEMPLATE = r"""<!doctype html>
    fill - that is what makes it read as weather instead of a tinted document.
    Cards keep their own near-neutral surface on top, so the colour underneath
    can be bold without touching the contrast of any text or chart. */
-:root[data-wx="sunny"]  { --plane:#ffe9b8; --g1:#fff6dd; --g2:#ffcf78;
+:root[data-wx="sunny"]  { --plane:#f6f1e2; --g1:#faf6ec; --g2:#eee2c6;
                           --mood:#d98416; --sky:#ffb545; }
-:root[data-wx="light"]  { --plane:#cfe8ff; --g1:#e8f5ff; --g2:#9dcdf2;
+:root[data-wx="light"]  { --plane:#e6eef3; --g1:#f0f5f8; --g2:#d3e2ec;
                           --mood:#1f79c9; --sky:#5fb0ea; }
-:root[data-wx="wet"]    { --plane:#aed3f0; --g1:#cfe6f8; --g2:#6fa8d8;
+:root[data-wx="wet"]    { --plane:#dde8f0; --g1:#e9f0f5; --g2:#c6d9e6;
                           --mood:#15629f; --sky:#3d8fcc; }
-:root[data-wx="heavy"]  { --plane:#8fb0d4; --g1:#a9c6e2; --g2:#5878a6;
+:root[data-wx="heavy"]  { --plane:#d0dce7; --g1:#dde6ee; --g2:#b4c6d7;
                           --mood:#0f4b86; --sky:#2f6ba6; }
-:root[data-wx="severe"] { --plane:#b9a3bd; --g1:#d3c0d2; --g2:#7d5f83;
+:root[data-wx="severe"] { --plane:#d5cfd6; --g1:#e1dce2; --g2:#bfb5c4;
                           --mood:#8c2f4a; --sky:#6a4470; }
 
 @media (prefers-color-scheme: dark){
@@ -386,7 +412,9 @@ _TEMPLATE = r"""<!doctype html>
 *{box-sizing:border-box}
 body{
   margin:0; color:var(--text-primary);
-  font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;
+  font:15px/1.62 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,
+       "Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
   padding:0 0 72px;
   /* Sky gradient: light at the horizon, deeper overhead. `fixed` keeps it
      still while the content scrolls, so it behaves like a sky rather than a
@@ -395,9 +423,18 @@ body{
   background:var(--plane);
   background-image:linear-gradient(180deg,var(--g2) 0%,var(--g1) 46%,var(--plane) 100%);
   background-attachment:fixed;
-  transition:background-color .6s ease;
+  transition:background-color .7s var(--ease);
 }
 .wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+
+/* Keyboard focus. Every interactive thing on this page was reachable by tab
+   and invisible while focused, which makes it unusable without a mouse. One
+   ring, in the accent, on the token system so it works on both grounds. */
+:where(a,button,[tabindex]):focus-visible{
+  outline:2px solid var(--series-1); outline-offset:2px; border-radius:8px;
+}
+.navbtn,.tabs button,.sk-chip{transition:color .18s var(--ease),
+  background-color .18s var(--ease),border-color .18s var(--ease)}
 
 /* ---- animated weather scene ------------------------------------------
    Drawn in CSS against the page, behind the content, so it costs no network
@@ -470,9 +507,25 @@ header{
   flex:none;
 }
 .wrap{max-width:1080px;margin:0 auto}
-h1{font-size:22px;margin:0 0 2px;font-weight:650;letter-spacing:-0.01em}
-h2{font-size:15px;margin:0 0 14px;font-weight:650;letter-spacing:-0.005em}
-.sub{color:var(--text-secondary);font-size:13px;margin:0}
+/* One type scale, used everywhere: 11.5 / 12.5 / 13.5 / 15 / 17 / 22 / 27.
+   Display sizes get negative tracking because system grotesques set loose at
+   large sizes; small labels get positive tracking for the opposite reason. */
+h1{font-size:26px;margin:0 0 3px;font-weight:660;letter-spacing:-0.022em;
+   line-height:1.16;text-wrap:balance}
+h2{font-size:17px;margin:0 0 14px;font-weight:640;letter-spacing:-0.014em;
+   line-height:1.3;text-wrap:balance}
+h3{font-size:13.5px;margin:0 0 9px;font-weight:660;letter-spacing:-0.004em}
+p{text-wrap:pretty}
+.sub{color:var(--text-secondary);font-size:13px;margin:0;line-height:1.55}
+
+/* Figures line up in columns all over this page - totals, rain rates, scores.
+   Proportional digits make those columns ragged, so every numeric surface
+   gets tabular figures. */
+.tile .val,.dval,.tstat b,.sval,.uval,.tlab,.hero .fig,td,th,
+.belt .bsent,.rcard li,.tick{font-variant-numeric:tabular-nums}
+
+/* Small caps-style labels need air between letters to stay legible. */
+.dname,.tkey,.rname span{font-feature-settings:"cv05" 1}
 .muted{color:var(--muted)}
 .card{
   /* Mixed with a trace of the weather colour so cards sit in the scene rather
@@ -587,6 +640,105 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
   border:1px solid var(--border);border-radius:10px;
   font-size:13.5px;line-height:1.65;color:var(--text-secondary);min-height:46px}
 
+/* track record */
+.tkey{display:flex;gap:15px;font-size:11.5px;color:var(--muted);margin-bottom:8px}
+.tkey i{display:inline-block;width:10px;height:10px;border-radius:3px;
+  margin-right:5px;vertical-align:-1px}
+.tkey .k-f{background:var(--series-1)}
+.tkey .k-o{background:var(--good)}
+.tkey .k-p{background:var(--muted);opacity:.5}
+.tstrip{display:flex;gap:5px;align-items:flex-end;margin:4px 0 10px;
+  overflow-x:auto;padding-bottom:4px}
+.tday{flex:1 0 26px;text-align:center;min-width:26px}
+.tbars{height:58px;display:flex;align-items:flex-end;justify-content:center;gap:2px}
+.tb{width:8px;border-radius:3px 3px 0 0}
+.tb.tf{background:var(--series-1)}
+.tb.to{background:var(--good)}
+.tb.to.tp{background:var(--muted);opacity:.45}
+.tday.bad .tb.to{background:var(--critical)}
+.tlab{font-size:10px;color:var(--muted);margin-top:5px}
+.tstats{display:flex;gap:10px;flex-wrap:wrap;margin:2px 0 12px}
+.tstat{background:var(--plane);border:1px solid var(--border);border-radius:9px;
+  padding:8px 11px;flex:1 1 100px}
+.tstat b{display:block;font-size:17px;font-weight:650;letter-spacing:-.01em}
+.tstat span{font-size:11px;color:var(--muted)}
+
+/* radar explainer + belts + animation */
+.rexp{margin-top:16px;border-top:1px solid var(--border);padding-top:16px}
+.rexp h3{font-size:14px;margin:0 0 10px;letter-spacing:-.01em}
+.rexp h3~h3{margin-top:22px}
+.rgrid{display:grid;gap:12px}
+@media(min-width:700px){ .rgrid{grid-template-columns:1fr 1fr} }
+.rcard{background:var(--plane);border:1px solid var(--border);border-radius:11px;
+  padding:13px 14px}
+.rname{font-weight:700;font-size:13.5px;margin-bottom:7px}
+.rname span{font-weight:500;color:var(--muted);font-size:11.5px;
+  letter-spacing:.04em;text-transform:uppercase;margin-left:5px}
+.rcard p{margin:0 0 8px;font-size:13px;line-height:1.6;color:var(--text-secondary)}
+.rcard ul{margin:0 0 8px;padding-left:17px;font-size:12.5px;line-height:1.75;
+  color:var(--text-secondary)}
+.rwarn{font-size:12.5px;line-height:1.6;color:var(--text-secondary);
+  border-left:2px solid var(--muted);padding-left:9px;margin:0}
+.rhow{margin:12px 0 0;font-size:13px;line-height:1.65;color:var(--text-secondary)}
+.rhead{font-size:13.5px;line-height:1.6;margin:0 0 11px}
+.belts{display:grid;gap:8px}
+@media(min-width:620px){ .belts{grid-template-columns:1fr 1fr} }
+.belt{background:var(--plane);border:1px solid var(--border);
+  border-left:3px solid var(--muted);border-radius:9px;padding:9px 11px}
+.belt.b-raining{border-left-color:var(--critical)}
+.belt.b-arriving{border-left-color:var(--warning)}
+.belt.b-drizzling{border-left-color:var(--series-1)}
+.belt.b-later{border-left-color:var(--series-1);opacity:.9}
+.belt.b-dry{border-left-color:var(--good);opacity:.75}
+.bname{font-size:12px;font-weight:700;letter-spacing:.01em;margin-bottom:2px}
+.bsent{font-size:12.5px;line-height:1.55;color:var(--text-secondary)}
+.ranim{margin:10px 0 0}
+.ranim svg{width:100%;height:auto;max-width:100%;color:var(--text-primary)}
+.ranim figcaption{font-size:12px;color:var(--text-secondary);margin-top:7px;
+  line-height:1.55}
+/* Label size is in SVG user units, so its on-screen size depends on how far
+   the drawing has been scaled. At 720 units wide rendered into a 300px phone
+   column, an 11-unit label lands at ~4.6 real pixels - invisible. These two
+   sizes both land near 11 real px at their respective render widths. */
+.ral{font-size:13px;fill:currentColor;opacity:.7}
+@media(max-width:700px){ .ral{font-size:26px} }
+.rbelt{opacity:.55}
+.rbelt.lit{opacity:1}
+.rbelt.lit text{font-weight:700}
+.rcell ellipse{fill:var(--series-1);opacity:.55}
+.rcell{animation-name:rdrift;animation-timing-function:linear;
+  animation-iteration-count:infinite;
+  /* Without these, transform-origin on an SVG group defaults to the canvas
+     origin (0 0), so scaleY grows the cell downward from the top of the
+     drawing and the blobs sink straight through the ground line at their
+     tallest. fill-box scales each cell about its own centre instead. */
+  transform-box:fill-box;transform-origin:50% 50%}
+.rcell.rc2{animation-delay:-2.4s}
+.rcell.rc2 ellipse{fill:var(--critical);opacity:.42}
+.rcell.rc3{animation-delay:-4.9s}
+@keyframes rdrift{
+  0%   {transform:translateX(20px) scaleY(.75); opacity:0}
+  12%  {opacity:.95}
+  62%  {transform:translateX(430px) scaleY(1.05); opacity:.95}
+  86%  {transform:translateX(560px) scaleY(1.7); opacity:.8}
+  100% {transform:translateX(650px) scaleY(.5); opacity:0}
+}
+@media (prefers-reduced-motion: reduce){
+  .rcell{animation:none;transform:translateX(300px)}
+}
+
+/* upstream driver strip */
+.ustrip{display:flex;gap:6px;align-items:flex-end;margin:14px 0 2px}
+.uday{flex:1;text-align:center;min-width:0}
+.ubar{width:100%;max-width:30px;margin:0 auto;border-radius:5px 5px 0 0;
+  background:var(--series-1)}
+.ubar.u-good{background:var(--good)}
+.ubar.u-bad{background:var(--critical)}
+.ubar.u-neu{background:var(--muted)}
+.uval{font-size:11.5px;font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums}
+.ulab{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+
 /* week summary */
 .summary .sbig{font-size:17px;font-weight:620;margin:0 0 6px;line-height:1.45}
 .sstrip{display:flex;gap:6px;align-items:flex-end;margin:16px 0 8px}
@@ -641,7 +793,7 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
 .rbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   background:var(--surface-1);border:1px solid var(--border);
   border-radius:var(--radius);padding:12px 16px;margin-bottom:16px}
-.rbtn{background:var(--series-1);color:#fff;border:0;border-radius:999px;
+.rbtn,a.rbtn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center;background:var(--series-1);color:#fff;border:0;border-radius:999px;
   padding:10px 20px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;
   min-height:44px}
 .rbtn:disabled{opacity:.5;cursor:default}
@@ -692,6 +844,9 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
 .radar img{width:100%;border-radius:10px;border:1px solid var(--border);background:#000}
 .radar figcaption{font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.5}
 .qs{margin:0 0 4px;padding-left:20px;color:var(--text-secondary);font-size:13.5px;line-height:1.8}
+.qs.qa{line-height:1.5}
+.qs.qa>li{margin-bottom:12px;color:var(--text-primary)}
+.qaa{color:var(--text-secondary);font-size:13.5px;line-height:1.65;margin-top:3px}
 .sysrow{padding:12px 0;border-bottom:1px solid var(--border)}
 .sysrow:last-child{border-bottom:none}
 
@@ -999,6 +1154,56 @@ function renderWeekly(){
         <b>${esc(D.areas[D.areas.length-1].name)}</b> — across a region you can
         drive over in two hours. A single "Mumbai" number hides all of that.</div>
     </div>`;
+  }
+
+
+  h += trackHtml(D);
+
+  /* ---- upstream drivers (Somali jet, mid-level dry air) ---- */
+  if (D.upstream && D.upstream.available){
+    const u = D.upstream;
+    const jetTone = /very strong|strong/.test(u.jet) ? 'good'
+                  : /weak/.test(u.jet) ? 'bad' : 'neu';
+    const dryTone = /very dry|dry/.test(u.dry) ? 'bad'
+                  : /moist/.test(u.dry) ? 'good' : 'neu';
+    const advBad = u.advection === 'steered onto us' && /dry/.test(u.dry);
+    h += `<div class="card"><h2>Upstream drivers</h2>
+      <p class="sub" style="margin:-6px 0 14px">The Somali jet decides how much
+        moisture is being delivered. The mid-level airmass decides whether it can
+        become deep cloud once it gets here.</p>
+      <div class="dgrid">
+        <div class="dtile d-${jetTone}">
+          <div class="dname">SOMALI JET</div>
+          <div class="dval">${u.jetSpeed != null ? u.jetSpeed + ' m/s' : '—'}</div>
+          <div class="dsub"><b>${esc(u.jet)}</b>${u.jetDir ? ' from ' + esc(u.jetDir) : ''}
+            ${u.sourceSupports === false ? ' · source slackening behind it' : ''}</div>
+        </div>
+        <div class="dtile d-${dryTone}">
+          <div class="dname">MID-LEVEL AIR</div>
+          <div class="dval">${u.midRh != null ? u.midRh + '%' : '—'}</div>
+          <div class="dsub"><b>${esc(u.dry)}</b>${u.advection ? ' · ' + esc(u.advection) : ''}</div>
+        </div>
+      </div>
+      ${u.reading ? `<div class="dtext">${mdBold(u.reading)}</div>` : ''}
+      ${advBad ? `<div class="quote">Dry mid-level air is being steered onto the
+        region. Low levels can look humid while cloud still fails to grow — this
+        is the setup where model rain most often fails to verify.</div>` : ''}`;
+    if (u.week && u.week.length > 1){
+      h += `<div class="ustrip">` + u.week.map(d => {
+        const t = /very strong|strong/.test(d.jet) ? 'good'
+                : /weak/.test(d.jet) ? 'bad' : 'neu';
+        return `<div class="uday">
+          <div class="ubar u-${t}" style="height:${Math.max(6, Math.min(46, (d.jetSpeed||0) * 2))}px"
+            title="${esc(d.jet)} — ${d.jetSpeed != null ? d.jetSpeed + ' m/s' : ''}"></div>
+          <div class="uval">${d.jetSpeed != null ? d.jetSpeed : '—'}</div>
+          <div class="ulab">${esc(dayShort(d.day))}</div>
+        </div>`;
+      }).join('') + `</div>
+      <div class="sub" style="margin-top:6px">Corridor jet strength through the
+        week, m/s. Read against the mid-level airmass: a strong jet under dry
+        mid-levels delivers less than its speed suggests.</div>`;
+    }
+    h += `</div>`;
   }
 
   /* ---- systems ---- */
@@ -1771,6 +1976,220 @@ function driversHtml(){
   </div>`;
 }
 
+/* ---------- the track record ------------------------------------------- */
+/* The point of this card is that a reader can check the agent rather than
+   trust it. Each day shows what was forecast the day before against what
+   actually fell, so a bad call stays visible instead of being averaged away.
+   The most recent days deliberately show no verdict: ERA5 lags about five
+   days, and filling that gap with the model's own analysis would be the agent
+   marking its own homework. */
+function trackHtml(D){
+  const t = D.track;
+  if (!t || !t.available || !t.days || !t.days.length) return '';
+  const vals = t.days.flatMap(d => [d.fc || 0, d.obs || 0]);
+  const max = Math.max(8, ...vals);
+  const H = 54;
+  const bar = v => Math.max(2, Math.round((v || 0) / max * H));
+
+  const rows = t.days.map(d => {
+    const pending = d.obs === null || d.obs === undefined;
+    const cls = pending ? 'pend'
+      : (d.verdict === 'hit' || d.verdict === 'correct_dry') ? 'ok' : 'bad';
+    const tip = pending
+      ? `${d.label}: forecast ${(d.fc||0).toFixed(0)} mm — not yet verified`
+      : `${d.label}: forecast ${(d.fc||0).toFixed(0)} mm, actual ${(d.obs||0).toFixed(0)} mm`;
+    return `<div class="tday ${cls}" title="${esc(tip)}">
+      <div class="tbars">
+        <div class="tb tf" style="height:${bar(d.fc)}px"></div>
+        <div class="tb to${pending ? ' tp' : ''}" style="height:${pending ? 2 : bar(d.obs)}px"></div>
+      </div>
+      <div class="tlab">${esc(d.label.split(' ')[1] || d.label)}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="card"><h2>Track record — has it actually been right?</h2>
+    <p class="sub" style="margin:-6px 0 12px">Each pair of bars is one day:
+      what was forecast the evening before, against what actually fell.</p>
+    <p style="margin:0 0 14px">${mdBold(t.summary)}</p>
+    <div class="tkey">
+      <span><i class="k-f"></i>forecast</span>
+      <span><i class="k-o"></i>actual</span>
+      <span><i class="k-p"></i>not yet verified</span>
+    </div>
+    <div class="tstrip">${rows}</div>
+    <div class="tstats">
+      ${t.bandPct != null ? `<div class="tstat"><b>${t.bandPct}%</b><span>right rainfall band</span></div>` : ''}
+      ${t.maeWet != null ? `<div class="tstat"><b>${t.maeWet} mm</b><span>average error on wet days</span></div>` : ''}
+      <div class="tstat"><b>${t.verified}</b><span>days verified</span></div>
+    </div>
+    <div class="quote">Forecasts are the run issued the day <i>before</i> each
+      date, pulled from the archive — not today's model replayed over the past,
+      which would show fake skill. Truth is ERA5 reanalysis, which lags about
+      five days; the last few days show their forecast with the verdict still
+      pending rather than being scored against the model's own analysis.</div>
+  </div>`;
+}
+
+/* ---------- reading the radar, in plain words --------------------------- */
+/* The two images above are the products IMD publishes by default, and both
+   are routinely misread. MAX-Z is the strongest echo anywhere in the column,
+   so it flags a growing cell before anything reaches the ground - which is
+   exactly why it overstates what you will feel. SRI is that reflectivity
+   converted to a surface rain rate, which is closer to experience but
+   inherits every assumption in the conversion. Saying so is the difference
+   between a picture and a forecast. */
+function radarExplainHtml(D){
+  const nc = D.nowcast || {};
+  const b  = D.belts;
+  let h = `<div class="rexp">
+    <h3>What the two pictures above actually mean</h3>
+    <div class="rgrid">
+      <div class="rcard">
+        <div class="rname">MAX-Z <span>maximum reflectivity</span></div>
+        <p>The radar looks through the whole depth of the cloud and shows you
+        the <b>strongest thing it finds anywhere in that column</b> — usually
+        several kilometres up.</p>
+        <ul>
+          <li><b>Blue / green</b> — light rain or drizzle.</li>
+          <li><b>Yellow</b> — steady, proper rain.</li>
+          <li><b>Orange / red</b> — heavy downpour, the kind that floods a road
+            in under an hour.</li>
+          <li><b>Purple / white</b> — extreme core, often with hail aloft.</li>
+        </ul>
+        <p class="rwarn">Because it reads the top of the cloud, a red blob does
+        <b>not</b> guarantee red rain on your street — the drops still have to
+        survive the fall. Use it to spot cells <i>growing</i>.</p>
+      </div>
+      <div class="rcard">
+        <div class="rname">SRI <span>surface rainfall intensity</span></div>
+        <p>The same echo, converted into <b>how hard it is raining at ground
+        level</b> — millimetres per hour. This is the one closest to what you
+        would feel standing outside.</p>
+        <ul>
+          <li><b>Under 2 mm/hr</b> — you would barely bother with an umbrella.</li>
+          <li><b>2–10 mm/hr</b> — ordinary monsoon rain.</li>
+          <li><b>10–20 mm/hr</b> — heavy; low roads start holding water.</li>
+          <li><b>Over 20 mm/hr</b> — torrential; waterlogging within the hour.</li>
+        </ul>
+        <p class="rwarn">The conversion from echo to rain rate is an estimate,
+        not a measurement. In a heavy monsoon burst SRI tends to <b>under-read</b>
+        what the gauges catch.</p>
+      </div>
+    </div>
+    <p class="rhow"><b>How to read them together:</b> if MAX-Z is bright but SRI
+    is faint, the cell is still building aloft — the rain has not arrived yet.
+    If both are bright over the same spot, that is where it is coming down hard
+    right now. If MAX-Z fades while SRI stays lit, the cell is dying and the
+    rain you feel is what is left falling out of it.</p>`;
+
+  if (b && b.available && b.list && b.list.length){
+    h += `<h3>Next few hours, belt by belt</h3>
+      ${b.headline ? `<p class="rhead">${mdBold(b.headline)}</p>` : ''}
+      <div class="belts">` +
+      b.list.map(x => `<div class="belt b-${esc(x.state)}">
+        <div class="bname">${esc(x.name)}</div>
+        <div class="bsent">${mdBold(x.sentence)}</div>
+      </div>`).join('') +
+      `</div>
+      <p class="rwarn" style="margin-top:10px">These come from the hourly model
+      field sampled at each place, <b>not</b> from the radar picture above.
+      Inside an hour the radar loop is the better guide — this tells you which
+      belts to watch on it.</p>`;
+  }
+
+  h += radarAnimHtml(nc, b);
+  h += `</div>`;
+  return h;
+}
+
+/* ---------- the animation ------------------------------------------------ */
+/* A west-to-east slice through the region: sea on the left, the city belts in
+   the middle, the Ghat wall on the right. Blobs ride the steering flow across
+   it and grow as they climb, which is the single mechanism that decides
+   whether a Kalyan reader gets ten minutes of drizzle or two hours of rain.
+   Speed of the animation is set from the actual steering wind, so a fast band
+   visibly races and a slack one crawls. */
+function radarAnimHtml(nc, b){
+  const kmh = (nc && nc.scanSteerKmh) || 30;
+  const dur = Math.max(4, Math.min(16, 420 / Math.max(8, kmh))).toFixed(1);
+  const from = (nc && nc.scanFrom) || 'the west';
+  const wetKeys = new Set(((b && b.list) || [])
+    .filter(x => x.state === 'raining' || x.state === 'arriving')
+    .map(x => x.key));
+  const lit = k => wetKeys.has(k) ? ' lit' : '';
+
+  return `<h3>What is happening on that picture, right now</h3>
+  <figure class="ranim">
+    <svg viewBox="0 0 720 260" role="img" preserveAspectRatio="xMidYMid meet"
+      aria-label="Cross-section from the Arabian Sea to the Western Ghats.
+        Rain cells ride the onshore flow inland and grow as they are forced up
+        the slope, so the crest gets most of the rain and the rain shadow least.">
+      <defs>
+        <marker id="rarrow" viewBox="0 0 10 10" refX="9" refY="5"
+          markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+
+      <!-- ground -->
+      <line x1="0" y1="212" x2="720" y2="212" stroke="currentColor"
+        stroke-width="1" opacity=".35"/>
+      <path d="M0 212 L150 212 L150 205 L0 205 Z" fill="currentColor" opacity=".12"/>
+      <text x="8" y="232" class="ral" text-anchor="start">Arabian Sea</text>
+
+      <!-- the ghat wall -->
+      <path d="M470 212 L560 96 L610 92 L700 212 Z" fill="currentColor" opacity=".16"/>
+      <path d="M470 212 L560 96 L610 92 L700 212" fill="none" stroke="currentColor"
+        stroke-width="1.5" opacity=".5"/>
+      <text x="556" y="84" class="ral" text-anchor="middle">Ghat crest</text>
+      <text x="712" y="232" class="ral" text-anchor="end">rain shadow</text>
+
+      <!-- belts along the ground -->
+      <g class="rbelt${lit('western')}">
+        <line x1="196" y1="205" x2="196" y2="212" stroke="currentColor"/>
+        <text x="196" y="232" class="ral" text-anchor="middle">Malad</text>
+      </g>
+      <g class="rbelt${lit('thane_kalyan')}">
+        <line x1="330" y1="205" x2="330" y2="212" stroke="currentColor"/>
+        <text x="330" y="232" class="ral" text-anchor="middle">Kalyan</text>
+      </g>
+      <g class="rbelt${lit('badlapur')}">
+        <line x1="430" y1="205" x2="430" y2="212" stroke="currentColor"/>
+        <text x="430" y="232" class="ral" text-anchor="middle">Karjat</text>
+      </g>
+
+      <!-- the steering flow -->
+      <line x1="24" y1="168" x2="250" y2="168" stroke="currentColor"
+        stroke-width="2" opacity=".55" marker-end="url(#rarrow)"/>
+      <text x="24" y="146" class="ral">onshore flow from ${esc(from)} · ${Math.round(kmh)} km/h</text>
+
+      <!-- the cells: same three shapes, growing as they move inland -->
+      <g class="rcell" style="animation-duration:${dur}s">
+        <ellipse cx="0" cy="176" rx="30" ry="12"/>
+      </g>
+      <g class="rcell rc2" style="animation-duration:${dur}s">
+        <ellipse cx="0" cy="168" rx="34" ry="14"/>
+      </g>
+      <g class="rcell rc3" style="animation-duration:${dur}s">
+        <ellipse cx="0" cy="182" rx="26" ry="11"/>
+      </g>
+    </svg>
+    <figcaption>Cells ride the onshore flow inland and are forced upward at the
+      Ghats, which is why the crest collects the most rain, the Kalyan belt gets
+      what survives the climb, and Pune — behind the wall — gets least.</figcaption>
+  </figure>`;
+}
+
+/* ISO date -> short weekday for the upstream strip. Parsed as local midday so
+   a timezone offset cannot roll the label onto the neighbouring day. */
+function dayShort(iso){
+  if (!iso) return '';
+  const p = String(iso).split('-').map(Number);
+  if (p.length !== 3 || p.some(isNaN)) return String(iso);
+  const d = new Date(p[0], p[1] - 1, p[2], 12, 0, 0);
+  return d.toLocaleDateString(undefined, { weekday: 'short' });
+}
+
 /* Tiny inline sparkline for a driver's recent track. */
 function sparkSvg(vals){
   const w = 96, h = 22;
@@ -1939,12 +2358,34 @@ function skChip(btn){
 const SERVED = (location.protocol === 'http:' || location.protocol === 'https:')
                && !D.artifact && !D.public;
 
+/* The repository whose Actions run the cloud update. Used only to build the
+   Update link on the public build. */
+const REPO = 'steve-csv/kalyan-weather';
+
 function refreshBarHtml(){
-  if (!SERVED) return '';
-  return `<div class="rbar">
-    <button class="rbtn" id="rbtn" type="button">Refresh forecast</button>
-    <div class="rmsg" id="rmsg">Rebuilds today's forecast on your PC. Takes about a minute.</div>
-  </div>`;
+  if (SERVED){
+    return `<div class="rbar">
+      <button class="rbtn" id="rbtn" type="button">Refresh forecast</button>
+      <div class="rmsg" id="rmsg">Rebuilds today's forecast on your PC. Takes about a minute.</div>
+    </div>`;
+  }
+  /* On the public site there is no server to call, so the button cannot
+     rebuild the page itself. What it CAN do is send you to the one screen
+     that will: the workflow's Run page on GitHub. That works from a phone,
+     needs no key embedded in a world-readable page, and is honest about
+     where the work happens - which a button that silently failed would not
+     be. */
+  if (D.public){
+    return `<div class="rbar">
+      <a class="rbtn" target="_blank" rel="noopener"
+         href="https://github.com/${REPO}/actions/workflows/forecast.yml">
+        Update forecast &rarr;</a>
+      <div class="rmsg">Opens GitHub, where you press <b>Run workflow</b>.
+        The page rebuilds itself in the cloud and is live in two or three
+        minutes — your laptop does not need to be on.</div>
+    </div>`;
+  }
+  return '';
 }
 
 let pollTimer = null;
@@ -2266,6 +2707,7 @@ function render(){
           <figcaption><b>${esc(r.name)}</b><br>${esc(r.why)}</figcaption>
         </figure>`).join('')}
       </div>
+      ${radarExplainHtml(D)}
       <div style="margin-top:12px">
         ${nc.radar.slice(2).map(r => `<a class="lk" href="${esc(r.url)}" target="_blank" rel="noopener">
           <b>${esc(r.name)}</b><span>${esc(r.why)}</span></a>`).join('')}
@@ -2274,8 +2716,17 @@ function render(){
         <a class="lk" href="${esc(nc.rainviewer)}" target="_blank" rel="noopener">
           <b>RainViewer animation</b><span>About 2 h of frames, easier to loop.</span></a>
       </div>
-      <h2 style="margin-top:20px">The five-question radar scan</h2>
-      <ol class="qs">${nc.questions.map(q => `<li>${esc(q)}</li>`).join('')}</ol>
+      <h2 style="margin-top:20px">The five-question scan${nc.scanAt ? ` — answered ${esc(nc.scanAt)}` : ''}</h2>
+      ${nc.scan && nc.scan.length
+        ? `<ol class="qs qa">${nc.scan.map(x =>
+             `<li><b>${esc(x.q)}</b><div class="qaa">${mdBold(x.a)}</div></li>`
+           ).join('')}</ol>
+           <div class="quote">Answered from the gridded analysis, not radar.
+             The analysis lags and smooths, so it misses a cell that has just
+             fired and understates an intense core. Inside three hours the
+             radar loop above is still the authority — use these to know
+             <i>what to look for</i> on it.</div>`
+        : `<ol class="qs">${nc.questions.map(q => `<li>${esc(q)}</li>`).join('')}</ol>`}
       <div class="quote"><b>What radar will not tell you.</b>
         ${nc.limits.map(esc).join(' ')}
         This page deliberately does not compute arrival times from radar images —
@@ -2283,6 +2734,56 @@ function render(){
         looks precise and is not. Use IMD's own nowcasts for anything
         safety-critical.</div>
     </div>`;
+  }
+
+
+  h += trackHtml(D);
+
+  /* ---- upstream drivers (Somali jet, mid-level dry air) ---- */
+  if (D.upstream && D.upstream.available){
+    const u = D.upstream;
+    const jetTone = /very strong|strong/.test(u.jet) ? 'good'
+                  : /weak/.test(u.jet) ? 'bad' : 'neu';
+    const dryTone = /very dry|dry/.test(u.dry) ? 'bad'
+                  : /moist/.test(u.dry) ? 'good' : 'neu';
+    const advBad = u.advection === 'steered onto us' && /dry/.test(u.dry);
+    h += `<div class="card"><h2>Upstream drivers</h2>
+      <p class="sub" style="margin:-6px 0 14px">The Somali jet decides how much
+        moisture is being delivered. The mid-level airmass decides whether it can
+        become deep cloud once it gets here.</p>
+      <div class="dgrid">
+        <div class="dtile d-${jetTone}">
+          <div class="dname">SOMALI JET</div>
+          <div class="dval">${u.jetSpeed != null ? u.jetSpeed + ' m/s' : '—'}</div>
+          <div class="dsub"><b>${esc(u.jet)}</b>${u.jetDir ? ' from ' + esc(u.jetDir) : ''}
+            ${u.sourceSupports === false ? ' · source slackening behind it' : ''}</div>
+        </div>
+        <div class="dtile d-${dryTone}">
+          <div class="dname">MID-LEVEL AIR</div>
+          <div class="dval">${u.midRh != null ? u.midRh + '%' : '—'}</div>
+          <div class="dsub"><b>${esc(u.dry)}</b>${u.advection ? ' · ' + esc(u.advection) : ''}</div>
+        </div>
+      </div>
+      ${u.reading ? `<div class="dtext">${mdBold(u.reading)}</div>` : ''}
+      ${advBad ? `<div class="quote">Dry mid-level air is being steered onto the
+        region. Low levels can look humid while cloud still fails to grow — this
+        is the setup where model rain most often fails to verify.</div>` : ''}`;
+    if (u.week && u.week.length > 1){
+      h += `<div class="ustrip">` + u.week.map(d => {
+        const t = /very strong|strong/.test(d.jet) ? 'good'
+                : /weak/.test(d.jet) ? 'bad' : 'neu';
+        return `<div class="uday">
+          <div class="ubar u-${t}" style="height:${Math.max(6, Math.min(46, (d.jetSpeed||0) * 2))}px"
+            title="${esc(d.jet)} — ${d.jetSpeed != null ? d.jetSpeed + ' m/s' : ''}"></div>
+          <div class="uval">${d.jetSpeed != null ? d.jetSpeed : '—'}</div>
+          <div class="ulab">${esc(dayShort(d.day))}</div>
+        </div>`;
+      }).join('') + `</div>
+      <div class="sub" style="margin-top:6px">Corridor jet strength through the
+        week, m/s. Read against the mid-level airmass: a strong jet under dry
+        mid-levels delivers less than its speed suggests.</div>`;
+    }
+    h += `</div>`;
   }
 
   /* ---- systems ---- */

@@ -1,0 +1,75 @@
+# Runs the forecasting agent in the cloud and publishes the result.
+#
+# WHY THIS EXISTS
+# ---------------
+# The 06:15 scheduled task on the laptop only fires when the laptop is awake.
+# This runs on GitHub's machines instead, so the public page keeps updating
+# whether the laptop is on, asleep, or in another country.
+#
+# It also gives the website an Update button that actually does something: the
+# `workflow_dispatch` trigger below is what the button on the page links to.
+# A button on a static host cannot run Python, but it can send you to the one
+# screen where you press Run - which works fine from a phone.
+#
+# No secrets are needed. Every number comes from Open-Meteo, which is keyless,
+# and the Windy map key is deliberately stripped from the public build.
+
+name: Forecast update
+
+on:
+  # 00:45 UTC = 06:15 IST, matching the local scheduled task.
+  schedule:
+    - cron: "45 0 * * *"
+  # This is the Update button's target.
+  workflow_dispatch:
+
+# The job commits the rebuilt pages back to the repository, so it needs write
+# access to contents. Nothing else.
+permissions:
+  contents: write
+
+concurrency:
+  # A second run started while one is mid-publish would race on the same
+  # commit. Queue instead, and never cancel a run that may already have
+  # committed.
+  group: forecast-publish
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Bulletins are stamped in local time; without this the runner would
+      # write UTC and every timestamp on the page would read 5.5 hours early.
+      TZ: Asia/Kolkata
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The agent is standard library only - there is nothing to install.
+
+      - name: Build the Kalyan West daily bulletin
+        run: python -m wxagent daily --no-notify --quiet
+
+      - name: Build the Mumbai MMR weekly outlook
+        run: python -m wxagent weekly --quiet
+
+      - name: Publish to GitHub Pages
+        run: |
+          git config user.name  "kalyan-weather bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python -m wxagent gh-publish
+
+      - name: Report what happened
+        if: always()
+        run: |
+          echo "### Forecast update" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f forecasts/*_kalyan_west.md ]; then
+            echo "Bulletin written." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          git log -1 --format='Published: %s (%ci)' >> "$GITHUB_STEP_SUMMARY"

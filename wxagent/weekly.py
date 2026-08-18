@@ -24,7 +24,8 @@ import re
 
 from . import config as C
 from . import (
-    climate, oscillations, plain, report, synoptic, systems, thermal, web,
+    climate, oscillations, plain, report, synoptic, systems, thermal,
+    upstream, web,
 )
 from .diagnostics import (
     compass, daily_rain_spread, diagnose_day, imd_category, lift_profile,
@@ -494,6 +495,10 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
     miso = oscillations.analyse_miso(today=start, quiet=quiet)
     crosscheck = oscillations.cpc_crosscheck(mjo)
 
+    if not quiet:
+        print("  sampling upstream drivers (Somali jet, dry-air intrusion)...")
+    up = upstream.fetch(days=len(day_list), quiet=quiet)
+
     # ---- area roll-up, alerts, heat/cold across the region ---------------
     areas = plain.summarise_areas(forecasts, day_list, C.MMR_AREAS)
 
@@ -534,6 +539,9 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
 
     out += report.h(2, "Across the MMR — area by area")
     out += plain.render_areas(areas, home_key=C.HOME_AREA) + "\n"
+
+    out += report.h(2, "Upstream drivers — Somali jet and mid-level dry air")
+    out += upstream.render_zones(up, day=day_list[0]) + "\n"
 
     out += report.h(2, "Low pressure systems, troughs and storms")
     out += systems.render(sys_pic)

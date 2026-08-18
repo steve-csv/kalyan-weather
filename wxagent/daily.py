@@ -20,7 +20,10 @@ import re
 
 from . import config as C
 from . import (
-    nowcast, observed, plain, report, synoptic, systems, thermal, web,
+    belts as beltmod,
+    recent as recentmod,
+    nowcast, observed, plain, report, synoptic, systems, thermal,
+    upstream, web,
 )
 from .diagnostics import (
     compass, day_slices, diagnose_day, lift_profile, orographic_reading,
@@ -264,6 +267,18 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         print("  tracking low pressure systems...")
     sys_pic = systems.analyse(days=7, today=today, quiet=quiet)
 
+    if not quiet:
+        print("  sampling upstream drivers (Somali jet, dry-air intrusion)...")
+    up = upstream.fetch(days=7, quiet=quiet)
+
+    if not quiet:
+        print("  checking which belts are wet...")
+    belt_status = beltmod.fetch(now=issued, quiet=quiet)
+
+    if not quiet:
+        print("  scoring the last fortnight against what happened...")
+    track = recentmod.assess(C.HOME, quiet=quiet)
+
     dd = diagnose_day(pf, today, ens=ens, primary_model=PRIMARY_MODEL,
                       now=issued)
     if dd is None:
@@ -296,6 +311,10 @@ def run(target_day: date | None = None, *, quiet: bool = False,
                                              site_name=C.HOME.name))
 
     short = nowcast.short_range(pf, primary_model=PRIMARY_MODEL, now=issued)
+
+    if not quiet:
+        print("  scanning upstream for approaching rain...")
+    scan = nowcast.scan(C.HOME, now=issued, quiet=quiet)
 
     if not quiet:
         print("  sampling what fell over the last IMD day...")
@@ -339,6 +358,11 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     extra += observed.render(obs) if obs else "_Not available this run._\n"
     extra += "\n" + report.h(2, "Now — next few hours")
     extra += nowcast.render(short)
+    extra += nowcast.render_scan(scan)
+    extra += beltmod.render(belt_status)
+    extra += "\n" + report.h(2, "Track record — forecast against outcome")
+    extra += recentmod.render(track)
+    extra += upstream.render(up, zone=C.HOME.zone, day=today)
     extra += report.h(2, "Low pressure systems, troughs and storms")
     extra += systems.render(sys_pic)
     extra += report.h(2, "Heat and cold — next 7 days")
@@ -428,6 +452,67 @@ def run(target_day: date | None = None, *, quiet: bool = False,
             for t in thermal_out.days
         ],
     }
+    payload["track"] = {
+        "available": bool(track and track.verified),
+        "summary": track.summary if track else "",
+        "verified": len(track.verified) if track else 0,
+        "correct": track.n_correct if track else 0,
+        "bandPct": (round(track.band_accuracy * 100)
+                    if track and track.band_accuracy is not None else None),
+        "maeWet": (round(track.mae_wet, 1)
+                   if track and track.mae_wet is not None else None),
+        "baseRate": (round(track.base_rate * 100)
+                     if track and track.base_rate is not None else None),
+        "days": [
+            {"day": d.day.isoformat(), "label": d.day.strftime("%a %d"),
+             "fc": d.forecast_mm, "obs": d.observed_mm,
+             "verdict": d.verdict or "", "band": d.band_match}
+            for d in (track.days if track else [])
+            if d.forecast_mm is not None or d.observed_mm is not None
+        ],
+    }
+    payload["belts"] = {
+        "available": bool(belt_status),
+        "headline": beltmod.headline(belt_status) if belt_status else "",
+        "list": [
+            {"name": b.belt.name, "zone": b.belt.zone, "key": b.belt.key,
+             "state": b.state, "sentence": b.sentence,
+             "nowMmH": round(b.now_mm_h, 1), "peakMmH": round(b.peak_mm_h, 1),
+             "place": b.wettest_place, "eta": b.eta_hours,
+             "hours": [round(v, 1) for v in b.hours]}
+            for b in (belt_status or [])
+        ],
+    }
+    up_today = up.for_day(today) if up else None
+    payload["upstream"] = {
+        "available": bool(up_today),
+        "jet": up_today.jet_label if up_today else "",
+        "jetNote": up_today.jet_note if up_today else "",
+        "jetSpeed": (round(up_today.corridor_speed)
+                     if up_today and up_today.corridor_speed is not None else None),
+        "jetDir": (upstream.compass(up_today.corridor_dir)
+                   if up_today else ""),
+        "coreSpeed": (round(up_today.core_speed)
+                      if up_today and up_today.core_speed is not None else None),
+        "sourceSupports": (up_today.source_supports if up_today else None),
+        "dry": up_today.dry_label if up_today else "",
+        "dryNote": up_today.dry_note if up_today else "",
+        "midRh": (round(up_today.mid_rh)
+                  if up_today and up_today.mid_rh is not None else None),
+        "rh700": (round(up_today.rh700)
+                  if up_today and up_today.rh700 is not None else None),
+        "advection": up_today.advection_state if up_today else "",
+        "reading": upstream.zone_reading(up_today, C.HOME.zone) if up_today else "",
+        "week": [
+            {"day": d.day.isoformat(),
+             "jet": d.jet_label,
+             "jetSpeed": round(d.corridor_speed) if d.corridor_speed is not None else None,
+             "dry": d.dry_label,
+             "midRh": round(d.mid_rh) if d.mid_rh is not None else None,
+             "advection": d.advection_state}
+            for d in (up.days if up else [])
+        ],
+    }
     payload["systems"] = {
         "trough": sys_pic.trough.note if sys_pic else "",
         "troughPresent": bool(sys_pic and sys_pic.trough.present),
@@ -471,6 +556,16 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         "radarPage": nowcast.IMD_RADAR_PAGE,
         "rainviewer": nowcast.RAINVIEWER_MAP,
         "questions": list(nowcast.RADAR_SCAN_QUESTIONS),
+        "scan": ([{"q": q, "a": a} for q, a in scan.answers] if scan else []),
+        "scanAt": (scan.generated.strftime("%H:%M") if scan else ""),
+        "scanEta": (round(scan.eta_hours, 1)
+                    if scan and scan.eta_hours else None),
+        # Drives the cross-section animation: the steering speed sets how fast
+        # the cells cross it, so a racing band and a crawling one look
+        # different on the page rather than both drifting at some default.
+        "scanSteerKmh": (round(scan.steer_speed_kmh) if scan else None),
+        "scanFrom": (nowcast.compass_from(scan.upstream_bearing)
+                     if scan else ""),
         "limits": list(nowcast.RADAR_LIMITS),
     }
     html = web.render(payload, links,

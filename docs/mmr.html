@@ -495,7 +495,7 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
 .rbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   background:var(--surface-1);border:1px solid var(--border);
   border-radius:var(--radius);padding:12px 16px;margin-bottom:16px}
-.rbtn{background:var(--series-1);color:#fff;border:0;border-radius:999px;
+.rbtn,a.rbtn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center;background:var(--series-1);color:#fff;border:0;border-radius:999px;
   padding:10px 20px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;
   min-height:44px}
 .rbtn:disabled{opacity:.5;cursor:default}
@@ -2060,12 +2060,34 @@ function skChip(btn){
 const SERVED = (location.protocol === 'http:' || location.protocol === 'https:')
                && !D.artifact && !D.public;
 
+/* The repository whose Actions run the cloud update. Used only to build the
+   Update link on the public build. */
+const REPO = 'steve-csv/kalyan-weather';
+
 function refreshBarHtml(){
-  if (!SERVED) return '';
-  return `<div class="rbar">
-    <button class="rbtn" id="rbtn" type="button">Refresh forecast</button>
-    <div class="rmsg" id="rmsg">Rebuilds today's forecast on your PC. Takes about a minute.</div>
-  </div>`;
+  if (SERVED){
+    return `<div class="rbar">
+      <button class="rbtn" id="rbtn" type="button">Refresh forecast</button>
+      <div class="rmsg" id="rmsg">Rebuilds today's forecast on your PC. Takes about a minute.</div>
+    </div>`;
+  }
+  /* On the public site there is no server to call, so the button cannot
+     rebuild the page itself. What it CAN do is send you to the one screen
+     that will: the workflow's Run page on GitHub. That works from a phone,
+     needs no key embedded in a world-readable page, and is honest about
+     where the work happens - which a button that silently failed would not
+     be. */
+  if (D.public){
+    return `<div class="rbar">
+      <a class="rbtn" target="_blank" rel="noopener"
+         href="https://github.com/${REPO}/actions/workflows/forecast.yml">
+        Update forecast &rarr;</a>
+      <div class="rmsg">Opens GitHub, where you press <b>Run workflow</b>.
+        The page rebuilds itself in the cloud and is live in two or three
+        minutes — your laptop does not need to be on.</div>
+    </div>`;
+  }
+  return '';
 }
 
 let pollTimer = null;

@@ -95,7 +95,7 @@ Remove-AgentTask $DailyName
 
 $dailyAction = New-ScheduledTaskAction `
     -Execute $python `
-    -Argument "-m wxagent daily" `
+    -Argument "-m wxagent daily --publish" `
     -WorkingDirectory $Root
 
 $dailyTrigger = New-ScheduledTaskTrigger -Daily -At $DailyTime
@@ -122,7 +122,7 @@ Remove-AgentTask $WeeklyName
 
 $weeklyAction = New-ScheduledTaskAction `
     -Execute $python `
-    -Argument "-m wxagent weekly" `
+    -Argument "-m wxagent weekly --publish" `
     -WorkingDirectory $Root
 
 $weeklyTrigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $WeeklyDay -At $WeeklyTime

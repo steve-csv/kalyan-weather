@@ -97,9 +97,36 @@ DAYPART_PLAIN = {
 }
 
 
-def _rain_probability_words(pct: float | None) -> str:
+# Calibration correction, measured rather than assumed.
+#
+# The three-season backtest (2024-26, 316 days, Kalyan West) checked whether
+# the ensemble's probabilities mean what they say. At the top of the scale they
+# do: when the members are near-unanimous the forecast verifies ~98% of the
+# time, so confident wording is earned. At the bottom they do not. In the
+# 0-20% band the ensemble averaged 4% - and it rained on 24% of those days.
+#
+# The cause is not a coding error, it is a shared blind spot: ECMWF, GFS and
+# ICON are all resolving the same grid-scale flow, so when rain is forced
+# locally - a sea-breeze convergence line, a single ghat-anchored cell - every
+# member misses it together, and unanimity gets mistaken for certainty.
+#
+# So in the monsoon a low number licenses "nothing organised", never "dry".
+# Outside the monsoon the same low number really does mean dry, and hedging
+# there would be its own kind of dishonesty.
+LOW_PROB_MONSOON_RAIN_RATE = 0.24
+
+
+# Phrases that already name their own subject. The dry headline prefixes
+# "rain " to the others ("rain not expected"); doing that to these would give
+# "rain isolated showers possible".
+_SUBJECT_PHRASES = frozenset({"isolated showers possible",
+                              "nothing organised expected"})
+
+
+def _rain_probability_words(pct: float | None, *, monsoon: bool = False) -> str:
+    """Bare confidence phrase, written to sit after an em dash."""
     if pct is None:
-        return "rain possible"
+        return "possible"
     if pct >= 90:
         return "near certain"
     if pct >= 70:
@@ -109,8 +136,8 @@ def _rain_probability_words(pct: float | None) -> str:
     if pct >= 30:
         return "possible"
     if pct >= 10:
-        return "unlikely"
-    return "not expected"
+        return "unlikely" if not monsoon else "isolated showers possible"
+    return "not expected" if not monsoon else "nothing organised expected"
 
 
 # --------------------------------------------------------------------------
@@ -186,10 +213,14 @@ def describe_from_facts(day: date, f: dict) -> PlainDay:
     pct = f.get("pct")
     rain_hi = f.get("rainHi") or 0.0
 
+    monsoon = C.SEASONS[day.month] == "monsoon"
+
+    phrase = _rain_probability_words(pct, monsoon=monsoon)
     if rain_hi < C.MEASURABLE_RAIN_MM:
-        headline = f"Mostly dry — rain {_rain_probability_words(pct)}."
+        lead = "" if phrase in _SUBJECT_PHRASES else "rain "
+        headline = f"Mostly dry — {lead}{phrase}."
     else:
-        headline = f"{plain_band} — {_rain_probability_words(pct)}."
+        headline = f"{plain_band} — {phrase}."
 
     character_text = CHARACTER_PLAIN.get(f.get("character", ""), "")
 
@@ -218,7 +249,14 @@ def describe_from_facts(day: date, f: dict) -> PlainDay:
     amt_key = f.get("confAmount", "moderate")
     occ = CONFIDENCE_PLAIN.get(occ_key, occ_key)
     amt = CONFIDENCE_PLAIN.get(amt_key, amt_key).lower()
-    if rain_hi < C.MEASURABLE_RAIN_MM:
+    if rain_hi < C.MEASURABLE_RAIN_MM and monsoon:
+        # Verified, not assumed - see LOW_PROB_MONSOON_RAIN_RATE above.
+        conf_line = (f"{occ} on the absence of organised rain. A signal this "
+                     f"quiet still produced rain on "
+                     f"{LOW_PROB_MONSOON_RAIN_RATE:.0%} of monsoon days in the "
+                     "2024–26 backtest, so read it as 'nothing lined up', not "
+                     "'dry'.")
+    elif rain_hi < C.MEASURABLE_RAIN_MM:
         conf_line = f"{occ} — dry."
     elif occ_key == amt_key:
         conf_line = f"{occ}."

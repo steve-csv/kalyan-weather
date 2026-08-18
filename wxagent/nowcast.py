@@ -74,6 +74,257 @@ def radar_url(product: str, *, bust: str | None = None) -> str:
 # The five-question radar scan (Guide s16.1)
 # --------------------------------------------------------------------------
 
+# --------------------------------------------------------------------------
+# Answering the five questions from gridded data
+# --------------------------------------------------------------------------
+# The five-question scan is written to be run against a radar loop. This
+# answers the same five from the model analysis instead - sampling an upstream
+# fan, reading the steering flow, and comparing the last few hours.
+#
+# It is NOT radar and does not pretend to be. Radar sees what is falling now;
+# this sees what the analysis thinks is falling, which lags and smooths. The
+# answers are a structured starting point that updates itself every run, and
+# the radar loop remains the authority inside three hours - which is why the
+# links stay directly above them.
+
+import math
+
+EARTH_R_KM = 6371.0
+
+
+def _destination(lat: float, lon: float, bearing_deg: float,
+                 dist_km: float) -> tuple[float, float]:
+    """Point `dist_km` from (lat, lon) along `bearing_deg`."""
+    br = math.radians(bearing_deg)
+    d = dist_km / EARTH_R_KM
+    p1 = math.radians(lat)
+    l1 = math.radians(lon)
+    p2 = math.asin(math.sin(p1) * math.cos(d)
+                   + math.cos(p1) * math.sin(d) * math.cos(br))
+    l2 = l1 + math.atan2(math.sin(br) * math.sin(d) * math.cos(p1),
+                         math.cos(d) - math.sin(p1) * math.sin(p2))
+    return math.degrees(p2), (math.degrees(l2) + 540) % 360 - 180
+
+
+# Ranges sampled upstream, in km. Beyond ~200 km a cell will have evolved
+# beyond recognition before it arrives, so there is little point looking further.
+SCAN_RANGES = (25.0, 50.0, 75.0, 100.0, 150.0, 200.0)
+SCAN_SPREAD = (-40.0, -20.0, 0.0, 20.0, 40.0)   # degrees either side of upstream
+
+
+@dataclass
+class ScanCell:
+    distance_km: float
+    bearing_deg: float
+    mm_now: float
+    mm_prev: float
+
+    @property
+    def trend(self) -> float:
+        return self.mm_now - self.mm_prev
+
+
+@dataclass
+class ScanAnswers:
+    upstream_bearing: float
+    steer_speed_kmh: float
+    nearest: ScanCell | None
+    cells: list[ScanCell]
+    eta_hours: float | None
+    answers: list[tuple[str, str]]
+    generated: datetime
+
+
+
+def compass_from(bearing_deg: float | None) -> str:
+    """Compass point a flow is coming FROM, for the page's animation label."""
+    from .diagnostics import compass
+    if bearing_deg is None:
+        return "the west"
+    return f"the {compass(bearing_deg)}"
+
+def _bearing_between(lat1, lon1, lat2, lon2) -> float:
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dl = math.radians(lon2 - lon1)
+    y = math.sin(dl) * math.cos(p2)
+    x = math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dl)
+    return (math.degrees(math.atan2(y, x)) + 360) % 360
+
+
+def scan(site, *, now: datetime | None = None,
+         quiet: bool = True) -> ScanAnswers | None:
+    """
+    Sample an upstream fan and answer the five questions.
+
+    The fan is aimed INTO the steering flow: where the air is coming from is
+    where the next few hours' weather is coming from. A fixed westward box
+    would miss the band entirely on a day the flow backs southerly.
+    """
+    from .diagnostics import compass, _circular_mean
+    from .sources import _get_json
+    from . import config as _C
+
+    now = now or datetime.now()
+
+    # 1. Steering flow at 850 hPa over the home point, from the current run.
+    try:
+        steer = _get_json(_C.FORECAST_URL, {
+            "latitude": site.lat, "longitude": site.lon,
+            "hourly": "wind_speed_850hPa,wind_direction_850hPa",
+            "models": _C.MODELS[0].key, "forecast_days": 1, "past_days": 1,
+            "timezone": _C.TIMEZONE, "wind_speed_unit": "kmh",
+        }, timeout=60)
+    except Exception:                             # noqa: BLE001
+        return None
+    if isinstance(steer, list):
+        steer = steer[0]
+    sh = steer.get("hourly", {})
+    times = sh.get("time", [])
+    idx = [i for i, t in enumerate(times)
+           if abs((datetime.fromisoformat(t) - now).total_seconds()) < 5400]
+    if not idx:
+        return None
+    spd = [sh.get("wind_speed_850hPa", [])[i] for i in idx]
+    dirs = [sh.get("wind_direction_850hPa", [])[i] for i in idx]
+    spd = [v for v in spd if v is not None]
+    from_dir = _circular_mean([v for v in dirs if v is not None])
+    if not spd or from_dir is None:
+        return None
+    steer_kmh = sum(spd) / len(spd)
+
+    # 2. Sample the fan upstream, i.e. toward where the wind is coming FROM.
+    points, meta = [], []
+    for off in SCAN_SPREAD:
+        br = (from_dir + off) % 360
+        for rng in SCAN_RANGES:
+            la, lo = _destination(site.lat, site.lon, br, rng)
+            points.append((la, lo))
+            meta.append((rng, br))
+
+    try:
+        raw = _get_json(_C.FORECAST_URL, {
+            "latitude": ",".join(f"{p[0]:.3f}" for p in points),
+            "longitude": ",".join(f"{p[1]:.3f}" for p in points),
+            "hourly": "precipitation",
+            "models": _C.MODELS[0].key,
+            "past_days": 1, "forecast_days": 1,
+            "timezone": _C.TIMEZONE,
+        }, timeout=90)
+    except Exception:                             # noqa: BLE001
+        return None
+    if not isinstance(raw, list):
+        raw = [raw]
+
+    cells: list[ScanCell] = []
+    for (rng, br), loc in zip(meta, raw):
+        h = loc.get("hourly", {})
+        ts, pr = h.get("time", []), h.get("precipitation", [])
+        cur = prev = 0.0
+        for t, v in zip(ts, pr):
+            if v is None:
+                continue
+            dt = datetime.fromisoformat(t)
+            age = (now - dt).total_seconds() / 3600.0
+            if -1 <= age < 1:
+                cur = max(cur, v)
+            elif 1 <= age < 3:
+                prev = max(prev, v)
+        if cur > 0.05 or prev > 0.05:
+            cells.append(ScanCell(rng, br, round(cur, 2), round(prev, 2)))
+
+    active = [c for c in cells if c.mm_now >= 0.2]
+    nearest = min(active, key=lambda c: c.distance_km) if active else None
+    eta = (nearest.distance_km / steer_kmh) if (nearest and steer_kmh > 1) else None
+
+    # ---- compose the five answers ----
+    A: list[tuple[str, str]] = []
+
+    if nearest is None:
+        A.append((RADAR_SCAN_QUESTIONS[0],
+                  "Nothing active in the upstream fan out to 200 km. Any rain "
+                  "in the next couple of hours would have to develop locally "
+                  "rather than arrive."))
+    else:
+        A.append((RADAR_SCAN_QUESTIONS[0],
+                  f"Yes — nearest active area about "
+                  f"**{nearest.distance_km:.0f} km** away, upstream toward "
+                  f"{compass(nearest.bearing_deg)}. "
+                  f"{len(active)} of {len(points)} sampled points are wet."))
+
+    A.append((RADAR_SCAN_QUESTIONS[1],
+              f"Steering flow is from {compass(from_dir)} at about "
+              f"**{steer_kmh:.0f} km/h**, so anything upstream should track "
+              f"toward {compass((from_dir + 180) % 360)}"
+              + (f" and reach Kalyan in roughly **{eta:.1f} h** if it holds "
+                 "together." if eta else ".")))
+
+    if not active:
+        A.append((RADAR_SCAN_QUESTIONS[2], "Nothing to assess."))
+    else:
+        rising = sum(1 for c in active if c.trend > 0.2)
+        falling = sum(1 for c in active if c.trend < -0.2)
+        moving = rising + falling
+        # A trend needs a meaningful share of the field to be moving. One
+        # point out of twelve changing while eleven hold steady is noise, and
+        # calling that "strengthening" would be a confident answer to a
+        # question the data has not answered.
+        if moving < max(2, len(active) * 0.25):
+            verb = "is" if moving == 1 else "are"
+            verdict = (f"**Holding** — only {moving} of {len(active)} active "
+                       f"points {verb} changing appreciably, which is too few "
+                       "to call a trend either way.")
+        elif rising > falling * 1.5:
+            verdict = (f"**Strengthening** — {rising} of {len(active)} active "
+                       f"points intensifying against {falling} easing.")
+        elif falling > rising * 1.5:
+            verdict = (f"**Weakening** — {falling} of {len(active)} easing "
+                       f"against {rising} intensifying, so expect less than "
+                       "the raw distance suggests.")
+        else:
+            verdict = (f"**Mixed** — {rising} intensifying, {falling} easing. "
+                       "No clear direction.")
+        A.append((RADAR_SCAN_QUESTIONS[2], verdict))
+
+    far = [c for c in active if c.distance_km >= 100]
+    near = [c for c in active if c.distance_km < 100]
+    if far and near:
+        A.append((RADAR_SCAN_QUESTIONS[3],
+                  f"Yes — {len(far)} active area(s) beyond 100 km behind the "
+                  f"{len(near)} closer in. That is a train, not a single band: "
+                  "the first arrival is unlikely to be the last."))
+    elif far:
+        A.append((RADAR_SCAN_QUESTIONS[3],
+                  "Activity is all beyond 100 km — developing upstream but not "
+                  "yet close. Worth re-checking in an hour."))
+    elif near:
+        A.append((RADAR_SCAN_QUESTIONS[3],
+                  "Nothing new behind the near activity — what is close now "
+                  "looks like the whole of it for the moment."))
+    else:
+        A.append((RADAR_SCAN_QUESTIONS[3], "No upstream development."))
+
+    if not active:
+        A.append((RADAR_SCAN_QUESTIONS[4], "Nothing to track."))
+    elif steer_kmh < 20:
+        A.append((RADAR_SCAN_QUESTIONS[4],
+                  f"Slow steering ({steer_kmh:.0f} km/h). Anything that forms "
+                  "will move little and can sit over the same suburbs — the "
+                  "setup that produces large local totals from a modest-looking "
+                  "system."))
+    elif far and near:
+        A.append((RADAR_SCAN_QUESTIONS[4],
+                  "Repeat likely — successive areas along the same track will "
+                  "cross in sequence rather than one band clearing through."))
+    else:
+        A.append((RADAR_SCAN_QUESTIONS[4],
+                  f"Fast steering ({steer_kmh:.0f} km/h) with a single area — "
+                  "more likely one spell passing through than a repeat."))
+
+    return ScanAnswers(upstream_bearing=from_dir, steer_speed_kmh=steer_kmh,
+                       nearest=nearest, cells=cells, eta_hours=eta,
+                       answers=A, generated=now)
+
+
 RADAR_SCAN_QUESTIONS: tuple[str, ...] = (
     "Is precipitation already present, and how far is it from Kalyan?",
     "What direction and speed is the echo moving?",
@@ -158,6 +409,24 @@ def short_range(pf, *, primary_model: str = "ecmwf_ifs025",
 # Rendering
 # --------------------------------------------------------------------------
 
+def render_scan(sa: ScanAnswers | None) -> str:
+    """The five questions, answered."""
+    if sa is None:
+        return ""
+    out = ("**The five-question scan, answered from the current analysis** "
+           f"(as of {sa.generated:%H:%M}).\n\n")
+    for i, (q, a) in enumerate(sa.answers, 1):
+        out += f"{i}. **{q}**  \n   {a}\n\n"
+    out += (
+        "> These answers come from the gridded analysis, not from radar. The "
+        "analysis lags and smooths, so it will miss a cell that has just fired "
+        "and will understate an intense core. Inside three hours the radar loop "
+        "above is still the authority — use these to know *what to look for* "
+        "on it.\n"
+    )
+    return out
+
+
 def render(sr: ShortRange | None) -> str:
     out = "Guide §18: for the next 0–3 hours, **radar outranks every model on this page.**\n\n"
 
@@ -177,10 +446,10 @@ def render(sr: ShortRange | None) -> str:
             f"- [RainViewer animation]({RAINVIEWER_MAP}) — ~2 h of frames, "
             "easier to loop than IMD's viewer\n\n")
 
-    out += "**The five-question scan** (Guide §16.1)\n\n"
-    for i, q in enumerate(RADAR_SCAN_QUESTIONS, 1):
-        out += f"{i}. {q}\n"
-    out += "\n> **What radar will not tell you** (Guide §16.2): "
+    # The questions themselves are not listed here - render_scan() prints them
+    # with their answers immediately below, and printing them twice made the
+    # section read as though the checklist had gone unanswered.
+    out += "> **What radar will not tell you** (Guide §16.2): "
     out += " ".join(RADAR_LIMITS)
     out += ("\n>\n> This agent deliberately does not compute arrival times from "
             "radar images. Inverting a colour scale into reflectivity and "

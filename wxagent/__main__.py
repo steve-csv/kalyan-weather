@@ -17,10 +17,32 @@ from datetime import date
 from . import config as C
 
 
+def _publish_after(quiet: bool) -> int:
+    """Push the refreshed pages to GitHub Pages.
+
+    Called by the scheduled runs so the public page updates itself. A publish
+    failure is reported but does not fail the run: the bulletin has already
+    been written and notified, and losing that to a transient network or git
+    error would be the worse outcome.
+    """
+    from .ghpages import PublishError, publish
+    try:
+        print(publish(message=None, quiet=quiet))
+        return 0
+    except PublishError as exc:
+        print(f"\npublish skipped: {exc}")
+        return 0
+    except Exception as exc:                      # noqa: BLE001
+        print(f"\npublish failed: {exc}")
+        return 0
+
+
 def cmd_daily(args) -> int:
     from .daily import run
     run(date.fromisoformat(args.date) if args.date else None,
         quiet=args.quiet, no_notify=args.no_notify)
+    if getattr(args, "publish", False):
+        return _publish_after(args.quiet)
     return 0
 
 
@@ -28,6 +50,8 @@ def cmd_weekly(args) -> int:
     from .weekly import run
     run(date.fromisoformat(args.start) if args.start else None,
         days=args.days, quiet=args.quiet, no_notify=args.no_notify)
+    if getattr(args, "publish", False):
+        return _publish_after(args.quiet)
     return 0
 
 
@@ -116,6 +140,12 @@ def cmd_backtest(args) -> int:
     argv += ["--site", args.site, "--threshold", str(args.threshold)]
     if args.no_terrain:
         argv.append("--no-terrain")
+    if args.deep:
+        argv += ["--deep", "--years", args.years]
+    if args.no_zones:
+        argv.append("--no-zones")
+    if args.cached:
+        argv.append("--cached")
     return backtest_main(argv)
 
 
@@ -314,6 +344,8 @@ def build_parser() -> argparse.ArgumentParser:
     d.add_argument("--date")
     d.add_argument("--quiet", action="store_true")
     d.add_argument("--no-notify", action="store_true")
+    d.add_argument("--publish", action="store_true",
+                   help="push the refreshed pages to GitHub Pages afterwards")
     d.set_defaults(func=cmd_daily)
 
     w = sub.add_parser("weekly", help="Mumbai MMR 7-day wind outlook")
@@ -321,6 +353,8 @@ def build_parser() -> argparse.ArgumentParser:
     w.add_argument("--days", type=int, default=7)
     w.add_argument("--quiet", action="store_true")
     w.add_argument("--no-notify", action="store_true")
+    w.add_argument("--publish", action="store_true",
+                   help="push the refreshed pages to GitHub Pages afterwards")
     w.set_defaults(func=cmd_weekly)
 
     v = sub.add_parser("verify", help="record what actually happened")
@@ -349,6 +383,13 @@ def build_parser() -> argparse.ArgumentParser:
     b.add_argument("--site", default=C.HOME.key)
     b.add_argument("--threshold", type=float, default=C.MEASURABLE_RAIN_MM)
     b.add_argument("--no-terrain", action="store_true")
+    b.add_argument("--deep", action="store_true",
+                   help="multi-season run with bootstrap confidence intervals, "
+                        "a threshold sweep and probabilistic scores")
+    b.add_argument("--years", default="2024,2025,2026")
+    b.add_argument("--no-zones", action="store_true")
+    b.add_argument("--cached", action="store_true",
+                   help="reuse saved deep-backtest records, fetching nothing")
     b.set_defaults(func=cmd_backtest)
 
     gs = sub.add_parser("gh-setup",

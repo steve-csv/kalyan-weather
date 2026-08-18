@@ -98,6 +98,34 @@ Handbook Ch.25 puts the pressure layer first: *"This single layer, checked first
 
 **Cross-coast gradient** — mean sea-line pressure minus mean inland-line pressure. Positive means pressure falling inland, strengthening westerly moisture transport (Guide §2.3).
 
+**Somali (Findlater) jet** — the cross-equatorial low-level jet that carries the monsoon's moisture. Measured at 850 hPa in two places: the source core off Somalia (10°N 52°E, 8°N 55°E, 12°N 50°E) and, more importantly, the **mid-Arabian Sea corridor** (14°N 62°E, 17°N 68°E) — the branch that actually reaches the Konkan. Bands are quintiles of the 2024–26 monsoon distribution:
+
+| Corridor jet | Rain days | Mean at Kalyan | Heavy days (of 12) |
+|---|---|---|---|
+| < 9.1 m/s — very weak | 56% | 8.6 mm | 1 |
+| 9.1–13.2 — weak | 70% | 9.9 mm | 0 |
+| 13.2–16.0 — moderate | 86% | 13.7 mm | 1 |
+| 16.0–19.5 — strong | 98% | 20.4 mm | 3 |
+| ≥ 19.5 — very strong | 100% | 32.5 mm | **7** |
+
+The top quintile holds 7 of the 12 heavy days in three monsoons; the top two hold 10 of 12. A slack source behind a fast corridor means a pulse already fading.
+
+**Mid-level dry-air intrusion** — air subsiding over Arabia and the Thar is desert-dry between 700 and 500 hPa. Drawn over the MMR, it is entrained by rising parcels and kills their buoyancy. This is the mechanism behind §1's "moist at 850 but dry at 700 → shallow". Sampled upstream at 22°N 68°E, 24°N 71°E, 20°N 65°E; advection judged by the **600 hPa** flow (not 850 — the monsoon westerly below says nothing about where the dry layer above is going).
+
+| Upstream 600–500 hPa RH | Rain days | Mean at Kalyan | Heavy days (of 12) |
+|---|---|---|---|
+| < 26.7% — very dry | 60% | 7.7 mm | **0** |
+| 26.7–45.5 — dry | 73% | 13.3 mm | 2 |
+| 45.5–59.1 — middling | 83% | 15.2 mm | 2 |
+| 59.1–72.9 — moist | 95% | 25.3 mm | 5 |
+| ≥ 72.9 — very moist | 98% | 23.7 mm | 3 |
+
+The driest quintile produced **no heavy-rain day in 316 days**. When the upstream mid-level airmass is in its driest fifth and being steered our way, a heavy-rain forecast deserves suspicion however good the low-level moisture looks.
+
+**Zone sensitivity (measured, not assumed).** Rank correlation of the corridor jet against observed rainfall, 2024–26: ghat **+0.63** (Malshej +0.68, Igatpuri +0.65, Lonavala +0.61, Matheran +0.59), coastal **+0.59**, transition **+0.55** (Kalyan West), leeward **+0.29** (Pune). A strengthening jet widens the crest-to-shadow gap rather than wetting everywhere equally.
+
+> Both indices peak at **lag 0**, not at the 2–3 days the advection reasoning predicts (corridor: +0.55, +0.47, +0.39, +0.32, +0.26, +0.20 at lags 0–5). They describe the state of the whole monsoon circulation, so they are read from the *forecast* field for each target day — never from today's value projected forward. Neither adjusts any rainfall number; they indicate which way the models are likely to be wrong.
+
 ---
 
 ## 3. Regime classification
