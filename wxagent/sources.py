@@ -208,7 +208,18 @@ def fetch_point(site, *, days: int = 7,
     raw = _get_json(C.FORECAST_URL, params)
     if isinstance(raw, list):
         raw = raw[0]
+    return _build_point(raw, site, model_ids, labels)
 
+
+def _build_point(raw: dict, site, model_ids: Sequence[str],
+                 labels: dict[str, str]) -> PointForecast:
+    """Turn one location's response block into a PointForecast.
+
+    Split out of fetch_point so the batched multi-location fetch below can
+    reuse exactly the same parsing - including the drop-empty-model rule,
+    which is easy to forget in a second copy and would silently admit a model
+    that returned nothing.
+    """
     hourly = raw.get("hourly", {})
     times: list[str] = hourly.get("time", [])
 
@@ -244,16 +255,65 @@ def fetch_point(site, *, days: int = 7,
     return pf
 
 
+# Locations per request. Open-Meteo accepts a comma-separated list of
+# coordinates and returns one block per location, so nineteen sites need four
+# requests rather than nineteen. The chunk is kept modest because the response
+# carries ~25 hourly fields x 3 models x 168 hours PER location, and one
+# enormous reply is slower to transfer and likelier to time out than a few
+# medium ones.
+SITES_PER_REQUEST = 5
+
+
 def fetch_sites(sites: Iterable, *, days: int = 7,
-                models: Sequence[C.Model] | None = None) -> dict[str, PointForecast]:
-    """Fetch several sites. Sequential and deliberately polite to the API."""
+                models: Sequence[C.Model] | None = None
+                ) -> dict[str, PointForecast]:
+    """Fetch several sites in batched requests.
+
+    This used to issue one request per site with a courtesy sleep between
+    them, which for the weekly outlook meant nineteen round trips and made a
+    cloud run slow enough to hit its own timeout. Batching is both faster and
+    gentler on the API than the sleep it replaces.
+    """
+    sites = list(sites)
+    if not sites:
+        return {}
+    models = list(models or C.MODELS)
+    model_ids = [m.key for m in models]
+    labels = {m.key: m.label for m in models}
+
     out: dict[str, PointForecast] = {}
-    for site in sites:
+    for i in range(0, len(sites), SITES_PER_REQUEST):
+        batch = sites[i:i + SITES_PER_REQUEST]
+        params = {
+            "latitude": ",".join(str(s.lat) for s in batch),
+            "longitude": ",".join(str(s.lon) for s in batch),
+            "hourly": ",".join(HOURLY_FIELDS),
+            "models": ",".join(model_ids),
+            "forecast_days": days,
+            "timezone": C.TIMEZONE,
+            "wind_speed_unit": "ms",
+        }
         try:
-            out[site.key] = fetch_point(site, days=days, models=models)
+            raw = _get_json(C.FORECAST_URL, params, timeout=90)
         except FetchError as exc:
-            print(f"  ! {site.name}: {exc}")
-        time.sleep(0.4)
+            # Fall back to one-at-a-time for this batch only. A single bad
+            # coordinate should cost its own site, not the four beside it.
+            print(f"  ! batch of {len(batch)} failed ({exc}); retrying singly")
+            for site in batch:
+                try:
+                    out[site.key] = fetch_point(site, days=days, models=models)
+                except FetchError as exc2:
+                    print(f"  ! {site.name}: {exc2}")
+            continue
+
+        blocks = raw if isinstance(raw, list) else [raw]
+        if len(blocks) != len(batch):
+            print(f"  ! expected {len(batch)} locations, got {len(blocks)}")
+        for site, block in zip(batch, blocks):
+            try:
+                out[site.key] = _build_point(block, site, model_ids, labels)
+            except FetchError as exc:
+                print(f"  ! {site.name}: {exc}")
     return out
 
 
