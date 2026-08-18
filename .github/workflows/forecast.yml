@@ -48,7 +48,11 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Generous, because the FIRST run on a cold cache has to download ten
+    # years of ERA5 climate normals for every thermal site. Once the cache
+    # below is populated a normal run is a couple of minutes; the per-step
+    # limits further down are what catch a genuine hang.
+    timeout-minutes: 30
     env:
       # Bulletins are stamped in local time; without this the runner would
       # write UTC and every timestamp on the page would read 5.5 hours early.
@@ -63,13 +67,33 @@ jobs:
 
       # The agent is standard library only - there is nothing to install.
 
+      # .cache/ holds the ERA5 climate normals (ten years per site, fetched
+      # from the slow archive API) and the oscillation downloads. On the
+      # laptop these accumulate and every run after the first is quick. A
+      # fresh runner starts empty, so the weekly outlook was re-downloading
+      # normals for every thermal site and running past the job timeout -
+      # which is why the first three runs were cancelled while the daily step
+      # beside them, needing only one site's normals, passed fine.
+      - name: Restore the climate-normals cache
+        uses: actions/cache@v4
+        with:
+          path: .cache
+          key: wx-cache-${{ github.run_id }}
+          restore-keys: |
+            wx-cache-
+
+      # Progress output is left on: when a step does hang, the log has to show
+      # which fetch it hung on, and --quiet would hide exactly that.
       - name: Build the Kalyan West daily bulletin
-        run: python -m wxagent daily --no-notify --quiet
+        timeout-minutes: 8
+        run: python -u -m wxagent daily --no-notify
 
       - name: Build the Mumbai MMR weekly outlook
-        run: python -m wxagent weekly --quiet
+        timeout-minutes: 12
+        run: python -u -m wxagent weekly
 
       - name: Publish to GitHub Pages
+        timeout-minutes: 4
         run: |
           git config user.name  "kalyan-weather bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
