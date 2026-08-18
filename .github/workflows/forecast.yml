@@ -17,11 +17,21 @@
 name: Forecast update
 
 on:
-  # 00:45 UTC = 06:15 IST, matching the local scheduled task.
+  # 00:45 UTC = 06:15 IST, matching the local scheduled task it replaces.
   schedule:
     - cron: "45 0 * * *"
   # This is the Update button's target.
   workflow_dispatch:
+  # Rebuild when the agent itself changes, so a code change reaches the public
+  # page without waiting for tomorrow morning. Deliberately scoped: pushes that
+  # only touch docs/ must not retrigger this, or the job's own commit would
+  # start the next run. (GitHub already suppresses that loop for commits made
+  # with the default token, but the path filter makes it true by construction
+  # rather than by relying on that behaviour.)
+  push:
+    paths:
+      - "wxagent/**"
+      - ".github/workflows/forecast.yml"
 
 # The job commits the rebuilt pages back to the repository, so it needs write
 # access to contents. Nothing else.
@@ -68,8 +78,18 @@ jobs:
       - name: Report what happened
         if: always()
         run: |
-          echo "### Forecast update" >> "$GITHUB_STEP_SUMMARY"
-          if [ -f forecasts/*_kalyan_west.md ]; then
-            echo "Bulletin written." >> "$GITHUB_STEP_SUMMARY"
-          fi
-          git log -1 --format='Published: %s (%ci)' >> "$GITHUB_STEP_SUMMARY"
+          # No unquoted globs inside [ ]: with several matching bulletins the
+          # test expands to `[ -f a b c ]`, which is a syntax error and would
+          # fail the job at the very last step, after a successful publish.
+          {
+            echo "### Forecast update"
+            echo ""
+            latest=$(ls -1t forecasts/*_kalyan_west.md 2>/dev/null | head -1 || true)
+            if [ -n "$latest" ]; then
+              echo "Bulletin: \`$latest\`"
+            else
+              echo "No bulletin file was produced."
+            fi
+            echo ""
+            git log -1 --format='Published: %s (%ci)'
+          } >> "$GITHUB_STEP_SUMMARY"
