@@ -7,39 +7,65 @@
 <style>
 :root{
   color-scheme: light;
-  --surface-1:#fcfcfb; --plane:#f9f9f7;
-  --text-primary:#0b0b0b; --text-secondary:#52514e; --muted:#898781;
-  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
-  --series-1:#2a78d6;
+  /* Neutrals are cool with a slate-green cast rather than the warm sand this
+     page used to carry. The subject is a monsoon instrument, so the ground
+     reads like wet slate and the accents each do one job: marine for rain,
+     fern for dry-and-correct, ochre for sun-and-caution, brick for severe.
+     Nothing here is a decorative colour - if a mark is coloured, the colour
+     means something. */
+  --marine:#1e6fa8; --fern:#2f7d57; --ochre:#b5860b; --brick:#a83e2c;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --surface-1:#fbfcfc; --plane:#f1f4f3;
+  --text-primary:#0e1518; --text-secondary:#42545a;
+  /* Measured, not eyeballed: at #75868b this failed WCAG AA against the
+     card (3.3:1) and it is used for real label text, not just rules. */
+  --muted:#5e7176;
+  --grid:#dde5e3; --axis:#b7c5c4; --border:rgba(14,21,24,0.11);
+  --series-1:#1e6fa8;
   /* Ordinal ramp, light surface: progressively DARKER as the value grows.
      All five steps are declared - a missing custom property resolves to
      nothing and the mark renders black, which is how two donut slices came
      out solid black on the first build. */
-  --seq-100:#cde2fb; --seq-250:#86b6ef; --seq-350:#5598e7;
-  --seq-400:#3987e5; --seq-450:#2a78d6; --seq-550:#1c5cab; --seq-650:#104281;
-  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
-  --radius:14px;
+  --seq-100:#d6e7f2; --seq-250:#a3c9e0; --seq-350:#74abd0;
+  --seq-400:#4f92c1; --seq-450:#2f7fb2; --seq-550:#1e6fa8; --seq-650:#124d78;
+  --good:#2f7d57; --warning:#b5860b; --serious:#c2662f; --critical:#a83e2c;
+  --radius:13px;
 }
 @media (prefers-color-scheme: dark){
   :root:where(:not([data-theme="light"])){
     color-scheme: dark;
-    --surface-1:#1a1a19; --plane:#0d0d0d;
-    --text-primary:#ffffff; --text-secondary:#c3c2b7; --muted:#898781;
-    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
-    --series-1:#3987e5;
+    --marine:#5aa6db; --fern:#57b183; --ochre:#d8ab41; --brick:#d4705c;
+    --surface-1:#151d20; --plane:#0c1315;
+    --text-primary:#e8efee; --text-secondary:#a6b8bb; --muted:#7c9095;
+    --grid:#222e32; --axis:#33434a; --border:rgba(232,239,238,0.13);
+    --series-1:#5aa6db;
+    --good:#57b183; --warning:#d8ab41; --serious:#dc8b57; --critical:#d4705c;
     /* Same ramp stepped for the dark surface: progressively LIGHTER as the
        value grows, so magnitude still reads as "more ink against the page". */
-    --seq-100:#104281; --seq-250:#184f95; --seq-350:#256abf;
-    --seq-400:#2a78d6; --seq-450:#3987e5; --seq-550:#5598e7; --seq-650:#86b6ef;
+    --seq-100:#123f63; --seq-250:#1a5480; --seq-350:#236c9f;
+    --seq-400:#2e85bd; --seq-450:#469cd2; --seq-550:#6db4e0; --seq-650:#9dcdec;
   }
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
-  --surface-1:#1a1a19; --plane:#0d0d0d;
-  --text-primary:#ffffff; --text-secondary:#c3c2b7; --muted:#898781;
-  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
-  --series-1:#3987e5;
-  --seq-100:#104281; --seq-250:#184f95; --seq-400:#2a78d6; --seq-550:#5598e7; --seq-650:#9ec5f4;
+  --marine:#5aa6db; --fern:#57b183; --ochre:#d8ab41; --brick:#d4705c;
+  --surface-1:#151d20; --plane:#0c1315;
+  --text-primary:#e8efee; --text-secondary:#a6b8bb; --muted:#7c9095;
+  --grid:#222e32; --axis:#33434a; --border:rgba(232,239,238,0.13);
+  --series-1:#5aa6db;
+  --good:#57b183; --warning:#d8ab41; --serious:#dc8b57; --critical:#d4705c;
+  --seq-100:#123f63; --seq-250:#1a5480; --seq-350:#236c9f;
+  --seq-400:#2e85bd; --seq-450:#469cd2; --seq-550:#6db4e0; --seq-650:#9dcdec;
+}
+
+/* Motion: one easing curve for the whole page, and a single global stop.
+   Scattered durations and mismatched curves are most of what makes a page
+   feel improvised rather than made. */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important; animation-iteration-count:1 !important;
+    transition-duration:.001ms !important; scroll-behavior:auto !important;
+  }
 }
 
 /* ---- weather mood -------------------------------------------------------
@@ -61,15 +87,15 @@
    fill - that is what makes it read as weather instead of a tinted document.
    Cards keep their own near-neutral surface on top, so the colour underneath
    can be bold without touching the contrast of any text or chart. */
-:root[data-wx="sunny"]  { --plane:#ffe9b8; --g1:#fff6dd; --g2:#ffcf78;
+:root[data-wx="sunny"]  { --plane:#f6f1e2; --g1:#faf6ec; --g2:#eee2c6;
                           --mood:#d98416; --sky:#ffb545; }
-:root[data-wx="light"]  { --plane:#cfe8ff; --g1:#e8f5ff; --g2:#9dcdf2;
+:root[data-wx="light"]  { --plane:#e6eef3; --g1:#f0f5f8; --g2:#d3e2ec;
                           --mood:#1f79c9; --sky:#5fb0ea; }
-:root[data-wx="wet"]    { --plane:#aed3f0; --g1:#cfe6f8; --g2:#6fa8d8;
+:root[data-wx="wet"]    { --plane:#dde8f0; --g1:#e9f0f5; --g2:#c6d9e6;
                           --mood:#15629f; --sky:#3d8fcc; }
-:root[data-wx="heavy"]  { --plane:#8fb0d4; --g1:#a9c6e2; --g2:#5878a6;
+:root[data-wx="heavy"]  { --plane:#d0dce7; --g1:#dde6ee; --g2:#b4c6d7;
                           --mood:#0f4b86; --sky:#2f6ba6; }
-:root[data-wx="severe"] { --plane:#b9a3bd; --g1:#d3c0d2; --g2:#7d5f83;
+:root[data-wx="severe"] { --plane:#d5cfd6; --g1:#e1dce2; --g2:#bfb5c4;
                           --mood:#8c2f4a; --sky:#6a4470; }
 
 @media (prefers-color-scheme: dark){
@@ -88,7 +114,9 @@
 *{box-sizing:border-box}
 body{
   margin:0; color:var(--text-primary);
-  font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;
+  font:15px/1.62 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,
+       "Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
   padding:0 0 72px;
   /* Sky gradient: light at the horizon, deeper overhead. `fixed` keeps it
      still while the content scrolls, so it behaves like a sky rather than a
@@ -97,9 +125,18 @@ body{
   background:var(--plane);
   background-image:linear-gradient(180deg,var(--g2) 0%,var(--g1) 46%,var(--plane) 100%);
   background-attachment:fixed;
-  transition:background-color .6s ease;
+  transition:background-color .7s var(--ease);
 }
 .wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+
+/* Keyboard focus. Every interactive thing on this page was reachable by tab
+   and invisible while focused, which makes it unusable without a mouse. One
+   ring, in the accent, on the token system so it works on both grounds. */
+:where(a,button,[tabindex]):focus-visible{
+  outline:2px solid var(--series-1); outline-offset:2px; border-radius:8px;
+}
+.navbtn,.tabs button,.sk-chip{transition:color .18s var(--ease),
+  background-color .18s var(--ease),border-color .18s var(--ease)}
 
 /* ---- animated weather scene ------------------------------------------
    Drawn in CSS against the page, behind the content, so it costs no network
@@ -172,9 +209,25 @@ header{
   flex:none;
 }
 .wrap{max-width:1080px;margin:0 auto}
-h1{font-size:22px;margin:0 0 2px;font-weight:650;letter-spacing:-0.01em}
-h2{font-size:15px;margin:0 0 14px;font-weight:650;letter-spacing:-0.005em}
-.sub{color:var(--text-secondary);font-size:13px;margin:0}
+/* One type scale, used everywhere: 11.5 / 12.5 / 13.5 / 15 / 17 / 22 / 27.
+   Display sizes get negative tracking because system grotesques set loose at
+   large sizes; small labels get positive tracking for the opposite reason. */
+h1{font-size:26px;margin:0 0 3px;font-weight:660;letter-spacing:-0.022em;
+   line-height:1.16;text-wrap:balance}
+h2{font-size:17px;margin:0 0 14px;font-weight:640;letter-spacing:-0.014em;
+   line-height:1.3;text-wrap:balance}
+h3{font-size:13.5px;margin:0 0 9px;font-weight:660;letter-spacing:-0.004em}
+p{text-wrap:pretty}
+.sub{color:var(--text-secondary);font-size:13px;margin:0;line-height:1.55}
+
+/* Figures line up in columns all over this page - totals, rain rates, scores.
+   Proportional digits make those columns ragged, so every numeric surface
+   gets tabular figures. */
+.tile .val,.dval,.tstat b,.sval,.uval,.tlab,.hero .fig,td,th,
+.belt .bsent,.rcard li,.tick{font-variant-numeric:tabular-nums}
+
+/* Small caps-style labels need air between letters to stay legible. */
+.dname,.tkey,.rname span{font-feature-settings:"cv05" 1}
 .muted{color:var(--muted)}
 .card{
   /* Mixed with a trace of the weather colour so cards sit in the scene rather
@@ -335,7 +388,7 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
 .belt{background:var(--plane);border:1px solid var(--border);
   border-left:3px solid var(--muted);border-radius:9px;padding:9px 11px}
 .belt.b-raining{border-left-color:var(--critical)}
-.belt.b-arriving{border-left-color:var(--warn,var(--critical))}
+.belt.b-arriving{border-left-color:var(--warning)}
 .belt.b-drizzling{border-left-color:var(--series-1)}
 .belt.b-later{border-left-color:var(--series-1);opacity:.9}
 .belt.b-dry{border-left-color:var(--good);opacity:.75}
