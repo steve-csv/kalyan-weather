@@ -479,7 +479,8 @@ def run(target_day: date | None = None, *, quiet: bool = False,
              "state": b.state, "sentence": b.sentence,
              "nowMmH": round(b.now_mm_h, 1), "peakMmH": round(b.peak_mm_h, 1),
              "place": b.wettest_place, "eta": b.eta_hours,
-             "hours": [round(v, 1) for v in b.hours]}
+             "hours": [round(v, 1) for v in b.hours],
+             "hourLabels": b.hour_labels}
             for b in (belt_status or [])
         ],
     }

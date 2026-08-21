@@ -123,6 +123,7 @@ class BeltStatus:
     belt: Belt
     now_mm_h: float = 0.0
     hours: list[float] = field(default_factory=list)   # next N hours, mm/h
+    hour_labels: list[str] = field(default_factory=list)   # "21:00", ...
     wettest_place: str = ""
     state: str = "dry"   # raining | drizzling | arriving | later | dry
     eta_hours: int | None = None
@@ -153,9 +154,19 @@ class BeltStatus:
             return (f"**Spitting only** — about {rate(self.now_mm_h)}, barely "
                     "enough to wet the road.")
         if self.state == "arriving":
+            # The rate AT ARRIVAL, not the four-hour peak. Quoting the peak
+            # made this sentence contradict the hour-by-hour table beside it:
+            # "1.0 mm/hr when it lands" over a row reading 0.6, 0.6, 0.6,
+            # because the 1.0 was three hours later.
+            landing = (self.hours[self.eta_hours - 1]
+                       if self.eta_hours and len(self.hours) >= self.eta_hours
+                       else self.peak_mm_h)
+            tail = ""
+            if self.peak_mm_h > landing * 1.5 and self.peak_mm_h >= LIGHT_MM_H:
+                tail = f" Building to {rate(self.peak_mm_h)} after that."
             return (f"**Rain arriving within the hour** — "
-                    f"{intensity_word(self.peak_mm_h)} when it lands "
-                    f"({rate(self.peak_mm_h)}).")
+                    f"{intensity_word(landing)} when it lands "
+                    f"({rate(landing)}).{tail}")
         if self.state == "later":
             h = self.eta_hours or 2
             return (f"**Dry for now.** Rain expected in about "
@@ -211,6 +222,7 @@ def fetch(*, now: datetime | None = None, model: str = "ecmwf_ifs025",
 
     now = now or datetime.now()
     series: dict[str, tuple[list[float], list[float]]] = {}   # name -> (past, ahead)
+    labels: list[str] = []      # clock labels for the hours ahead, e.g. "21:00"
     for (name, _, _), loc in zip(ALL_POINTS, raw):
         h = loc.get("hourly", {})
         times = h.get("time", [])
@@ -230,9 +242,14 @@ def fetch(*, now: datetime | None = None, model: str = "ecmwf_ifs025",
             return (float(vals[i])
                     if 0 <= i < len(vals) and vals[i] is not None else 0.0)
         past = [mm(i) for i in range(max(0, cur - STEPS_BACK), cur + 1)]
-        ahead = [mm(i) for i in range(cur + 1,
-                                      min(cur + 1 + STEPS_AHEAD, len(vals)))]
+        span = range(cur + 1, min(cur + 1 + STEPS_AHEAD, len(vals)))
+        ahead = [mm(i) for i in span]
         series[name] = (past, ahead)
+        # Every location shares one time grid, so the labels only need taking
+        # once - but take them from a location that actually returned times
+        # rather than assuming the first one did.
+        if not labels:
+            labels = [times[i][11:16] for i in span if i < len(times)]
 
     out: list[BeltStatus] = []
     for belt in BELTS:
@@ -252,6 +269,14 @@ def fetch(*, now: datetime | None = None, model: str = "ecmwf_ifs025",
         peak = max((max(a) if a else 0.0) for _, (_, a) in rows)
         prev_rate = max((p[0] if p else 0.0) for _, (p, _) in rows)
 
+        # The hour-by-hour strip is the belt's worst case at each hour, to
+        # match now_mm_h and peak_mm_h. Taking one location's series instead
+        # would let a dry corner of the belt speak for a wet one, and the
+        # strip would then disagree with the headline above it.
+        n_ahead = max((len(a) for _, (_, a) in rows), default=0)
+        ahead_max = [max((a[i] if i < len(a) else 0.0) for _, (_, a) in rows)
+                     for i in range(n_ahead)]
+
         if now_rate >= LIGHT_MM_H:
             state, eta = "raining", 0
         elif now_rate >= TRACE_MM_H:
@@ -266,7 +291,8 @@ def fetch(*, now: datetime | None = None, model: str = "ecmwf_ifs025",
             state, eta = "dry", None
 
         out.append(BeltStatus(
-            belt=belt, now_mm_h=now_rate, hours=best_ahead,
+            belt=belt, now_mm_h=now_rate, hours=ahead_max,
+            hour_labels=list(labels),
             wettest_place=best_name, state=state, eta_hours=eta,
             peak_mm_h=peak, prev_mm_h=prev_rate,
         ))
@@ -314,7 +340,20 @@ def render(statuses: list[BeltStatus] | None) -> str:
         return ""
     out = "**Where the rain is, belt by belt**\n\n"
     out += headline(statuses) + "\n\n"
-    out += "| Belt | Next few hours |\n|---|---|\n"
+    # Numbers first. The sentences underneath say what the numbers mean, but
+    # "how much, and at what time" is the question they cannot answer in words.
+    labels = next((x.hour_labels for x in statuses if x.hour_labels), [])[:3]
+    if labels:
+        out += ("| Region | Now | " + " | ".join(labels) + " |\n"
+                "|---|---|" + "---|" * len(labels) + "\n")
+        for s in statuses:
+            cells = " | ".join(
+                (f"{s.hours[i]:.1f}" if i < len(s.hours) else "—")
+                for i in range(len(labels)))
+            out += f"| **{s.belt.name}** | {s.now_mm_h:.1f} | {cells} |\n"
+        out += "\nAll figures are mm/hr, the worst case across each belt.\n\n"
+
+    out += "| Region | What that means |\n|---|---|\n"
     for s in statuses:
         out += f"| **{s.belt.name}** | {s.sentence} |\n"
     out += ("\n> These come from the hourly model field sampled at each place, "
