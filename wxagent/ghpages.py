@@ -142,11 +142,31 @@ def publish(*, message: str | None = None, quiet: bool = False) -> str:
     try:
         _run(["git", "push"])
     except PublishError as exc:
-        raise PublishError(
-            f"Commit made, but the push failed:\n  {exc}\n\n"
-            "If this is the first push, set the remote first — "
-            "`python -m wxagent gh-setup` prints the exact commands."
-        ) from exc
+        # Two publishers now write to this repository - the laptop and the
+        # GitHub Actions run - so the remote can easily hold a build this
+        # machine has never seen, and the push is refused as non-fast-forward.
+        #
+        # Everything in docs/ is generated output, regenerated from the cache
+        # a moment ago, so there is nothing here worth merging: rebasing this
+        # commit on top of whatever the other publisher wrote gives the newer
+        # build the last word, which is what "publish" means. Only a genuine
+        # rebase failure is worth troubling the user with.
+        if not quiet:
+            print("  push refused — the remote moved. Rebasing and retrying...")
+        try:
+            _run(["git", "pull", "--rebase", "--no-edit"])
+            _run(["git", "push"])
+        except PublishError as exc2:
+            raise PublishError(
+                f"Commit made, but the push failed:\n  {exc}\n\n"
+                f"Rebasing onto the remote also failed:\n  {exc2}\n\n"
+                "If this is the first push, set the remote first — "
+                "`python -m wxagent gh-setup` prints the exact commands.\n"
+                "Otherwise run `git pull --rebase` and look at the conflict."
+            ) from exc2
+        return (f"Published at {stamp}, rebased onto a newer build from the "
+                "other publisher. GitHub Pages usually updates within a "
+                "minute.")
 
     return f"Published at {stamp}. GitHub Pages usually updates within a minute."
 
