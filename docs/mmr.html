@@ -342,6 +342,27 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
   border:1px solid var(--border);border-radius:10px;
   font-size:13.5px;line-height:1.65;color:var(--text-secondary);min-height:46px}
 
+/* next-three-hours strip inside a belt card */
+.hstrip{display:flex;align-items:center;gap:5px;margin-top:9px;flex-wrap:wrap}
+.hcell{min-width:44px;text-align:center;border-radius:7px;padding:5px 6px;
+  border:1px solid var(--border);background:var(--surface-1)}
+.hval{font-size:13px;font-weight:650;font-variant-numeric:tabular-nums;
+  line-height:1.15}
+.hlab{font-size:9.5px;color:var(--muted);letter-spacing:.03em;margin-top:1px}
+.harrow{color:var(--muted);font-size:12px}
+.hunit{font-size:10px;color:var(--muted);margin-left:2px}
+/* Rain-rate tint, on the same thresholds the sentences use. */
+.hcell.hz{opacity:.6}
+.hcell.h0{border-color:color-mix(in srgb,var(--series-1) 35%,var(--border))}
+.hcell.h1{background:color-mix(in srgb,var(--series-1) 12%,var(--surface-1));
+  border-color:color-mix(in srgb,var(--series-1) 45%,var(--border))}
+.hcell.h2{background:color-mix(in srgb,var(--series-1) 24%,var(--surface-1));
+  border-color:var(--series-1)}
+.hcell.h3{background:color-mix(in srgb,var(--warning) 26%,var(--surface-1));
+  border-color:var(--warning)}
+.hcell.h4{background:color-mix(in srgb,var(--critical) 28%,var(--surface-1));
+  border-color:var(--critical)}
+
 /* basin outlook */
 .bas{display:grid;gap:12px}
 @media(min-width:820px){ .bas{grid-template-columns:1fr 1fr} }
@@ -1852,6 +1873,7 @@ function radarExplainHtml(D){
       b.list.map(x => `<div class="belt b-${esc(x.state)}">
         <div class="bname">${esc(x.name)}</div>
         <div class="bsent">${mdBold(x.sentence)}</div>
+        ${hourStrip(x)}
       </div>`).join('') +
       `</div>
       <p class="rwarn" style="margin-top:10px">These come from the hourly model
@@ -1863,6 +1885,28 @@ function radarExplainHtml(D){
   h += radarAnimHtml(nc, b);
   h += `</div>`;
   return h;
+}
+
+/* Next three hours for one belt, as a row of labelled cells.
+   The sentence above says what it means; this says how much and when, which
+   words cannot do compactly. Cells are tinted by rain rate on the same
+   thresholds the sentences use, so "moderate" looks the same everywhere. */
+function hourStrip(x){
+  const hrs = (x.hours || []).slice(0, 3);
+  const labs = (x.hourLabels || []).slice(0, 3);
+  if (!hrs.length || !labs.length) return '';
+  const tone = v => v >= 20 ? 'h4' : v >= 10 ? 'h3' : v >= 4 ? 'h2'
+                  : v >= 1 ? 'h1' : v >= 0.2 ? 'h0' : 'hz';
+  const cell = (lab, v) => `<div class="hcell ${tone(v)}">
+      <div class="hval">${v.toFixed(1)}</div>
+      <div class="hlab">${esc(lab)}</div>
+    </div>`;
+  return `<div class="hstrip">
+    ${cell('now', x.nowMmH || 0)}
+    <span class="harrow">→</span>
+    ${hrs.map((v, i) => cell(labs[i] || '', v)).join('')}
+    <span class="hunit">mm/hr</span>
+  </div>`;
 }
 
 /* ---------- the animation ------------------------------------------------ */
