@@ -804,9 +804,12 @@ def basin_outlook(sp: SystemsPicture | None) -> list[BasinReport]:
             else:
                 rep.status = "watch"
 
+            # No inner ** here: the whole headline is already bold, and
+            # nesting emphasis inside emphasis renders as literal asterisks
+            # rather than as bold-inside-bold.
             when = ("already present" if already
-                    else f"forming around **{rep.genesis_day}**")
-            rep.headline = (f"**{basin} — {rep.peak_label}, {when}.**")
+                    else f"forming around {rep.genesis_day}")
+            rep.headline = f"**{basin} — {rep.peak_label}, {when}.**"
 
             bits = [f"Deepest about **{lead.peak.depth:.1f} hPa** below its "
                     f"surroundings near {lead.peak.lat:.0f}°N "
