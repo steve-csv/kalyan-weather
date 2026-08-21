@@ -2653,8 +2653,11 @@ function showRadarFallback(){
       ${(nc.radar || []).map(r => `<a class="lk" href="${esc(r.url)}" target="_blank" rel="noopener"><b>${esc(r.name)}</b></a>`).join('')}
       ${nc.radarPage ? `<a class="lk" href="${esc(nc.radarPage)}" target="_blank" rel="noopener"><b>IMD radar page (animated)</b></a>` : ''}
     </div>
-    Open the forecast from your own PC or the tunnel link and the radar
-    displays inline and refreshes itself.</div>`;
+    <div style="margin-top:10px"><b>Or open the public page instead</b> —
+      the radar displays inline there and refreshes itself:<br>
+      <a class="lk" href="https://${REPO.split('/')[0]}.github.io/${REPO.split('/')[1]}/"
+         target="_blank" rel="noopener"><b>steve-csv.github.io/kalyan-weather</b></a>
+    </div></div>`;
 }
 
 function startRadar(){
