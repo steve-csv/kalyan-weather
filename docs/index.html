@@ -342,6 +342,29 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
   border:1px solid var(--border);border-radius:10px;
   font-size:13.5px;line-height:1.65;color:var(--text-secondary);min-height:46px}
 
+/* basin outlook */
+.bas{display:grid;gap:12px}
+@media(min-width:820px){ .bas{grid-template-columns:1fr 1fr} }
+.basin{background:var(--plane);border:1px solid var(--border);
+  border-left:3px solid var(--muted);border-radius:11px;padding:13px 14px}
+.basin.s-active{border-left-color:var(--critical)}
+.basin.s-developing{border-left-color:var(--warning)}
+.basin.s-watch{border-left-color:var(--series-1)}
+.basin.s-quiet{border-left-color:var(--good)}
+.bhead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.bpin{display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;border-radius:50%;background:var(--series-1);
+  color:#fff;font-size:11px;font-weight:700}
+.bname2{font-weight:700;font-size:13.5px;letter-spacing:-.01em}
+.bstat{margin-left:auto;font-size:11px;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--muted);font-weight:700}
+.bline{font-size:13.5px;line-height:1.5;margin-bottom:6px}
+.bdet{font-size:12.5px;line-height:1.62;color:var(--text-secondary)}
+.bfacts{display:flex;gap:14px;flex-wrap:wrap;margin-top:9px;font-size:12px;
+  color:var(--text-secondary);font-variant-numeric:tabular-nums}
+.bfacts b{color:var(--muted);font-weight:600}
+.blinks{margin-top:9px}
+
 /* track record */
 .tkey{display:flex;gap:15px;font-size:11.5px;color:var(--muted);margin-bottom:8px}
 .tkey i{display:inline-block;width:10px;height:10px;border-radius:3px;
@@ -906,6 +929,44 @@ function renderWeekly(){
         mid-levels delivers less than its speed suggests.</div>`;
     }
     h += `</div>`;
+  }
+
+  /* ---- which sea: Arabian or Bay ---- */
+  /* The near sea is not usually the one that matters. A Bay low soaks Konkan
+     from a thousand kilometres away by dragging the monsoon trough south,
+     while an Arabian Sea low pulling off toward Oman can leave the coast
+     drier. So the card leads with the basin and the direction of travel, not
+     with distance. */
+  if (D.basins && D.basins.length){
+    h += `<div class="card"><h2>Where this week's lows form</h2>
+      <p class="sub" style="margin:-6px 0 14px">Arabian Sea or Bay of Bengal —
+        and what each would mean here.</p>
+      <div class="bas">` +
+      D.basins.map(b => `<div class="basin s-${esc(b.status)}">
+        <div class="bhead">
+          <span class="bpin">${b.basin === 'Arabian Sea' ? 'W' : 'E'}</span>
+          <span class="bname2">${esc(b.basin)}</span>
+          <span class="bstat">${esc(b.status)}</span>
+        </div>
+        <div class="bline">${mdBold(b.headline)}</div>
+        <div class="bdet">${mdBold(b.detail)}</div>
+        ${b.closestKm != null ? `<div class="bfacts">
+          ${b.genesis ? `<span><b>Forms</b> ${esc(b.genesis)}</span>` : '<span><b>Already present</b></span>'}
+          <span><b>Depth</b> ${b.depth} hPa</span>
+          <span><b>Closest</b> ${b.closestKm.toLocaleString()} km</span>
+        </div>` : ''}
+        <div class="blinks">
+          <a class="lk" href="${esc(b.windyPressure)}" target="_blank" rel="noopener">
+            <b>Live pressure on Windy</b><span>Closed isobars are the thing to look for.</span></a>
+          <a class="lk" href="${esc(b.windyWind)}" target="_blank" rel="noopener">
+            <b>Live 850 hPa wind</b><span>A closed circulation shows here before the pressure field.</span></a>
+        </div>
+      </div>`).join('') +
+      `</div>
+      <div class="quote">Windy is the eye check; the numbers here come from
+        ECMWF via Open-Meteo. Windy's free point API returns deliberately
+        scrambled values, so it is never used as a data source on this page.</div>
+    </div>`;
   }
 
   /* ---- systems ---- */
