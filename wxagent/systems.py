@@ -194,10 +194,46 @@ class LowCentre:
         return self.depth >= 1.0
 
 
+# The Indian coastline, as longitude against latitude. Crude boxes are not
+# good enough for the one question this feeds - "Arabian Sea or Bay of
+# Bengal?" - because the subcontinent is wedge-shaped: a box of
+# `lon > 80 and lat < 23` calls Chhattisgarh the Bay of Bengal, and a low
+# sitting over central India then gets reported as a marine system forming in
+# the Bay, which is exactly the wrong answer to give a reader.
+#
+# These are the coast longitudes at each latitude, west and east, read off the
+# outline. Between the listed latitudes they are interpolated linearly, which
+# is far more accurate than a rectangle and costs nothing.
+_WEST_COAST = ((23.0, 68.3), (21.0, 72.6), (19.0, 72.8), (16.0, 73.5),
+               (13.0, 74.8), (10.0, 76.0), (8.0, 77.1))
+_EAST_COAST = ((23.0, 89.0), (21.0, 87.5), (18.0, 84.2), (16.0, 81.3),
+               (13.0, 80.3), (10.0, 79.9), (8.0, 78.2))
+
+
+def _coast_lon(lat: float, table: Sequence[tuple[float, float]]) -> float:
+    """Coast longitude at this latitude, linearly interpolated."""
+    if lat >= table[0][0]:
+        return table[0][1]
+    if lat <= table[-1][0]:
+        return table[-1][1]
+    for (la1, lo1), (la2, lo2) in zip(table, table[1:]):
+        if la2 <= lat <= la1:
+            f = (lat - la2) / (la1 - la2) if la1 != la2 else 0.0
+            return lo2 + f * (lo1 - lo2)
+    return table[-1][1]
+
+
 def _basin(lat: float, lon: float) -> str:
-    if lon < 73.0 and lat < 24.0:
+    """Which sea a point sits in - or Land, which is most of this grid."""
+    # North of Kutch there is no Indian sea at these longitudes, only Pakistan
+    # and the Rann; south of the tip both seas merge into the Indian Ocean.
+    if lat > 24.5:
+        return "Land"
+    if lat < 8.0:
+        return "Arabian Sea" if lon < 77.0 else "Bay of Bengal"
+    if lon < _coast_lon(lat, _WEST_COAST):
         return "Arabian Sea"
-    if lon > 80.0 and lat < 23.0:
+    if lon > _coast_lon(lat, _EAST_COAST):
         return "Bay of Bengal"
     return "Land"
 
@@ -645,4 +681,190 @@ def render(sp: SystemsPicture | None) -> str:
                 "for anything beyond casual tracking, IMD's official cyclone "
                 "bulletins are authoritative and this tool is not. Lives and "
                 "evacuation decisions depend on those bulletins.\n\n")
+    return out
+
+
+# --------------------------------------------------------------------------
+# Basin outlook - where the week's lows form, and which sea they belong to
+# --------------------------------------------------------------------------
+#
+# WHY THE BASIN MATTERS MORE THAN THE DISTANCE
+# --------------------------------------------
+# The instinct is that a low in the Arabian Sea, being the near one, matters
+# most to Kalyan. For monsoon rainfall that instinct is usually wrong, and
+# Guide s12.3 says so plainly: a Bay system can soak Mumbai while its centre
+# is still a thousand kilometres away over Chhattisgarh.
+#
+#   BAY OF BENGAL. The workhorse. Lows form in the north Bay, come ashore
+#   near Odisha and track west-northwest along the monsoon trough. As one
+#   crosses central India it drags the trough south and strengthens the
+#   westerly flow feeding Konkan, so the heaviest Kalyan spells often arrive
+#   two to four days AFTER the low has made landfall on the other coast.
+#
+#   ARABIAN SEA. Two-faced. A low sitting just off the Konkan is direct heavy
+#   rain. But one that forms and pulls away west-northwest toward Oman does
+#   the opposite - it takes the moisture with it and can leave the coast
+#   drier than before. Which of the two is happening is a question about the
+#   track, not the depth, which is why the direction of travel is reported
+#   here even when the system is weak.
+#
+# Genesis timing is taken from the first frame a track appears in. A system
+# already present at hour zero is reported as present rather than forming,
+# because "a low forms on Monday" reads very differently from "the low that
+# is already there is still there on Monday".
+
+BASINS = ("Arabian Sea", "Bay of Bengal")
+
+# Windy views for checking the model against the live map. Windy's own free
+# point API returns deliberately scrambled data, so these are links for the
+# eye, not a data source - the numbers here come from Open-Meteo.
+BASIN_WINDY = {
+    "Arabian Sea": ("https://www.windy.com/?ecmwf,pressure,15.000,66.000,5",
+                    "https://www.windy.com/?ecmwf,wind,850h,15.000,66.000,5"),
+    "Bay of Bengal": ("https://www.windy.com/?ecmwf,pressure,17.000,88.000,5",
+                      "https://www.windy.com/?ecmwf,wind,850h,17.000,88.000,5"),
+}
+
+
+@dataclass
+class BasinReport:
+    basin: str
+    status: str               # quiet | watch | developing | active
+    headline: str
+    detail: str
+    tracks: list[SystemTrack]
+    genesis_day: str = ""     # e.g. "Sun 23 Aug", blank if already present
+    peak_depth: float = 0.0
+    peak_label: str = ""
+    closest_km: int | None = None
+    windy_pressure: str = ""
+    windy_wind: str = ""
+
+
+def _day_label(times: Sequence[str], idx: int) -> str:
+    """Turn a time index into 'Sat 23 Aug'."""
+    if idx < 0 or idx >= len(times):
+        return ""
+    try:
+        return datetime.fromisoformat(times[idx]).strftime("%a %d %b")
+    except ValueError:
+        return ""
+
+
+def _track_direction(tr: SystemTrack) -> str:
+    b = tr.track_bearing
+    if b is None:
+        return "barely moving"
+    return f"tracking {compass16(b)}"
+
+
+def basin_outlook(sp: SystemsPicture | None) -> list[BasinReport]:
+    """One report per sea, describing what forms there over the week."""
+    if sp is None:
+        return []
+
+    out: list[BasinReport] = []
+    for basin in BASINS:
+        # A track belongs to the basin it spends its deepest moment in - a
+        # Bay low that later crosses India is still a Bay system, and
+        # classifying it by where it ends would file it under "Land".
+        #
+        # No is_transient test here, deliberately. That test exists to stop
+        # the stationary heat low and the monsoon trough being reported as
+        # systems, and now that _basin() follows the real coastline those sit
+        # on Land and never reach this list. Keeping it would have hidden the
+        # case this section is for: a low that forms over the sea and sits
+        # there deepening for a day before it starts moving.
+        mine = [a.track for a in sp.assessments
+                if a.track.peak.basin == basin and a.track.peak.depth >= 1.0]
+        mine.sort(key=lambda t: -t.peak.depth)
+
+        rep = BasinReport(
+            basin=basin, status="quiet", tracks=mine,
+            headline=f"**{basin} — nothing organised this week.**",
+            detail=("No closed low forms here in the current run. That is the "
+                    "ordinary state; most weeks have none."),
+            windy_pressure=BASIN_WINDY[basin][0],
+            windy_wind=BASIN_WINDY[basin][1],
+        )
+
+        if mine:
+            lead = mine[0]
+            formed_at = lead.first.time_index
+            already = formed_at <= 6
+            rep.genesis_day = "" if already else _day_label(sp.times, formed_at)
+            rep.peak_depth = lead.peak.depth
+            rep.peak_label = lead.peak.intensity
+            rep.closest_km = round(lead.closest_approach.distance_km)
+
+            if lead.peak.depth >= 3.0:
+                rep.status = "active"
+            elif lead.peak.depth >= 1.5:
+                rep.status = "developing"
+            else:
+                rep.status = "watch"
+
+            when = ("already present" if already
+                    else f"forming around **{rep.genesis_day}**")
+            rep.headline = (f"**{basin} — {rep.peak_label}, {when}.**")
+
+            bits = [f"Deepest about **{lead.peak.depth:.1f} hPa** below its "
+                    f"surroundings near {lead.peak.lat:.0f}°N "
+                    f"{lead.peak.lon:.0f}°E, {_track_direction(lead)}, "
+                    f"closest approach to Kalyan about "
+                    f"**{rep.closest_km:,} km**."]
+
+            if basin == "Bay of Bengal":
+                bits.append(
+                    "A Bay system does its work on Konkan from a distance: as "
+                    "it tracks west-northwest along the monsoon trough it pulls "
+                    "the trough south and strengthens the westerlies feeding "
+                    "this coast. Expect any rainfall response here **two to "
+                    "four days after** it crosses the east coast, not while it "
+                    "is still over water.")
+            else:
+                b = lead.track_bearing
+                away = b is not None and (b >= 260 or b <= 20)
+                if away:
+                    bits.append(
+                        "It is heading away from the coast. An Arabian Sea low "
+                        "that pulls off to the west-northwest takes the "
+                        "moisture with it, so this can leave Konkan **drier**, "
+                        "not wetter — the opposite of what its nearness "
+                        "suggests.")
+                else:
+                    bits.append(
+                        "It stays in the eastern Arabian Sea, which is the "
+                        "configuration that brings **direct** heavy rain to the "
+                        "Konkan coast rather than the delayed response a Bay "
+                        "system gives.")
+
+            if len(mine) > 1:
+                bits.append(f"{len(mine) - 1} weaker circulation"
+                            f"{'s' if len(mine) > 2 else ''} also appear"
+                            f"{'' if len(mine) > 2 else 's'} in this basin "
+                            "during the week.")
+            rep.detail = " ".join(bits)
+
+        out.append(rep)
+    return out
+
+
+def render_basins(reports: Sequence[BasinReport], *,
+                  cyclone_window: bool = False) -> str:
+    """Markdown for the weekly bulletin."""
+    if not reports:
+        return ""
+    out = ("**Where this week's lows form — Arabian Sea or Bay of Bengal**\n\n")
+    for r in reports:
+        out += f"{r.headline}\n\n{r.detail}\n\n"
+        out += (f"> Check it live on Windy: "
+                f"[pressure]({r.windy_pressure}) · "
+                f"[850 hPa wind]({r.windy_wind}). The map is the eye check; "
+                f"the numbers above come from ECMWF via Open-Meteo.\n\n")
+    if cyclone_window:
+        out += ("> This is one of the two Arabian Sea cyclone windows "
+                "(Handbook Ch.17). Anything organising here deserves IMD's "
+                "own bulletin, not this page — cyclone calls are theirs to "
+                "make.\n\n")
     return out

@@ -545,6 +545,9 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
 
     out += report.h(2, "Low pressure systems, troughs and storms")
     out += systems.render(sys_pic)
+    basins = systems.basin_outlook(sys_pic)
+    out += systems.render_basins(
+        basins, cyclone_window=bool(sys_pic and sys_pic.cyclone_window))
 
     if thermals:
         out += report.h(2, "Heat and cold across the region")
@@ -657,6 +660,14 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
          "plain": a.plain, "rank": a.rank,
          "home": a.key == C.HOME_AREA}
         for a in areas
+    ]
+    weekly_payload["basins"] = [
+        {"basin": b.basin, "status": b.status, "headline": b.headline,
+         "detail": b.detail, "genesis": b.genesis_day,
+         "depth": round(b.peak_depth, 1), "label": b.peak_label,
+         "closestKm": b.closest_km,
+         "windyPressure": b.windy_pressure, "windyWind": b.windy_wind}
+        for b in basins
     ]
     weekly_payload["systems"] = {
         "trough": sys_pic.trough.note if sys_pic else "",
