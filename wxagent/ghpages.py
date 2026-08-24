@@ -152,10 +152,33 @@ def publish(*, message: str | None = None, quiet: bool = False) -> str:
         # build the last word, which is what "publish" means. Only a genuine
         # rebase failure is worth troubling the user with.
         if not quiet:
-            print("  push refused — the remote moved. Rebasing and retrying...")
+            print("  push refused — the remote moved. Rebuilding on top of it...")
         try:
-            _run(["git", "pull", "--rebase", "--no-edit"])
-            _run(["git", "push"])
+            # Deliberately NOT `git pull --rebase`. Replaying our commit onto
+            # the remote stops dead whenever the two builds happen to be
+            # byte-identical - the cherry-pick becomes empty, git halts and
+            # waits for a --skip that an unattended run never sends, leaving
+            # the repository parked mid-rebase. That happened on three
+            # consecutive refreshes.
+            #
+            # Since docs/ is generated output and ours is the newer build,
+            # there is nothing to replay: move the branch to the remote tip,
+            # keep our files, and commit whatever now differs. No conflicts
+            # are possible and there is no empty-commit case to get stuck on.
+            _run(["git", "rebase", "--abort"], check=False)
+            _run(["git", "fetch", "origin"])
+            branch = _run(["git", "rev-parse", "--abbrev-ref", "HEAD"]).strip()
+            _run(["git", "reset", "--soft", f"origin/{branch}"])
+            _run(["git", "add", "docs"])
+            _guard()
+            if _run(["git", "status", "--porcelain", "docs"], check=False).strip():
+                _run(["git", "commit", "-m",
+                      message or f"Forecast update {stamp}"])
+                _run(["git", "push"])
+            else:
+                # The other publisher already pushed this exact build.
+                return ("The cloud run had already published this build — "
+                        "nothing left to push.")
         except PublishError as exc2:
             raise PublishError(
                 f"Commit made, but the push failed:\n  {exc}\n\n"
