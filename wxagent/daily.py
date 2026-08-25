@@ -26,8 +26,8 @@ from . import (
     upstream, web,
 )
 from .diagnostics import (
-    compass, day_slices, diagnose_day, lift_profile, orographic_reading,
-    season_for, window_indices,
+    burst_risk, compass, day_slices, diagnose_day, lift_profile,
+    orographic_reading, season_for, window_indices,
 )
 from .doctrine import assess_confidence, daypart_breakdown, headline
 from .notify import notify
@@ -360,6 +360,14 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     extra += nowcast.render(short)
     extra += nowcast.render_scan(scan)
     extra += beltmod.render(belt_status)
+
+    # Flag the case where the hourly rates on this page will understate what
+    # a person outside actually experiences - see diagnostics.burst_risk.
+    belt_peak = max((b.peak_mm_h for b in (belt_status or [])), default=None)
+    burst_level, burst_note = burst_risk(
+        dd.stability, dd.moisture, dd.lift, C.HOME.zone, belt_peak)
+    if burst_note:
+        extra += "\n" + burst_note + "\n\n"
     extra += "\n" + report.h(2, "Track record — forecast against outcome")
     extra += recentmod.render(track)
     extra += upstream.render(up, zone=C.HOME.zone, day=today)
@@ -471,6 +479,7 @@ def run(target_day: date | None = None, *, quiet: bool = False,
             if d.forecast_mm is not None or d.observed_mm is not None
         ],
     }
+    payload["burst"] = {"level": burst_level, "note": burst_note}
     payload["belts"] = {
         "available": bool(belt_status),
         "headline": beltmod.headline(belt_status) if belt_status else "",

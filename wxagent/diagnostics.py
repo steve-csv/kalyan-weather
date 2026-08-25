@@ -940,6 +940,90 @@ def classify_regime(moist: MoistureProfile, lift: LiftProfile,
     )
 
 
+
+# --------------------------------------------------------------------------
+# Convective burst risk - when the model's own numbers should not be believed
+# --------------------------------------------------------------------------
+#
+# WHY THIS EXISTS
+# ---------------
+# On 25 August 2026 Kalyan had heavy convective bursts while every model on
+# the page showed 0.3 mm/hr and ECMWF had cloud cover falling through the
+# afternoon. The models were not missing the SETUP - the agent already held
+# all four numbers that mattered:
+#
+#     CAPE ~950 J/kg    real convective energy
+#     RH 850  ~90%      very moist below
+#     RH 700  ~35%      very dry mid-levels
+#     850 wind 9 m/s from 260 deg   dead-on upslope into the Ghats
+#
+# Moist below, dry aloft, decent CAPE and strong upslope flow is the classic
+# recipe for short, violent, downdraught-driven cells. What the models cannot
+# do is PLACE them: a cell that drops 20 mm on one town in fifteen minutes
+# averages out to drizzle across a 25 km grid box, so the grid-box mean is
+# honest about the total and useless about the experience.
+#
+# So this does not try to out-forecast the model. It flags the case where the
+# model's quantitative output is known to under-describe what a person on the
+# ground will feel, and says so in those terms.
+
+BURST_CAPE_MIN = 700.0      # J/kg - enough energy for a deep cell
+BURST_RH850_MIN = 80.0      # % - moist enough below to feed one
+BURST_RH700_MAX = 45.0      # % - dry aloft: entrainment, downdraughts, bursts
+BURST_UPSLOPE_MIN = 4.0     # m/s terrain-normal - the trigger that lifts it
+BURST_QPF_MAX = 2.5         # mm/hr - the model is showing little or nothing
+
+
+def burst_risk(stab, moist, lift, zone: str,
+               model_peak_mm_h: float | None) -> tuple[str, str]:
+    """
+    Is this a day when the model's rain rate will understate the experience?
+
+    Returns (level, note) where level is "none", "possible" or "likely".
+    Only meaningful for zones the westerly actually lifts - in the rain
+    shadow the same profile means subsidence, not bursts.
+    """
+    if zone == "leeward":
+        return "none", ""
+
+    cape = stab.cape_peak if stab else None
+    rh850 = moist.rh_850 if moist else None
+    rh700 = moist.rh_700 if moist else None
+    upslope = lift.orographic_850 if lift else None
+    if None in (cape, rh850, rh700) or upslope is None:
+        return "none", ""
+
+    ingredients = (
+        cape >= BURST_CAPE_MIN
+        and rh850 >= BURST_RH850_MIN
+        and rh700 <= BURST_RH700_MAX
+        and upslope >= BURST_UPSLOPE_MIN
+    )
+    if not ingredients:
+        return "none", ""
+
+    quiet_model = (model_peak_mm_h is None
+                   or model_peak_mm_h <= BURST_QPF_MAX)
+    level = "likely" if quiet_model else "possible"
+
+    note = (
+        f"**Burst risk.** The ingredients for short, heavy downpours are all "
+        f"present: CAPE around {cape:.0f} J/kg, {rh850:.0f}% humidity at 850 "
+        f"hPa with only {rh700:.0f}% at 700 hPa, and {upslope:.0f} m/s of "
+        f"upslope flow into the Ghats. Moist below and dry aloft is the recipe "
+        f"for cells that go up hard, rain out fast and collapse — heavy bursts "
+        f"rather than steady rain."
+    )
+    if quiet_model:
+        note += (
+            " **The hourly rates on this page will understate that.** A cell "
+            "that drops 20 mm on one town in fifteen minutes averages to "
+            "drizzle across a 25 km grid box, so the models show a smear where "
+            "you may get a soaking. Treat the numbers as the day's total, not "
+            "as what any given hour will feel like, and watch the radar."
+        )
+    return level, note
+
 def season_for(day: date) -> str:
     return C.SEASONS[day.month]
 
