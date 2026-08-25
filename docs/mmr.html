@@ -342,6 +342,14 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
   border:1px solid var(--border);border-radius:10px;
   font-size:13.5px;line-height:1.65;color:var(--text-secondary);min-height:46px}
 
+/* convective burst warning */
+.burst{margin:14px 0 4px;padding:12px 14px;border-radius:11px;
+  border:1px solid var(--warning);
+  background:color-mix(in srgb,var(--warning) 12%,var(--surface-1));
+  font-size:13px;line-height:1.62}
+.burst.b-likely{border-left:3px solid var(--warning)}
+.burst.b-possible{opacity:.92}
+
 /* next-three-hours strip inside a belt card */
 .hstrip{display:flex;align-items:center;gap:5px;margin-top:9px;flex-wrap:wrap}
 .hcell{min-width:44px;text-align:center;border-radius:7px;padding:5px 6px;
@@ -1865,6 +1873,12 @@ function radarExplainHtml(D){
     If both are bright over the same spot, that is where it is coming down hard
     right now. If MAX-Z fades while SRI stays lit, the cell is dying and the
     rain you feel is what is left falling out of it.</p>`;
+
+  /* The burst warning goes ABOVE the numbers, not below them: its whole
+     point is to change how the rates underneath are read. */
+  if (D.burst && D.burst.note){
+    h += `<div class="burst b-${esc(D.burst.level)}">${mdBold(D.burst.note)}</div>`;
+  }
 
   if (b && b.available && b.list && b.list.length){
     h += `<h3>Next few hours, belt by belt</h3>
