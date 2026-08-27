@@ -602,9 +602,10 @@ def offshore_trough_2d(field: PressureField, t: int) -> OffshoreTrough2D:
         True, axis_lat, depth, length,
         f"Offshore trough running roughly {min(l for l, _ in strong):.0f}–"
         f"{max(l for l, _ in strong):.0f}°N ({length:.0f}° of latitude), "
-        f"deepest {depth:.1f} hPa below the surrounding field. Guide s12.1: "
-        "this promotes convergence, organises coastal convection and helps "
-        "maintain the onshore flow.")
+        f"about {depth:.1f} hPa lower than the air either side of it. "
+        "A trough like this squeezes the moist sea air together and nudges it "
+        "upward, which is what turns a damp wind into real rain clouds. It "
+        "also keeps the wind blowing steadily onshore instead of slackening.")
 
 
 # --------------------------------------------------------------------------

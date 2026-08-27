@@ -146,17 +146,20 @@ ZONE_SENSITIVITY: dict[str, float] = {
 # the backtest showed heavy rain is precisely where it is weakest.
 CORRIDOR_BANDS: tuple[tuple[float, str, str], ...] = (
     (0.0, "very weak",
-     "supply line largely shut; rain on 56% of such days, and heavy rain "
-     "almost never"),
+     "the wind that carries moisture up to us has nearly stopped; it still "
+     "rained on 56% of such days, but heavy rain almost never"),
     (9.1, "weak",
-     "thin supply; rain on 70% of such days but amounts near the low end"),
+     "only a thin stream of moisture reaching us; it rained on 70% of such "
+     "days, but usually at the lighter end"),
     (13.2, "moderate",
-     "ordinary monsoon delivery; rain on 86% of such days"),
+     "a normal monsoon flow of moisture; it rained on 86% of such days"),
     (16.0, "strong",
-     "well-fed flow; rain on 98% of such days, averaging 20 mm at Kalyan"),
+     "plenty of moisture coming in; it rained on 98% of such days, "
+     "averaging 20 mm at Kalyan"),
     (19.5, "very strong",
-     "the heavy-rain signature: every such day rained, averaging 33 mm, and "
-     "7 of the last three monsoons' 12 heaviest days sat in this band"),
+     "this is what the really wet days look like: every single one rained, "
+     "averaging 33 mm, and 7 of the 12 heaviest days in three monsoons "
+     "happened with the flow this strong"),
 )
 
 # Same treatment for the upstream mid-level airmass (mean of 600 and 500 hPa).
@@ -173,16 +176,20 @@ CORRIDOR_BANDS: tuple[tuple[float, str, str], ...] = (
 # however good the low-level moisture looks.
 MIDRH_BANDS: tuple[tuple[float, str, str], ...] = (
     (0.0, "very dry",
-     "entrainment will cap growth; no heavy-rain day occurred in this band in "
-     "three monsoons"),
+     "very dry air a few kilometres up, which chokes clouds before they can "
+     "grow tall; not one heavy-rain day happened in this band in three "
+     "monsoons"),
     (26.7, "dry",
-     "still capping; amounts tend to verify below the model median"),
+     "dry air aloft is still holding clouds back, so the rain usually comes "
+     "in under what the models say"),
     (45.5, "middling",
      "neither helping nor hindering"),
     (59.1, "moist",
-     "nothing aloft to cap growth; rain on 95% of such days"),
+     "nothing up there to stop clouds growing tall; it rained on 95% of "
+     "such days"),
     (72.9, "very moist",
-     "deep cloud unimpeded; rain on 98% of such days"),
+     "damp all the way up, so clouds can build freely; it rained on 98% of "
+     "such days"),
 )
 
 BAND_PROVENANCE = (
@@ -410,54 +417,59 @@ def zone_reading(u: UpstreamDay, zone: str) -> str:
     dry = u.dry_label
 
     if zone == "ghat":
-        where = "the crest"
+        # Plain names. "The transition belt" and "the crest" are how a
+        # forecaster files these places; they are not how anyone who lives
+        # here would say it.
+        where = "the hill country"
     elif zone == "leeward":
-        where = "the rain shadow"
+        where = "the dry side behind the hills"
     elif zone == "coastal":
         where = "the coast"
     else:
-        where = "the transition belt"
+        where = "the Kalyan–Thane belt"
 
     bits: list[str] = []
     if jet in ("strong", "very strong"):
         if zone == "ghat":
-            bits.append(f"A {jet} corridor jet is the single most favourable "
-                        f"thing that can happen to {where} — this is the "
-                        "setup that pins rain against the slopes for days.")
+            bits.append(f"The wind carrying moisture off the sea is {jet} — the best "
+                        f"thing that can happen to {where}. This is the setup "
+                        "that pins rain against the slopes for days on end.")
         elif zone == "coastal":
-            bits.append(f"A {jet} corridor jet drives a sustained onshore "
-                        f"feed across {where} — long steady spells rather "
-                        "than the short sharp showers of a slack pattern.")
+            bits.append(f"The wind off the sea is {jet} and keeps blowing in across "
+                        f"{where} — that means long steady spells rather than "
+                        "the brief sharp showers you get in a slack pattern.")
         elif zone == "leeward":
-            bits.append(f"The corridor jet is {jet}, but {where} gains least "
-                        "from that: a stronger jet mostly means more is wrung "
-                        "out before the air arrives.")
+            bits.append(f"The sea wind is {jet}, but {where} benefits least from "
+                        "it: the stronger it blows, the more rain is wrung out "
+                        "of the air on the way over the hills, before it "
+                        "reaches here.")
         else:
-            bits.append(f"A {jet} corridor jet keeps the supply line to "
-                        f"{where} well fed.")
+            bits.append(f"The wind off the sea is {jet}, keeping {where} well "
+                        "supplied with moisture.")
     elif jet in ("weak", "very weak"):
         if zone == "leeward":
-            bits.append(f"With the jet {jet}, {where} depends on whatever "
-                        "convection can fire locally rather than on anything "
-                        "arriving from the sea.")
+            bits.append(f"With the sea wind {jet}, {where} has to rely on storms "
+                        "building locally in the afternoon heat, rather than "
+                        "on anything blowing in off the sea.")
         else:
-            bits.append(f"A {jet} corridor jet starves {where} of its moisture "
-                        "supply — expect the models' rain to verify at the low "
-                        "end.")
+            bits.append(f"The wind off the sea is {jet}, so {where} is short of the "
+                        "moisture it needs. Expect the rain to come in at the "
+                        "lower end of what the models say.")
 
     if dry in ("very dry", "dry"):
         if u.advection_state == "steered onto us":
-            bits.append(f"Mid-levels upstream are {dry} and the flow is "
-                        f"steering that air toward us. Cloud over {where} will "
-                        "struggle to grow deep even where the low levels look "
-                        "humid.")
+            bits.append(f"There is {dry} air a few kilometres up, and the wind is "
+                        f"pushing it our way. Clouds over {where} will "
+                        "struggle to build tall even though it feels muggy "
+                        "down here — the dry layer eats them from the side.")
         else:
-            bits.append(f"Mid-levels upstream are {dry}, but the flow is not "
-                        "currently steering it this way — worth watching "
-                        "rather than acting on.")
+            bits.append(f"There is {dry} air a few kilometres up, but the wind is "
+                        "not blowing it our way at the moment. Worth keeping "
+                        "an eye on rather than acting on.")
     elif dry == "very moist":
-        bits.append("Mid-levels upstream are unusually moist, so nothing is "
-                    "there to cap growth — towers can go deep.")
+        bits.append("It is unusually damp a few kilometres up as well, so there "
+                    "is nothing to stop clouds building tall. This is when "
+                    "you get the really deep downpours.")
 
     return " ".join(bits)
 

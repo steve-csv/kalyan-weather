@@ -359,41 +359,65 @@ def analyse_miso(*, today: date | None = None, quiet: bool = True
     if lat is None:
         regime, interp = "unknown", "Not enough signal to locate the band."
     elif lat >= 22:
-        regime = "band north of the Konkan"
+        regime = "rain belt has passed us, now to the north"
         interp = (
-            f"The convection band sits near {lat:.0f}°N, north of us. In the "
-            "monsoon's own cycle that usually means the active phase has "
-            "passed over and a break follows behind it as the band moves away."
+            f"The main band of monsoon rain has moved past us and now sits "
+            f"near {lat:.0f}°N, to our north. Once it goes by, a quieter spell "
+            "usually follows here for a week or two until the next one builds."
         )
     elif 15 <= lat < 22:
-        regime = "band over the Konkan"
+        regime = "rain belt is overhead"
         interp = (
-            f"The band is at about {lat:.0f}°N — effectively overhead. This is "
-            "the active phase of the monsoon's intraseasonal cycle, when "
-            "spells are most persistent along this coast."
+            f"The main band of monsoon rain is sitting right over us, around "
+            f"{lat:.0f}°N. This is the monsoon at full strength for this "
+            "coast — the phase when rain keeps going for days rather than "
+            "coming and stopping."
         )
     elif 5 <= lat < 15:
-        regime = "band approaching from the south"
-        interp = (
-            f"The band is near {lat:.0f}°N and {prop.direction}. In this mode "
-            "convection propagates north over roughly two to three weeks, so a "
-            "band this far south is a build-up signal rather than a "
-            "this-week one."
-        )
+        # The label has to follow the DIRECTION, not just the latitude. Naming
+        # a band "approaching" purely because it sits to our south produced a
+        # page that read "band approaching from the south" one line above
+        # "drift is southward" - it was moving away, and the headline said the
+        # opposite of the data underneath it.
+        coming = prop.speed_per_day is not None and prop.speed_per_day > 0.05
+        going = prop.speed_per_day is not None and prop.speed_per_day < -0.05
+        if coming:
+            regime = "rain belt building to our south, moving up"
+            interp = (
+                f"The main band of monsoon rain is sitting well south of us, "
+                f"near {lat:.0f}°N, and creeping our way. It normally takes "
+                "two to three weeks to travel up, so this is something to "
+                "watch for later in the month rather than this week."
+            )
+        elif going:
+            regime = "rain belt to our south, drifting away"
+            interp = (
+                f"The main band of monsoon rain is near {lat:.0f}°N, south of "
+                "us, and moving further south — away from us, not toward us. "
+                "Until it turns around it is no help here."
+            )
+        else:
+            regime = "rain belt parked to our south"
+            interp = (
+                f"The main band of monsoon rain is sitting near {lat:.0f}°N, "
+                "south of us, and going nowhere in particular. No help here "
+                "while it stays put."
+            )
     else:
-        regime = "band near the equator"
+        regime = "rain belt still down near the equator"
         interp = (
-            f"Convection is concentrated near {lat:.0f}°N, close to the "
-            "equatorial Indian Ocean. That is the start of the cycle — several "
-            "weeks from affecting the Konkan, if it propagates at all."
+            f"The rain is bunched up near {lat:.0f}°N, down by the equator. "
+            "That is the very start of the cycle — weeks away from reaching "
+            "us, and it does not always make the journey."
         )
 
     if eta:
-        interp += (f" At its current rate it would reach this latitude in "
-                   f"about {eta} days.")
+        interp += (f" At the speed it is moving now, it would get here in "
+                   f"roughly {eta} days.")
     if prop.speed_per_day is not None:
-        interp += (f" Present drift is {prop.direction} at "
-                   f"{abs(prop.speed_per_day):.2f}° latitude per day.")
+        # Kept, but in distance a person can picture rather than degrees.
+        km = abs(prop.speed_per_day) * 111.0
+        interp += (f" It is moving {prop.direction} at about {km:.0f} km a day.")
 
     return MISOState(prop=prop, band_lat=lat, regime=regime,
                      interpretation=interp, days_to_arrival=eta)
