@@ -159,7 +159,8 @@ class Record:
         if not v:
             return "No days verified yet."
         br = self.base_rate
-        core = (f"Over the last **{len(v)} verified days**, the one-day "
+        plural = "day" if len(v) == 1 else "days"
+        core = (f"Over the last **{len(v)} verified {plural}**, the one-day "
                 f"forecast landed in the right IMD rainfall band on "
                 f"**{self.band_accuracy:.0%}** of them, and on days it rained "
                 f"the average error was **{self.mae_wet:.1f} mm**.")
@@ -185,8 +186,20 @@ class Record:
         return [d for d in self.verified if d.verdict == "false_alarm"]
 
 
-def assess(site=None, *, days_back: int = 14, quiet: bool = True) -> Record | None:
-    """Day-by-day forecast-vs-actual for the recent past."""
+TABLE_DAYS = 14      # how many recent days the table lists
+
+
+def assess(site=None, *, days_back: int = 35, quiet: bool = True) -> Record | None:
+    """Day-by-day forecast-vs-actual for the recent past.
+
+    The window is wider than the table it feeds, because ERA5 does not simply
+    lag by a fixed number of days - it arrives in patches. On 27 Aug 2026 the
+    archive held 1-12 Aug and 21 Aug and nothing else in between, so a
+    fourteen-day window landed almost entirely inside the hole and the record
+    collapsed to a single verified day. Scoring over a wider span and listing
+    only the recent part keeps the statistics steady while the table still
+    shows what was claimed lately.
+    """
     site = site or C.HOME
     end = date.today()
     start = end - timedelta(days=days_back)
@@ -232,7 +245,7 @@ def render(rec: Record | None) -> str:
     out += rec.summary + "\n\n"
 
     out += "| Day | Forecast | Actual | Verdict |\n|---|---|---|---|\n"
-    for d in rec.days:
+    for d in rec.days[-TABLE_DAYS:]:
         if d.forecast_mm is None and d.observed_mm is None:
             continue
         f = f"{d.forecast_mm:.0f} mm" if d.forecast_mm is not None else "—"
