@@ -161,18 +161,25 @@ def compute_iod(target: date | None = None, *,
     elif dmi <= IOD_NEGATIVE:
         phase = "negative"
         interp = (
-            "A negative dipole warms the eastern Indian Ocean relative to the "
-            "west, drawing convection away from the Indian side. This leans "
-            "against monsoon rainfall over the west coast — a background "
-            "headwind that makes break phases more likely to persist."
+            "The eastern half of the Indian Ocean, over near Indonesia, is "
+            "warmer than the western half near Africa. Storms tend to "
+            "gather over the warmest water, so this arrangement pulls them "
+            "away from us and towards the far side of the ocean. It acts "
+            "as a steady drag on west coast rainfall and makes dry spells "
+            "harder to shift once they set in."
         )
     else:
         phase = "neutral"
         interp = (
-            "The dipole is near neutral, so it is neither helping nor hindering "
-            "the monsoon. Week-to-week rainfall will be set by the trough "
-            "position, the offshore trough and any low pressure areas rather "
-            "than by this background signal."
+            "The Indian Ocean is even-handed at the moment. What matters here is "
+            "which half of that ocean is warmer. When the western half, "
+            "over towards Africa, runs warmer than the eastern half near "
+            "Indonesia, storms gather on our side and the monsoon gets a "
+            "push. When it tips the other way, the storms are drawn away "
+            "from us. Right now neither side has the upper hand, so this "
+            "is neither helping nor hurting. Whatever rain we get this "
+            "week will be decided by things much closer to home — where "
+            "the trough sits, and whether a low pressure area forms."
         )
 
     proxy = (
@@ -279,22 +286,32 @@ def fetch_enso(*, today: date | None = None,
         strength = ("strong" if anom >= EL_NINO_STRONG else
                     "moderate" if anom >= EL_NINO_MODERATE else "weak")
         interp = (
-            f"A {strength} El Nino is in place. Historically this tilts the "
-            "Indian monsoon toward below-normal seasonal rainfall — the "
-            "Walker circulation shifts east, subsidence increases over the "
-            "Indian Ocean sector, and break spells tend to run longer. It is a "
-            "seasonal tilt in the odds, not a forecast for any given day, and "
-            "plenty of El Nino years have still delivered heavy individual "
-            "spells on this coast."
+            f"A {strength} El Nino is running in the Pacific, and it works "
+            "against our monsoon. Here is why. Normally the warmest water "
+            "sits on the western side of the Pacific, near Indonesia, and "
+            "that is where the air rises. In an El Nino the warm water "
+            "shifts east, so the rising air goes with it. Air that climbs "
+            "in one place has to sink somewhere else, and a good part of "
+            "that sinking happens over our side of the world. Sinking air "
+            "squashes clouds before they can grow, which is why dry spells "
+            "run longer in an El Nino year and the season usually finishes "
+            "below normal. Read it as a tilt in the odds across the whole "
+            "monsoon, not a verdict on any one week — El Nino years have "
+            "still given this coast some of its wettest days."
         )
     elif anom <= -EL_NINO_WEAK:
         phase = "La Nina"
         strength = ("strong" if anom <= -EL_NINO_STRONG else
                     "moderate" if anom <= -EL_NINO_MODERATE else "weak")
         interp = (
-            f"A {strength} La Nina is in place, which historically favours a "
-            "stronger Indian monsoon — more active spells, shorter breaks. "
-            "Again a seasonal tilt, not a daily signal."
+            f"A {strength} La Nina is running in the Pacific, and it works in our "
+            "favour. It is the opposite arrangement to El Nino: the warm "
+            "water stays piled up on the western side of the Pacific, the "
+            "rising air stays with it, and our side of the world gets more "
+            "of the upward motion that builds rain clouds. In practice "
+            "that means wetter spells and shorter gaps between them. It "
+            "shifts the odds across the season rather than telling you "
+            "anything about a particular day."
         )
     else:
         phase = "Neutral"

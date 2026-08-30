@@ -1007,20 +1007,29 @@ def burst_risk(stab, moist, lift, zone: str,
     level = "likely" if quiet_model else "possible"
 
     note = (
-        f"**Burst risk.** The ingredients for short, heavy downpours are all "
-        f"present: CAPE around {cape:.0f} J/kg, {rh850:.0f}% humidity at 850 "
-        f"hPa with only {rh700:.0f}% at 700 hPa, and {upslope:.0f} m/s of "
-        f"upslope flow into the Ghats. Moist below and dry aloft is the recipe "
-        f"for cells that go up hard, rain out fast and collapse — heavy bursts "
-        f"rather than steady rain."
+        f"**Expect sudden downpours today rather than steady rain.** Four "
+        "things have lined up. There is a good store of energy in the air "
+        f"({cape:.0f} J/kg). It is very muggy near the ground "
+        f"({rh850:.0f}% humidity a kilometre up). But a couple of kilometres "
+        f"higher the air is dry ({rh700:.0f}%). And the wind is pushing all of "
+        f"it up the slope of the Ghats at {upslope:.0f} m/s.\n\n"
+        "That combination makes clouds behave in a particular way. The damp "
+        "air near the ground is easily lifted and shoots upward. As it climbs "
+        "into the dry layer, that dry air mixes in from the sides and cools "
+        "the cloud, which makes it collapse — dropping everything it was "
+        "carrying at once. You get a violent ten or twenty minutes, then it "
+        "stops, then another one builds somewhere nearby."
     )
     if quiet_model:
         note += (
-            " **The hourly rates on this page will understate that.** A cell "
-            "that drops 20 mm on one town in fifteen minutes averages to "
-            "drizzle across a 25 km grid box, so the models show a smear where "
-            "you may get a soaking. Treat the numbers as the day's total, not "
-            "as what any given hour will feel like, and watch the radar."
+            "\n\n**This is why the hourly figures below will look too small.** "
+            "The forecast models work on squares about 25 km across, and they "
+            "report the average across the whole square. One cloud can empty "
+            "20 mm onto your street in a quarter of an hour while the rest of "
+            "that square stays dry — average the two together and it comes out "
+            "looking like drizzle. So read those numbers as roughly how much "
+            "the day will total, not as what the next hour will feel like. For "
+            "the next hour, the radar is the thing to watch."
         )
     return level, note
 

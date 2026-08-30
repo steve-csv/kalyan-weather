@@ -266,35 +266,44 @@ def analyse_mjo(*, today: date | None = None, quiet: bool = True) -> MJOState | 
     if phase in MJO_WET_PHASES:
         fav = "favourable"
         interp = (
-            f"The convection envelope sits near {prop.current:.0f}°E, over the "
-            f"{region.lower()} — the part of the cycle that enhances convection "
-            "over India. Combined with an onshore current this is when active "
-            "spells are most likely to organise."
+            f"There is a vast band of thunderstorms that drifts slowly eastward "
+            "right around the equator, taking a month or two to complete a "
+            f"lap. Where it happens to be sitting decides whether India "
+            f"gets a nudge or not. At the moment it is near "
+            f"{prop.current:.0f}°E, over the {region.lower()} — our side of "
+            "its circuit, and the half that wakes the monsoon up. Put a "
+            "steady sea wind underneath it and this is when rain organises "
+            "into spells that last, rather than passing showers."
         )
     elif phase in MJO_DRY_PHASES:
         fav = "unfavourable"
         interp = (
-            f"The envelope has moved on to about {prop.current:.0f}°E "
-            f"({region.lower()}), leaving India in the suppressed half of the "
-            "cycle. Break spells tend to be longer and rain more scattered "
-            "while it sits there."
+            f"There is a vast band of thunderstorms that drifts slowly eastward "
+            "right around the equator, taking a month or two to complete a "
+            "lap. Where it sits decides whether India gets a nudge or not, "
+            f"and it has now moved away to about {prop.current:.0f}°E, over "
+            f"the {region.lower()}. That leaves us on its quiet half, "
+            "where the air is gently sinking rather than rising. While it "
+            "stays there, dry spells last longer and the rain we do get is "
+            "patchy rather than widespread."
         )
     else:
         fav = "neutral"
         interp = (
-            f"The envelope is near {prop.current:.0f}°E ({region.lower()}), "
-            "between the clearly favourable and clearly suppressed phases. "
-            "Little help either way this week."
+            f"There is a vast band of thunderstorms that drifts slowly eastward "
+            "around the equator over a month or two. It is currently near "
+            f"{prop.current:.0f}°E, over the {region.lower()} — caught "
+            "between the half of its circuit that helps us and the half "
+            "that holds us back. No real push either way this week."
         )
 
     if prop.speed_per_day is not None:
-        interp += (f" It is moving {prop.direction} at roughly "
-                   f"{abs(prop.speed_per_day):.1f}° longitude per day")
+        interp += (f" It is drifting {prop.direction}, roughly "
+                   f"{abs(prop.speed_per_day) * 111:.0f} km a day")
         if prop.direction == "eastward" and phase in MJO_WET_PHASES:
-            interp += " — so this favourable window is already closing."
+            interp += " — so this good spell is already on its way out."
         elif prop.direction == "eastward" and phase in MJO_DRY_PHASES:
-            interp += " — heading back toward the favourable side, though that "\
-                      "takes weeks, not days."
+            interp += " — coming back round to our side, but that is weeks away."
         else:
             interp += "."
 
@@ -384,10 +393,12 @@ def analyse_miso(*, today: date | None = None, quiet: bool = True
         if coming:
             regime = "rain belt building to our south, moving up"
             interp = (
-                f"The main band of monsoon rain is sitting well south of us, "
-                f"near {lat:.0f}°N, and creeping our way. It normally takes "
-                "two to three weeks to travel up, so this is something to "
-                "watch for later in the month rather than this week."
+                f"The monsoon has a slow rhythm of its own. A broad band of "
+                "rain forms down near the equator, creeps northward up India "
+                "over two to three weeks, fades, and then the next one starts. "
+                "That band is what turns a quiet fortnight into a wet one. "
+                f"Right now it is well south of us, near {lat:.0f}°N, and "
+                "moving our way."
             )
         elif going:
             regime = "rain belt to our south, drifting away"
@@ -412,8 +423,20 @@ def analyse_miso(*, today: date | None = None, quiet: bool = True
         )
 
     if eta:
-        interp += (f" At the speed it is moving now, it would get here in "
-                   f"roughly {eta} days.")
+        # The typical journey is two to three weeks. When the computed arrival
+        # is far outside that, saying both in the same paragraph reads as a
+        # contradiction - so the sentence has to acknowledge which it is.
+        if eta > 28:
+            interp += (f" It is crawling, though: at the pace it is moving now "
+                       f"it would take about {eta} days to reach us, far "
+                       "slower than these bands usually travel. Expect it to "
+                       "speed up or fade before it gets here.")
+        elif eta > 21:
+            interp += (f" At its current pace that is about {eta} days away — "
+                       "the slow end of normal.")
+        else:
+            interp += (f" At the pace it is moving now it would reach us in "
+                       f"roughly {eta} days.")
     if prop.speed_per_day is not None:
         # Kept, but in distance a person can picture rather than degrees.
         km = abs(prop.speed_per_day) * 111.0
