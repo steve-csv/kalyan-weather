@@ -759,6 +759,21 @@ def _track_direction(tr: SystemTrack) -> str:
     return f"tracking {compass16(b)}"
 
 
+
+def _origin_basin(tr: SystemTrack) -> str:
+    """The sea a track formed over.
+
+    Walks the track from its first frame and returns the first marine basin it
+    ever occupies. A low first picked up a little inland, or one whose centre
+    wanders across the coastline as it is tracked, still belongs to the sea it
+    came out of.
+    """
+    for p in tr.positions:
+        if p.basin in BASINS:
+            return p.basin
+    return tr.first.basin
+
+
 def basin_outlook(sp: SystemsPicture | None) -> list[BasinReport]:
     """One report per sea, describing what forms there over the week."""
     if sp is None:
@@ -766,9 +781,20 @@ def basin_outlook(sp: SystemsPicture | None) -> list[BasinReport]:
 
     out: list[BasinReport] = []
     for basin in BASINS:
-        # A track belongs to the basin it spends its deepest moment in - a
-        # Bay low that later crosses India is still a Bay system, and
-        # classifying it by where it ends would file it under "Land".
+        # A track belongs to the sea it FORMED over, not the one it happens to
+        # be deepest in.
+        #
+        # Classifying by the deepest moment was the previous attempt, and it
+        # fails on the most important case there is: a Bay low that deepens as
+        # it comes ashore. On 30 Aug 2026 a low sat at 22N 89E - correctly
+        # labelled Bay of Bengal - and tracked west to 22N 87E, deepening from
+        # 1.3 to 2.9 hPa on the way. Its deepest point was over land, so the
+        # whole system was filed under "Land" and the page announced "Bay of
+        # Bengal - nothing organised this week" while a 996 hPa low was the
+        # main story of the week.
+        #
+        # Genesis is the honest label: a system that forms over the Bay is a
+        # Bay system for its whole life, which is also how IMD names them.
         #
         # No is_transient test here, deliberately. That test exists to stop
         # the stationary heat low and the monsoon trough being reported as
@@ -777,7 +803,7 @@ def basin_outlook(sp: SystemsPicture | None) -> list[BasinReport]:
         # case this section is for: a low that forms over the sea and sits
         # there deepening for a day before it starts moving.
         mine = [a.track for a in sp.assessments
-                if a.track.peak.basin == basin and a.track.peak.depth >= 1.0]
+                if _origin_basin(a.track) == basin and a.track.peak.depth >= 1.0]
         mine.sort(key=lambda t: -t.peak.depth)
 
         rep = BasinReport(
