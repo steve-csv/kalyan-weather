@@ -342,6 +342,23 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
   border:1px solid var(--border);border-radius:10px;
   font-size:13.5px;line-height:1.65;color:var(--text-secondary);min-height:46px}
 
+/* per-region arrival times */
+.arrs{display:grid;gap:8px}
+@media(min-width:620px){ .arrs{grid-template-columns:1fr 1fr} }
+.arr{background:var(--plane);border:1px solid var(--border);border-left:3px solid var(--muted);
+  border-radius:9px;padding:9px 11px;display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}
+.arr.a-now{border-left-color:var(--critical)}
+.arr.a-soon{border-left-color:var(--warning)}
+.arr.a-mid{border-left-color:var(--series-1)}
+.arr.a-later{border-left-color:var(--series-1);opacity:.85}
+.arr.a-clear{border-left-color:var(--good);opacity:.75}
+.an{font-size:12px;font-weight:700;flex:1 1 100%}
+.av{font-size:13.5px;font-weight:650;font-variant-numeric:tabular-nums}
+.aw{font-size:11px;color:var(--muted);font-weight:500;margin-left:4px}
+.ad{font-size:11.5px;color:var(--text-secondary);font-variant-numeric:tabular-nums}
+.amods{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;
+  font-variant-numeric:tabular-nums}
+
 /* scan-vs-belts disagreement */
 .beltsnote{margin:12px 0 0;padding:12px 14px;border-radius:11px;
   border:1px solid var(--critical);
@@ -1828,6 +1845,55 @@ function trackHtml(D){
   </div>`;
 }
 
+/* When rain reaches each region, from a three-model steering wind.
+   Placed above the belt table because it answers the sharper question - the
+   table says how much the model gives you this hour, this says when the stuff
+   currently upstream actually gets to you, and by how much the three models
+   disagree about that. */
+function arrivalsHtml(D){
+  const a = D.arrivals;
+  if (!a || !a.available || !a.list || !a.list.length) return '';
+  const agree = a.agreement === 'tight'
+      ? 'All three models agree closely, so these timings are as firm as this method gets.'
+    : a.agreement === 'moderate'
+      ? 'The models differ a little, so treat these as give-or-take.'
+      : 'The models disagree noticeably — that disagreement is itself the warning.';
+  const per = Object.entries(a.perModel || {})
+      .map(([k, v]) => `${esc(MODEL_SHORT[k] || k)} ${v[0]}`).join(' · ');
+
+  const row = x => {
+    if (x.now) return `<div class="arr a-now"><div class="an">${esc(x.name)}</div>
+        <div class=" av">Raining now</div></div>`;
+    if (x.km === null || x.km === undefined)
+      return `<div class="arr a-clear"><div class="an">${esc(x.name)}</div>
+        <div class="av">Clear upstream</div></div>`;
+    const win = (x.etaHi != null && x.etaLo != null && x.etaHi - x.etaLo >= 10)
+      ? `<span class="aw">${x.etaLo}–${x.etaHi} min</span>` : '';
+    const cls = x.eta <= 30 ? 'a-soon' : x.eta <= 75 ? 'a-mid' : 'a-later';
+    return `<div class="arr ${cls}"><div class="an">${esc(x.name)}</div>
+      <div class="av">~${x.eta} min ${win}</div>
+      <div class="ad">${x.km.toFixed(0)} km upstream · ${x.mmH} mm/hr</div></div>`;
+  };
+
+  return `<h3>When it reaches each area</h3>
+    <p class="rhead">Rain is moving on a <b>${esc(compassOf(a.fromDeg))}</b>
+      wind at about <b>${a.speedKmh} km/h</b>. ${esc(agree)}
+      <span class="amods">${per} km/h</span></p>
+    <div class="arrs">${a.list.map(row).join('')}</div>
+    <p class="rwarn" style="margin-top:10px">Arrival time is distance divided
+      by wind speed, so it assumes the rain keeps moving and keeps going —
+      cells die on the way. Positions come from the model analysis, not radar:
+      IMD's radar images carry no map extent, so pixel-to-place would be
+      guesswork. <b>Inside an hour, the radar loop above beats this.</b></p>`;
+}
+
+const MODEL_SHORT = {ecmwf_ifs025:'ECMWF', gfs_seamless:'GFS', icon_seamless:'ICON'};
+function compassOf(deg){
+  if (deg === null || deg === undefined) return 'westerly';
+  const p = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return p[Math.round(((deg % 360) / 22.5)) % 16];
+}
+
 /* ---------- reading the radar, in plain words --------------------------- */
 /* The two images above are the products IMD publishes by default, and both
    are routinely misread. MAX-Z is the strongest echo anywhere in the column,
@@ -1885,6 +1951,8 @@ function radarExplainHtml(D){
   if (D.burst && D.burst.note){
     h += `<div class="burst b-${esc(D.burst.level)}">${mdBold(D.burst.note)}</div>`;
   }
+
+  h += arrivalsHtml(D);
 
   if (b && b.available && b.list && b.list.length){
     h += `<h3>Next few hours, belt by belt</h3>
