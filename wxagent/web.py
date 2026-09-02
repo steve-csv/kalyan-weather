@@ -640,6 +640,12 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
   border:1px solid var(--border);border-radius:10px;
   font-size:13.5px;line-height:1.65;color:var(--text-secondary);min-height:46px}
 
+/* scan-vs-belts disagreement */
+.beltsnote{margin:12px 0 0;padding:12px 14px;border-radius:11px;
+  border:1px solid var(--critical);
+  background:color-mix(in srgb,var(--critical) 10%,var(--surface-1));
+  font-size:13px;line-height:1.62}
+
 /* convective burst warning */
 .burst{margin:14px 0 4px;padding:12px 14px;border-radius:11px;
   border:1px solid var(--warning);
@@ -2188,6 +2194,7 @@ function radarExplainHtml(D){
         ${hourStrip(x)}
       </div>`).join('') +
       `</div>
+      ${D.beltsNote ? `<div class="beltsnote">${mdBold(D.beltsNote)}</div>` : ''}
       <p class="rwarn" style="margin-top:10px">These come from the hourly model
       field sampled at each place, <b>not</b> from the radar picture above.
       Inside an hour the radar loop is the better guide — this tells you which

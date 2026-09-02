@@ -22,6 +22,7 @@ from . import config as C
 from . import (
     belts as beltmod,
     recent as recentmod,
+    reconcile,
     nowcast, observed, plain, report, synoptic, systems, thermal,
     upstream, web,
 )
@@ -361,6 +362,12 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     extra += nowcast.render_scan(scan)
     extra += beltmod.render(belt_status)
 
+    # The upstream scan and the belt table measure different things and can
+    # contradict each other. When they do, say so - see reconcile.py.
+    belts_note = reconcile.belts_vs_scan(scan, belt_status)
+    if belts_note:
+        extra += "\n" + belts_note + "\n\n"
+
     # Flag the case where the hourly rates on this page will understate what
     # a person outside actually experiences - see diagnostics.burst_risk.
     belt_peak = max((b.peak_mm_h for b in (belt_status or [])), default=None)
@@ -479,6 +486,7 @@ def run(target_day: date | None = None, *, quiet: bool = False,
             if d.forecast_mm is not None or d.observed_mm is not None
         ],
     }
+    payload["beltsNote"] = belts_note
     payload["burst"] = {"level": burst_level, "note": burst_note}
     payload["belts"] = {
         "available": bool(belt_status),
