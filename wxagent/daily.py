@@ -20,6 +20,7 @@ import re
 
 from . import config as C
 from . import (
+    arrivals as arrmod,
     belts as beltmod,
     recent as recentmod,
     reconcile,
@@ -360,7 +361,13 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     extra += "\n" + report.h(2, "Now — next few hours")
     extra += nowcast.render(short)
     extra += nowcast.render_scan(scan)
+    if not quiet:
+        print("  timing the arrivals from a three-model steering wind...")
+    steer = arrmod.steering(C.HOME, now=issued, quiet=quiet)
+    arrivals_list = arrmod.arrivals(steer, quiet=quiet)
+
     extra += beltmod.render(belt_status)
+    extra += arrmod.render(steer, arrivals_list)
 
     # The upstream scan and the belt table measure different things and can
     # contradict each other. When they do, say so - see reconcile.py.
@@ -484,6 +491,21 @@ def run(target_day: date | None = None, *, quiet: bool = False,
              "verdict": d.verdict or "", "band": d.band_match}
             for d in (track.days if track else [])
             if d.forecast_mm is not None or d.observed_mm is not None
+        ],
+    }
+    payload["arrivals"] = {
+        "available": bool(steer and arrivals_list),
+        "fromDeg": round(steer.from_deg) if steer else None,
+        "speedKmh": round(steer.speed_kmh) if steer else None,
+        "agreement": steer.agreement if steer else "",
+        "perModel": ({k: [round(v[0]), round(v[1])]
+                      for k, v in steer.per_model.items()} if steer else {}),
+        "list": [
+            {"key": a.belt_key, "name": a.belt_name,
+             "km": a.distance_km, "mmH": round(a.mm_h, 1),
+             "eta": a.eta_min, "etaLo": a.eta_lo_min, "etaHi": a.eta_hi_min,
+             "now": a.raining_now, "sentence": a.sentence}
+            for a in arrivals_list
         ],
     }
     payload["beltsNote"] = belts_note
