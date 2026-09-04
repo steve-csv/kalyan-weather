@@ -43,7 +43,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from . import config as C
-from .belts import BELTS, TRACE_MM_H
+from .belts import BELTS, POINT_WET_MM_H, coverage_label
 from .nowcast import _destination
 from .sources import FetchError, _get_json
 
@@ -51,8 +51,11 @@ from .sources import FetchError, _get_json
 # past recognition before it arrives, and the arrival time stops meaning much.
 RANGES_KM = (15.0, 30.0, 45.0, 60.0, 80.0, 100.0, 120.0)
 
-# Wet enough to be worth calling an approaching area.
-WET_MM_H = TRACE_MM_H
+# Wet enough to be worth calling an approaching area. Upstream this is a
+# detection threshold - "is there something out there" - which is a fair use of
+# a small number. Describing conditions AT a belt needs a much higher bar; see
+# belts.coverage_label for why.
+WET_MM_H = POINT_WET_MM_H
 
 
 @dataclass
@@ -84,12 +87,17 @@ class Arrival:
     eta_min: int | None
     eta_lo_min: int | None
     eta_hi_min: int | None
-    raining_now: bool
+    raining_now: bool          # kept for callers; true only for real rain
+    here_state: str = "clear"  # clear | trace | patchy | light | raining
+    here_text: str = ""
+    here_mm_h: float = 0.0
+    wet_points: int = 0
+    n_points: int = 0
 
     @property
     def sentence(self) -> str:
-        if self.raining_now:
-            return "**Already raining here.**"
+        if self.here_state in ("raining", "light", "patchy", "trace"):
+            return self.here_text
         if self.distance_km is None or self.eta_min is None:
             return "Nothing upstream within 120 km."
         window = ""
@@ -176,8 +184,11 @@ def arrivals(st: Steering | None, *, quiet: bool = True) -> list[Arrival]:
     for belt in BELTS:
         la0 = sum(p[1] for p in belt.points) / len(belt.points)
         lo0 = sum(p[2] for p in belt.points) / len(belt.points)
-        pts.append((la0, lo0))
-        meta.append((belt.key, 0.0))
+        # Every named place in the belt, so coverage can be measured rather
+        # than assumed from one centroid reading.
+        for i, (_nm, la, lo) in enumerate(belt.points):
+            pts.append((la, lo))
+            meta.append((belt.key, -1.0 - i))
         for rng in RANGES_KM:
             la, lo = _destination(la0, lo0, st.from_deg, rng)
             pts.append((la, lo))
@@ -212,16 +223,25 @@ def arrivals(st: Steering | None, *, quiet: bool = True) -> list[Arrival]:
 
     out: list[Arrival] = []
     for belt in BELTS:
-        here = now_mm.get((belt.key, 0.0), 0.0)
-        if here >= WET_MM_H:
-            out.append(Arrival(belt.key, belt.name, 0.0, here,
-                               0, 0, 0, raining_now=True))
+        locals_ = [now_mm.get((belt.key, -1.0 - i), 0.0)
+                   for i in range(len(belt.points))]
+        mean_here = sum(locals_) / len(locals_) if locals_ else 0.0
+        wet_n = sum(1 for v in locals_ if v >= POINT_WET_MM_H)
+        state, text = coverage_label(mean_here, wet_n, len(locals_))
+
+        if state != "clear":
+            out.append(Arrival(
+                belt.key, belt.name, 0.0, mean_here, 0, 0, 0,
+                raining_now=state in ("raining", "light"),
+                here_state=state, here_text=text, here_mm_h=mean_here,
+                wet_points=wet_n, n_points=len(locals_)))
             continue
         hit = next((r for r in RANGES_KM
                     if now_mm.get((belt.key, r), 0.0) >= WET_MM_H), None)
         if hit is None:
             out.append(Arrival(belt.key, belt.name, None, 0.0,
-                               None, None, None, raining_now=False))
+                               None, None, None, raining_now=False,
+                               here_state="clear", n_points=len(locals_)))
             continue
         mm = now_mm[(belt.key, hit)]
         out.append(Arrival(
@@ -229,7 +249,7 @@ def arrivals(st: Steering | None, *, quiet: bool = True) -> list[Arrival]:
             eta_min=int(round(hit / st.speed_kmh * 60)),
             eta_lo_min=int(round(hit / fast * 60)),
             eta_hi_min=int(round(hit / slow * 60)),
-            raining_now=False,
+            raining_now=False, here_state="clear", n_points=len(locals_),
         ))
     return out
 
@@ -260,8 +280,12 @@ def render(st: Steering | None, arr: list[Arrival]) -> str:
 
     out += "| Region | Rain upstream | Expected here |\n|---|---|---|\n"
     for a in arr:
-        if a.raining_now:
-            out += f"| **{a.belt_name}** | — | Already raining |\n"
+        if a.here_state != "clear":
+            # Whatever is happening here already - trace, patchy or real rain -
+            # is described in coverage_label's words, which never assert rain
+            # at a point from an area average.
+            out += (f"| **{a.belt_name}** | — | "
+                    f"{a.here_text.replace('**', '')} |\n")
         elif a.distance_km is None:
             out += f"| **{a.belt_name}** | none within 120 km | — |\n"
         else:

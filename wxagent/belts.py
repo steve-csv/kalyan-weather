@@ -129,6 +129,9 @@ class BeltStatus:
     eta_hours: int | None = None
     peak_mm_h: float = 0.0
     prev_mm_h: float = 0.0            # two hours ago, for rising/easing
+    coverage_text: str = ""           # honest wording from coverage_label
+    mean_mm_h: float = 0.0            # belt average, not the wettest spot
+    wet_points: int = 0
 
     @property
     def intensity_word(self) -> str:
@@ -137,6 +140,10 @@ class BeltStatus:
     @property
     def sentence(self) -> str:
         """One line a non-specialist can act on."""
+        if self.state in ("trace", "patchy", "light"):
+            # Wording comes straight from coverage_label, which is careful not
+            # to claim rain at a point from an area average.
+            return self.coverage_text or "**A trace at most.**"
         if self.state == "raining":
             w = intensity_word(self.now_mm_h)
             tail = ""
@@ -173,6 +180,49 @@ class BeltStatus:
                     f"{h} hour{'s' if h != 1 else ''} — "
                     f"{intensity_word(self.peak_mm_h)}.")
         return "**Staying dry** for the next few hours."
+
+
+# A grid-box mean is an AREA AVERAGE, not an observation at your address.
+#
+# This is the correction for a fault that reached the page four times: the app
+# said rain while the radar showed none. Every time, the number underneath was
+# a grid-box mean of 0.2-0.4 mm/hr. The model spreads a trace of moisture over
+# 625 square kilometres and reports the average; at 0.2 mm/hr most of that box
+# is bone dry, and so, very probably, is your street. Reading that as "it is
+# raining here" is a category error, and it is the agent's error, not the
+# model's - the model never claimed a point observation.
+#
+# So nothing below CONFIDENT_MM_H may be described as rain falling. Between
+# TRACE and CONFIDENT it is reported as a trace with most of the area dry, and
+# how much of the belt is actually wet is reported alongside, because two of
+# three locations dry is the difference between "patchy" and "raining".
+CONFIDENT_MM_H = 1.0     # below this, never assert that rain is falling
+POINT_WET_MM_H = 0.3     # a single location counts as wet at this rate
+
+
+def coverage_label(mean_mm_h: float, n_wet: int, n_points: int) -> tuple[str, str]:
+    """(state, sentence) from an area mean plus how much of the area is wet."""
+    frac = (n_wet / n_points) if n_points else 0.0
+    where = ""
+    if n_points > 1 and 0 < n_wet < n_points:
+        where = f" Only {n_wet} of {n_points} spots in this belt show anything."
+
+    if mean_mm_h < POINT_WET_MM_H:
+        return "clear", "**Nothing showing here.**"
+    if mean_mm_h < CONFIDENT_MM_H:
+        return "trace", (
+            f"**A trace at most** ({rate(mean_mm_h)} averaged across the area). "
+            "Most of this belt will be completely dry — do not read this as "
+            "rain at your address." + where)
+    if frac < 0.6:
+        return "patchy", (
+            f"**Patchy rain** — {rate(mean_mm_h)} averaged over the belt, but "
+            "scattered. Some places wet, plenty dry." + where)
+    if mean_mm_h < MODERATE_MM_H:
+        return "light", (f"**Light rain over most of the belt**, "
+                         f"about {rate(mean_mm_h)}.")
+    return "raining", (f"**Raining across the belt**, about "
+                       f"{rate(mean_mm_h)}.")
 
 
 def rate(mm_h: float) -> str:
@@ -277,10 +327,18 @@ def fetch(*, now: datetime | None = None, model: str = "ecmwf_ifs025",
         ahead_max = [max((a[i] if i < len(a) else 0.0) for _, (_, a) in rows)
                      for i in range(n_ahead)]
 
-        if now_rate >= LIGHT_MM_H:
-            state, eta = "raining", 0
-        elif now_rate >= TRACE_MM_H:
-            state, eta = "drizzling", 0
+        # Describing what is happening NOW goes by the belt's AVERAGE and how
+        # many of its locations are actually wet - not by the wettest one.
+        # The maximum is the right basis for "will I need an umbrella somewhere
+        # in this belt today"; it is the wrong basis for "is it raining", and
+        # using it there is what produced four false alarms against the radar.
+        now_vals = [(p[-1] if p else 0.0) for _, (p, _) in rows]
+        mean_now = sum(now_vals) / len(now_vals) if now_vals else 0.0
+        wet_n = sum(1 for v in now_vals if v >= POINT_WET_MM_H)
+        cov_state, cov_text = coverage_label(mean_now, wet_n, len(now_vals))
+
+        if cov_state in ("raining", "light", "patchy", "trace"):
+            state, eta = cov_state, 0
         elif best_ahead and best_ahead[0] >= LIGHT_MM_H * 0.5:
             state, eta = "arriving", 1
         elif best_ahead and max(best_ahead) >= LIGHT_MM_H * 0.5:
@@ -292,7 +350,8 @@ def fetch(*, now: datetime | None = None, model: str = "ecmwf_ifs025",
 
         out.append(BeltStatus(
             belt=belt, now_mm_h=now_rate, hours=ahead_max,
-            hour_labels=list(labels),
+            hour_labels=list(labels), coverage_text=cov_text,
+            mean_mm_h=mean_now, wet_points=wet_n,
             wettest_place=best_name, state=state, eta_hours=eta,
             peak_mm_h=peak, prev_mm_h=prev_rate,
         ))
