@@ -62,8 +62,62 @@ def build(trough_t: PressureTransect | None,
     )
 
 
-def render(sp: SynopticPicture) -> str:
-    """Markdown block for the bulletin."""
+def _incoming_note(systems_picture) -> str:
+    """A forward reference to any system heading for the peninsula.
+
+    WHY THIS EXISTS
+    ---------------
+    The trough diagnosis is a SNAPSHOT of today's 80E transect. Left on its
+    own it ends with Handbook Ch.13's line about expecting a dry run "until
+    the trough moves back south" - phrased as though nothing is known about
+    when that might be. Meanwhile the systems tracker, in another section of
+    the same bulletin, is often already following the low that will do exactly
+    that.
+
+    On 9 Sep 2026 the page therefore called a break-leaning trough and a dry
+    spell while its own tracker held a Bay low forming off the Odisha coast on
+    the 10th and reaching Vidarbha by the 12th - the classic mechanism for
+    dragging the trough south. Two forecasters called the revival publicly and
+    our numbers agreed with them; only the prose did not.
+
+    So when a system is tracking toward the peninsula, the snapshot says so
+    rather than implying the dry spell is open-ended.
+    """
+    if systems_picture is None:
+        return ""
+    try:
+        sig = systems_picture.significant
+    except AttributeError:
+        return ""
+
+    incoming = [a for a in sig
+                if a.relevance in ("high", "moderate")
+                and a.track.motion == "moving"
+                and a.track.closest_approach.distance_km < 1200]
+    if not incoming:
+        return ""
+
+    nearest = min(incoming, key=lambda a: a.track.closest_approach.distance_km)
+    tr = nearest.track
+    return (
+        "> **But this is today's snapshot, and a system is already on the "
+        f"way.** The tracker is following a low ({tr.motion_phrase}, minimum "
+        f"{tr.peak.pressure:.0f} hPa) that closes to about "
+        f"{tr.closest_approach.distance_km:.0f} km. A low crossing central "
+        "India along the trough is the usual mechanism for pulling the trough "
+        "back south and re-strengthening the westerlies into the Konkan, so "
+        "read the dry signal above as **the state now**, not as a forecast "
+        "that the week stays dry. The systems section below has the track.\n"
+    )
+
+
+def render(sp: SynopticPicture, systems_picture=None) -> str:
+    """Markdown block for the bulletin.
+
+    `systems_picture` is optional so callers that have not tracked systems
+    still work; when supplied, the break/active verdict gains the forward
+    reference it needs to avoid contradicting the systems section.
+    """
     lines: list[str] = []
     lines.append(f"**Season:** {C.SEASON_LABELS[sp.season]}. "
                  f"{C.SEASON_FRAMEWORK[sp.season]}\n")
@@ -91,9 +145,10 @@ def render(sp: SynopticPicture) -> str:
             )
         elif t.phase == "break-leaning" and not o.present:
             lines.append(
-                "> Both features argue against significant rain. Handbook "
-                "Ch.13: expect a drier, hotter, humid-but-rainless run of days "
-                "until the trough moves back south.\n"
+                "> Both features argue against significant rain **as things "
+                "stand today**. Handbook Ch.13: while the trough sits this far "
+                "north, expect a drier, hotter, humid-but-rainless spell — "
+                "which lasts only until the trough is pulled back south.\n"
             )
         else:
             lines.append(
@@ -101,4 +156,8 @@ def render(sp: SynopticPicture) -> str:
                 "disagree most on timing during these transitions, so lean "
                 "harder on observations — radar and satellite — than usual.\n"
             )
+
+        note = _incoming_note(systems_picture)
+        if note:
+            lines.append(note)
     return "\n".join(lines)

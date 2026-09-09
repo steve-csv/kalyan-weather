@@ -324,7 +324,7 @@ def run(target_day: date | None = None, *, quiet: bool = False,
 
     body = report.render_daily(
         dd, conf, C.HOME, pf, windows, links,
-        synoptic.render(sp), PRIMARY_MODEL, issued,
+        synoptic.render(sp, sys_pic), PRIMARY_MODEL, issued,
     )
 
     # ---- nowcast line first: the one line worth reading on a phone ------
@@ -410,7 +410,7 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         dd, conf, C.HOME, pf, windows, PRIMARY_MODEL, issued,
         gradient=grad_rows,
         outlook=outlook_payload(pf, ens, today),
-        synoptic_text=_synoptic_html(synoptic.render(sp)),
+        synoptic_text=_synoptic_html(synoptic.render(sp, sys_pic)),
     )
     payload["gradientVerdict"] = grad_verdict
     payload["alerts"] = [
@@ -562,7 +562,9 @@ def run(target_day: date | None = None, *, quiet: bool = False,
              "reasoning": a.reasoning,
              "distanceKm": round(a.track.closest_approach.distance_km),
              "pressure": round(a.track.peak.pressure, 1),
-             "movedKm": round(a.track.moved_km)}
+             "movedKm": round(a.track.moved_km),
+             "motion": a.track.motion,
+             "durationH": round(a.track.duration_hours)}
             for a in (sys_pic.significant if sys_pic else [])
         ],
     }

@@ -687,6 +687,34 @@ def _band_rank(band: str) -> int:
     return order.index(band) if band in order else 0
 
 
+def _spell_phrase(day: date, run: int, open_ended: bool) -> dict[str, str]:
+    """Title fragment and body sentence for a regime that lasts `run` days.
+
+    Exists so no alert can imply a spell it has not established. A one-day
+    classification gets "on Friday"; only a run of two or more earns "from
+    Friday". `open_ended` marks a run still going when the outlook stops, in
+    which case the length is a floor, not a measurement.
+    """
+    if run <= 1:
+        return {
+            "title": f"on {day:%A %d %b}",
+            "body": ("On the current guidance this is a **single day** — the "
+                     "pattern goes back to what it was on either side of it. "
+                     "Read it as a one-day change, not the start of a spell."),
+        }
+    if open_ended:
+        return {
+            "title": f"from {day:%A %d %b}",
+            "body": (f"It holds for **at least {run} days** — the seven-day "
+                     "outlook ends before it does, so how long it really runs "
+                     "is not yet known."),
+        }
+    return {
+        "title": f"from {day:%A %d %b}",
+        "body": f"It holds for **{run} days**, then the pattern changes again.",
+    }
+
+
 def detect_shifts(diagnoses: Sequence, *,
                   thermal_outlook=None,
                   systems_picture=None) -> list[ShiftAlert]:
@@ -743,24 +771,77 @@ def detect_shifts(diagnoses: Sequence, *,
                 "🌧️"))
 
     # ---- regime transitions ---------------------------------------------
-    for prev, cur in zip(diagnoses, diagnoses[1:]):
+    #
+    # A regime is a statement about the WIND AND THE MOISTURE, never about the
+    # rainfall total. "Active monsoon surge" means the flow has come square-on
+    # to the Ghats and the column is wet all the way up; "break phase" means
+    # the onshore flow has fallen away. Neither is a millimetre figure, and on
+    # 9 Sep 2026 the page ran "Monsoon surge begins Monday" directly above
+    # Monday labelled *light rain, 3-8 mm*, with Sunday - the wetter day by
+    # some distance - carrying no alert at all. A reader had no way to
+    # reconcile those, because nothing said what the alert was measuring.
+    #
+    # Two rules come out of that, and they apply to both directions:
+    #
+    #   SAY WHAT TRIGGERED IT. The body names the wind and the moisture, so
+    #   the alert cannot be read as a rainfall claim.
+    #
+    #   SAY HOW LONG IT LASTS. "Monsoon takes a break FROM Friday" was printed
+    #   for a single quiet day with rain returning on the Sunday - the word
+    #   "from" invented a spell out of a one-day classification.
+    for i, (prev, cur) in enumerate(zip(diagnoses, diagnoses[1:]), start=1):
         if prev.regime == cur.regime:
             continue
-        if "SURGE" in cur.regime and "SURGE" not in prev.regime:
+        surge = "SURGE" in cur.regime and "SURGE" not in prev.regime
+        brk = "BREAK" in cur.regime and "BREAK" not in prev.regime
+        if not (surge or brk):
+            continue
+
+        key = "SURGE" if surge else "BREAK"
+        run = 1
+        for nxt in diagnoses[i + 1:]:
+            if key not in nxt.regime:
+                break
+            run += 1
+        # A run still going on the final day of the outlook has not ended; its
+        # length is a lower bound.
+        open_ended = (i + run - 1) >= len(diagnoses) - 1
+        spell = _spell_phrase(cur.day, run, open_ended)
+
+        # The wettest day of the whole outlook, so an alert about the wind can
+        # point at the rainfall instead of being mistaken for it.
+        wettest = max(diagnoses, key=lambda d: d.rain.hi)
+        elsewhere = ""
+        if wettest.day != cur.day and wettest.rain.hi > cur.rain.hi * 1.3:
+            elsewhere = (
+                f" Note that the heavier rainfall guidance this week sits on "
+                f"**{wettest.day:%A %d %b}** ({wettest.rain.lo:.0f}–"
+                f"{wettest.rain.hi:.0f} mm) rather than on this day — the two "
+                "are answering different questions, and this alert is about "
+                "the wind and the moisture, not the total.")
+
+        if surge:
             alerts.append(ShiftAlert(
                 "warning", cur.day,
-                f"Monsoon surge begins {cur.day:%A %d %b}",
-                "The wind swings round to drive straight at the Ghats and the "
-                "air is moist all the way up. That combination is what produces "
-                "days of repeated, persistent rain rather than passing showers.",
+                f"Monsoon surge {spell['title']}",
+                "This is a change in the wind and the moisture, not a rainfall "
+                "figure. The flow at about 1.5 km up swings round to drive "
+                "straight at the Ghats, and the air becomes humid all the way "
+                "through the depth of the cloud layer instead of only near the "
+                "ground. That is the combination that produces repeated, "
+                "persistent rain rather than passing showers, because nothing "
+                "dry is left aloft to choke the clouds as they grow. "
+                f"{spell['body']}{elsewhere}",
                 "🌀"))
-        elif "BREAK" in cur.regime and "BREAK" not in prev.regime:
+        else:
             alerts.append(ShiftAlert(
                 "info", cur.day,
-                f"Monsoon takes a break from {cur.day:%A %d %b}",
-                "The onshore wind falls away. Expect longer dry gaps, more sun, "
-                "and muggier air — with the odd sharp local thunderstorm rather "
-                "than steady rain.",
+                f"Onshore wind falls away {spell['title']}",
+                "The wind that carries moisture in off the sea slackens, so "
+                "the hills lose the lift that normally wrings rain out of it. "
+                "Expect longer dry gaps, more sun, and muggier air — with the "
+                "odd sharp local thunderstorm rather than steady rain. "
+                f"{spell['body']}{elsewhere}",
                 "☀️"))
 
     # ---- dry spell ending / starting ------------------------------------
@@ -826,8 +907,26 @@ def detect_shifts(diagnoses: Sequence, *,
     if systems_picture is not None:
         for a in systems_picture.significant:
             sev = "warning" if a.relevance == "high" else "watch"
+            # Lead with how close it comes and when. The reasoning explains the
+            # mechanism well but never states the two facts a reader needs to
+            # decide whether it concerns them, and once track linking was fixed
+            # this became the top alert on the page with neither of them in it.
+            ca = a.track.closest_approach
+            when = ""
+            try:
+                when = datetime.fromisoformat(
+                    systems_picture.times[ca.time_index]).strftime("%A %d %b")
+            except (AttributeError, IndexError, ValueError):
+                when = ""
+            lead = (f"Comes closest on **{when}**, about "
+                    f"**{ca.distance_km:,.0f} km** from Kalyan, with a minimum "
+                    f"pressure of {a.track.peak.pressure:.0f} hPa. "
+                    if when else
+                    f"Closest approach about **{ca.distance_km:,.0f} km** from "
+                    f"Kalyan, minimum pressure "
+                    f"{a.track.peak.pressure:.0f} hPa. ")
             alerts.append(ShiftAlert(
-                sev, None, a.headline, a.reasoning, "🌀"))
+                sev, None, a.headline, lead + a.reasoning, "🌀"))
         if systems_picture.cyclone_window:
             alerts.append(ShiftAlert(
                 "info", None, "Arabian Sea cyclone window",

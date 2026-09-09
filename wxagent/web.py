@@ -1328,7 +1328,7 @@ function renderWeekly(){
       h += sy.list.map(s => `<div class="sysrow">
         <div class="at"><span class="tag t-${esc(s.relevance)}">${esc(s.relevance)}</span> ${esc(s.headline)}</div>
         <div class="ab">${esc(s.reasoning)}</div>
-        <div class="pc">Closest approach ~${s.distanceKm} km · minimum ${s.pressure} hPa · moves ${s.movedKm} km</div>
+        <div class="pc">Closest approach ~${s.distanceKm} km · minimum ${s.pressure} hPa · ${s.motion==='unresolved' ? `resolved over ${s.durationH} h — too short to say if it is moving` : s.motion==='slow' ? `moves under one grid cell in ${s.durationH} h` : `moves ${s.movedKm} km in ${s.durationH} h`}</div>
       </div>`).join('');
     } else {
       h += `<p class="sub">No significant low pressure area or depression tracked
@@ -2989,7 +2989,7 @@ function render(){
       h += sy.list.map(s => `<div class="sysrow">
         <div class="at"><span class="tag t-${esc(s.relevance)}">${esc(s.relevance)}</span> ${esc(s.headline)}</div>
         <div class="ab">${esc(s.reasoning)}</div>
-        <div class="pc">Closest approach ~${s.distanceKm} km · minimum ${s.pressure} hPa · moves ${s.movedKm} km</div>
+        <div class="pc">Closest approach ~${s.distanceKm} km · minimum ${s.pressure} hPa · ${s.motion==='unresolved' ? `resolved over ${s.durationH} h — too short to say if it is moving` : s.motion==='slow' ? `moves under one grid cell in ${s.durationH} h` : `moves ${s.movedKm} km in ${s.durationH} h`}</div>
       </div>`).join('');
     } else {
       h += `<p class="sub">No significant low pressure area or depression tracked

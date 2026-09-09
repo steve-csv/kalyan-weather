@@ -39,6 +39,32 @@ GRID_LAT = tuple(float(v) for v in range(6, 29, 2))      # 6N .. 28N
 GRID_LON = tuple(float(v) for v in range(65, 95, 2))     # 65E .. 94E
 GRID_STEP = 2.0
 
+# WHAT THE GRID CAN AND CANNOT SAY ABOUT MOTION
+# ---------------------------------------------
+# Two degrees puts adjacent grid points about 210 km apart at these latitudes,
+# so a detected centre's position is only known to roughly half that, and any
+# displacement smaller than one grid step is not a measurement of movement -
+# it is the grid. Every claim this module makes about whether a system is
+# moving is gated on the two constants below.
+#
+# The alternative is what this module used to do: a low resolved on a single
+# day reported "moves 0 km over the tracked period" and labelled
+# "quasi-stationary", which asserts a physical fact out of an absence of
+# evidence. On 9 Sep 2026 that turned one westward-marching Bay low into three
+# unconnected stationary centres in the bulletin.
+MOTION_FLOOR_KM = 200.0
+
+# Least time a track must span before its displacement means anything. Below
+# this the low has not been watched long enough to say whether it travels.
+MOTION_MIN_HOURS = 18.0
+
+# Fastest a monsoon low is assumed to travel, used to widen the search radius
+# across a gap in detection. Well above the 20-30 km/h these systems actually
+# manage, because the cost of missing a link is a fragmented track and the
+# cost of a slightly loose one is bounded by MAX_REACH_KM.
+MAX_TRACK_SPEED_KMH = 35.0
+MAX_REACH_KM = 1100.0
+
 # Reference point for "how far away is this system". Kalyan is the home
 # location, and at synoptic scale the ~30 km offset from the Mumbai gauge is
 # immaterial - but the labels should say the place the forecast is actually for.
@@ -314,8 +340,39 @@ class SystemTrack:
                          self.last.lat, self.last.lon)
 
     @property
+    def duration_hours(self) -> float:
+        """Hours between the first and last frame this centre was resolved in."""
+        return float(self.last.time_index - self.first.time_index)
+
+    @property
+    def motion(self) -> str:
+        """
+        How much can honestly be said about this track's displacement.
+
+        'moving'     - travelled at least one grid step, direction is real
+        'slow'       - watched long enough, went less than one grid step
+        'unresolved' - not watched long enough to say either way
+        """
+        if len(self.positions) < 2 or self.duration_hours < MOTION_MIN_HOURS:
+            return "unresolved"
+        return "moving" if self.moved_km >= MOTION_FLOOR_KM else "slow"
+
+    @property
+    def motion_phrase(self) -> str:
+        """Words for the motion state - never asserts more than `motion` knows."""
+        if self.motion == "moving":
+            brg = self.track_bearing
+            return f"tracking {compass16(brg)}" if brg is not None else "moving"
+        if self.motion == "slow":
+            return "moving slowly"
+        return "motion not yet resolved"
+
+    @property
     def track_bearing(self) -> float | None:
-        if len(self.positions) < 2 or self.moved_km < 50:
+        # The floor is one grid step, not 50 km: below a grid step the
+        # displacement is quantisation, and a bearing computed from it points
+        # in a direction the data never actually measured.
+        if len(self.positions) < 2 or self.moved_km < MOTION_FLOOR_KM:
             return None
         return bearing(self.first.lat, self.first.lon,
                        self.last.lat, self.last.lon)
@@ -341,39 +398,90 @@ class SystemTrack:
         is already diagnosed separately - and calling them "systems" would be
         pure noise in every monsoon bulletin.
         """
-        return self.moved_km >= 200.0
+        return self.moved_km >= MOTION_FLOOR_KM
 
     @property
     def is_seasonal_feature(self) -> bool:
-        """Quasi-stationary and sitting in the monsoon-trough / heat-low belt."""
-        return (not self.is_transient) and self.peak.lat >= 25.0
+        """Quasi-stationary and sitting in the monsoon-trough / heat-low belt.
+
+        The duration test matters as much as the distance one. A low resolved
+        for a few hours has not been shown to be stationary, only unobserved,
+        and filtering it out as "seasonal background" would silently drop a
+        genuine new system that happened to form in the trough belt.
+        """
+        return (self.duration_hours >= 36.0
+                and not self.is_transient
+                and self.peak.lat >= 25.0)
 
 
 def track_systems(field: PressureField, *, hours: Sequence[int] | None = None,
-                  search_radius_km: float = 450.0) -> list[SystemTrack]:
+                  search_radius_km: float = 450.0,
+                  max_gap_hours: float = 30.0) -> list[SystemTrack]:
     """
     Link low centres across time into tracks by nearest-neighbour matching.
 
-    Deliberately simple: a synoptic low moves a few hundred km per day, so
-    matching within ~450 km per 6-hour step is generous but not reckless.
+    TWO THINGS THIS HAS TO GET RIGHT, AND ORIGINALLY DID NOT
+    --------------------------------------------------------
+    A low DROPS OUT of detection. `find_lows` needs a centre strictly lower
+    than every neighbour on a 2 degree ring, and a real low pressure area
+    embedded in the monsoon trough fails that intermittently - the trough's
+    own gradient swallows the closure, particularly while the centre is
+    crossing the coast and the land/sea pressure contrast distorts the field.
+    The track goes quiet for one frame or several.
+
+    Matching only against a fixed 450 km radius meant that by the time the low
+    reappeared it had travelled beyond reach, so it started a NEW track. On
+    9 Sep 2026 that reported a single westward-marching Bay low - genesis off
+    the Odisha coast, then Vidarbha two days later - as three unconnected
+    centres, two of them labelled "quasi-stationary", and left the basin card
+    quoting a closest approach of 1,246 km for a system that came inland to
+    within about 620 km.
+
+    So the search radius GROWS WITH THE GAP: a system unobserved for 24 hours
+    has had 24 hours to travel. A track is abandoned once the gap passes
+    `max_gap_hours`, which stops that same generosity from welding two
+    genuinely different systems into one.
+
+    Matching is also done NEAREST PAIR FIRST rather than in depth order. The
+    old loop walked `find_lows` output, which is sorted deepest-first, and let
+    the deepest low of a frame claim a track that belonged to a closer,
+    shallower one - swapping two systems' identities from that frame on.
     """
     if hours is None:
         hours = list(range(0, min(len(field.times), 168), 6))
 
     tracks: list[SystemTrack] = []
     for t in hours:
-        for low in find_lows(field, t):
-            best: SystemTrack | None = None
-            best_d = search_radius_km
+        lows = find_lows(field, t)
+        if not lows:
+            continue
+
+        # Every (low, track) pair within reach, then resolved cheapest-first
+        # so the best available match wins regardless of iteration order.
+        cands: list[tuple[float, int, SystemTrack]] = []
+        for li, low in enumerate(lows):
             for tr in tracks:
-                if tr.last.time_index >= t:
+                gap = float(t - tr.last.time_index)
+                if gap <= 0 or gap > max_gap_hours:
                     continue
+                reach = max(search_radius_km,
+                            min(MAX_REACH_KM, MAX_TRACK_SPEED_KMH * gap))
                 d = haversine(tr.last.lat, tr.last.lon, low.lat, low.lon)
-                if d < best_d:
-                    best, best_d = tr, d
-            if best is not None:
-                best.positions.append(low)
-            else:
+                if d <= reach:
+                    cands.append((d, li, tr))
+        cands.sort(key=lambda c: c[0])
+
+        claimed_low: set[int] = set()
+        claimed_track: set[int] = set()
+        for _d, li, tr in cands:
+            if li in claimed_low or id(tr) in claimed_track:
+                continue
+            tr.positions.append(lows[li])
+            claimed_low.add(li)
+            claimed_track.add(id(tr))
+
+        for li, low in enumerate(lows):
+            if li not in claimed_low:
                 tracks.append(SystemTrack(positions=[low]))
 
     # Keep only systems that persist - a one-frame minimum is usually noise.
@@ -414,7 +522,8 @@ def assess(track: SystemTrack, times: Sequence[str]) -> SystemAssessment:
         when = datetime.fromisoformat(times[closest.time_index]).strftime("%a %d %b")
 
     brg = track.track_bearing
-    direction = f"tracking {compass16(brg)}" if brg is not None else "quasi-stationary"
+    # Never "quasi-stationary" from a short track: see MOTION_FLOOR_KM.
+    direction = track.motion_phrase
 
     # Seasonal background features are filtered out before anything else. The
     # monsoon trough is diagnosed on its own terms elsewhere; reporting its
@@ -433,7 +542,14 @@ def assess(track: SystemTrack, times: Sequence[str]) -> SystemAssessment:
                 "separately."),
         )
 
-    if peak.basin == "Arabian Sea" and closest.distance_km < 500:
+    # Classify on WHERE THE SYSTEM IS WHEN IT MATTERS, not where it is deepest.
+    # Peak depth often happens at the far end of a long track: the 9 Sep 2026
+    # system was deepest out over the Arabian Sea on its way to Oman, days
+    # after its closest approach to Kalyan over Saurashtra. Headlining that as
+    # "in the Arabian Sea, closest approach 307 km" would have put a system
+    # offshore and upstream when it was actually inland and departing.
+    origin = _origin_basin(track)
+    if closest.basin == "Arabian Sea" and closest.distance_km < 500:
         relevance = "high"
         headline = (f"{peak.intensity.capitalize()} in the Arabian Sea, closest "
                     f"approach ~{closest.distance_km:.0f} km from {REF_NAME} "
@@ -448,7 +564,7 @@ def assess(track: SystemTrack, times: Sequence[str]) -> SystemAssessment:
             "depends on where the bands come ashore: a track 30 km north or "
             "south moves the maximum between Palghar, the suburbs and Alibag."
         )
-    elif peak.basin == "Bay of Bengal":
+    elif origin == "Bay of Bengal":
         westward = brg is not None and (240 <= brg <= 330)
         relevance = "moderate" if westward else "low"
         headline = (f"{peak.intensity.capitalize()} over the Bay of Bengal, "
@@ -465,10 +581,12 @@ def assess(track: SystemTrack, times: Sequence[str]) -> SystemAssessment:
             "on the Konkan flow should stay limited. Worth watching only if "
             "the track turns west-northwest."
         )
-    elif peak.basin == "Land" and (closest.distance_km < 700
-                                   or (track.approaching
-                                       and closest.distance_km < 1200)):
-        relevance = "moderate"
+    elif closest.basin == "Land" and (closest.distance_km < 700
+                                      or (track.approaching
+                                          and closest.distance_km < 1200)):
+        # A low crossing the peninsula inside 400 km is not a "moderate"
+        # curiosity - it puts its own ascent directly over Maharashtra.
+        relevance = "high" if closest.distance_km < 400 else "moderate"
         near = closest.distance_km < 700
         headline = (f"{peak.intensity.capitalize()} inland over the peninsula, "
                     f"{direction}" if near else
@@ -667,12 +785,31 @@ def render(sp: SystemsPicture | None) -> str:
         for a in sig:
             tr = a.track
             first_t = datetime.fromisoformat(sp.times[tr.first.time_index])
+            # Say what the displacement actually establishes. "moves 0 km"
+            # reads as a finding; usually it means the low has been resolved
+            # for too little time, or has not yet crossed a grid cell.
+            if tr.motion == "unresolved":
+                move = (f"resolved over {tr.duration_hours:.0f} h so far — too "
+                        "short a window to say whether it is moving")
+            elif tr.motion == "slow":
+                move = (f"moves less than one grid cell in "
+                        f"{tr.duration_hours:.0f} h, so it is genuinely slow")
+            else:
+                move = (f"moves {tr.moved_km:.0f} km over "
+                        f"{tr.duration_hours:.0f} h")
+            # Closest approach is the number that decides whether a system
+            # matters here, so it belongs in the text and not only in the
+            # web card - the headline omits it whenever the system is near.
+            ca = tr.closest_approach
+            ca_day = _day_label(sp.times, ca.time_index)
             out += (f"- **{a.headline}** ({a.relevance} relevance)  \n"
                     f"  Centre first resolved {first_t:%a %d %b} near "
                     f"{tr.first.lat:.0f}°N {tr.first.lon:.0f}°E, "
                     f"{tr.first.distance_km:.0f} km from Mumbai; "
-                    f"moves {tr.moved_km:.0f} km over the tracked period. "
-                    f"Minimum pressure {tr.peak.pressure:.0f} hPa.  \n"
+                    f"{move}. Closest approach about "
+                    f"**{ca.distance_km:,.0f} km**"
+                    + (f" on {ca_day}" if ca_day else "")
+                    + f". Minimum pressure {tr.peak.pressure:.0f} hPa.  \n"
                     f"  {a.reasoning}\n")
         out += "\n"
 
@@ -716,6 +853,11 @@ def render(sp: SystemsPicture | None) -> str:
 
 BASINS = ("Arabian Sea", "Bay of Bengal")
 
+# IMD splits the Arabian Sea into east/west sub-basins near this longitude.
+# East of it a low sits upstream of the Konkan; west of it the same low is
+# closer to Oman than to Mumbai and does the opposite job.
+EASTERN_ARABIAN_SEA_LON = 68.0
+
 # Windy views for checking the model against the live map. Windy's own free
 # point API returns deliberately scrambled data, so these are links for the
 # eye, not a data source - the numbers here come from Open-Meteo.
@@ -753,22 +895,36 @@ def _day_label(times: Sequence[str], idx: int) -> str:
 
 
 def _track_direction(tr: SystemTrack) -> str:
-    b = tr.track_bearing
-    if b is None:
-        return "barely moving"
-    return f"tracking {compass16(b)}"
+    return tr.motion_phrase
 
+
+
+# How much of a track's opening counts as "where it formed". Beyond this the
+# centre is somewhere it travelled to, not somewhere it came from.
+GENESIS_WINDOW_HOURS = 24.0
 
 
 def _origin_basin(tr: SystemTrack) -> str:
     """The sea a track formed over.
 
-    Walks the track from its first frame and returns the first marine basin it
-    ever occupies. A low first picked up a little inland, or one whose centre
-    wanders across the coastline as it is tracked, still belongs to the sea it
-    came out of.
+    Only the OPENING of the track counts. Scanning the whole track for the
+    first marine basin it ever touches sounds equivalent and is not: a system
+    that forms over land and exits to sea days later gets filed under the sea
+    it left by, which reverses the direction of the story.
+
+    That is not hypothetical. Once track linking was repaired on 9 Sep 2026,
+    the dominant feature ran Bengal -> Vidarbha -> Saurashtra -> out over the
+    Arabian Sea, and the whole-track scan filed it as an Arabian Sea system -
+    i.e. as something arriving from the west, when it was in fact crossing the
+    country from the east and leaving.
+
+    A low first picked up a little inland near its genesis still belongs to
+    the sea it came out of, which is what the window preserves.
     """
+    t0 = tr.first.time_index
     for p in tr.positions:
+        if p.time_index - t0 > GENESIS_WINDOW_HOURS:
+            break
         if p.basin in BASINS:
             return p.basin
     return tr.first.basin
@@ -845,13 +1001,35 @@ def basin_outlook(sp: SystemsPicture | None) -> list[BasinReport]:
                     f"**{rep.closest_km:,} km**."]
 
             if basin == "Bay of Bengal":
-                bits.append(
-                    "A Bay system does its work on Konkan from a distance: as "
-                    "it tracks west-northwest along the monsoon trough it pulls "
-                    "the trough south and strengthens the westerlies feeding "
-                    "this coast. Expect any rainfall response here **two to "
-                    "four days after** it crosses the east coast, not while it "
-                    "is still over water.")
+                # The west-northwest sentence is the mechanism, not a label -
+                # it only applies to a system actually going that way. Printed
+                # unconditionally it told readers a low "tracks west-northwest"
+                # in the same breath as the line above said "tracking N".
+                b = lead.track_bearing
+                if b is not None and 240 <= b <= 330:
+                    bits.append(
+                        "A Bay system does its work on Konkan from a distance: "
+                        "as it tracks west-northwest along the monsoon trough "
+                        "it pulls the trough south and strengthens the "
+                        "westerlies feeding this coast. Expect any rainfall "
+                        "response here **two to four days after** it crosses "
+                        "the east coast, not while it is still over water.")
+                elif lead.motion == "unresolved":
+                    bits.append(
+                        "Its direction of travel is not yet resolved, so what "
+                        "it means for this coast is still open. A Bay low only "
+                        "reaches Konkan by running **west** across the "
+                        "peninsula, dragging the monsoon trough south behind "
+                        "it; one that stalls or turns away does nothing here. "
+                        "Watch the track for a day before reading anything "
+                        "into it.")
+                else:
+                    bits.append(
+                        "It is **not** running west across the peninsula, and "
+                        "that is the only route by which a Bay low reaches "
+                        "this coast. Unless the track turns west-northwest it "
+                        "will not drag the monsoon trough any further south, "
+                        "and Konkan should feel little from it.")
             else:
                 b = lead.track_bearing
                 away = b is not None and (b >= 260 or b <= 20)
@@ -862,12 +1040,23 @@ def basin_outlook(sp: SystemsPicture | None) -> list[BasinReport]:
                         "moisture with it, so this can leave Konkan **drier**, "
                         "not wetter — the opposite of what its nearness "
                         "suggests.")
-                else:
+                elif lead.peak.lon >= EASTERN_ARABIAN_SEA_LON:
                     bits.append(
                         "It stays in the eastern Arabian Sea, which is the "
                         "configuration that brings **direct** heavy rain to the "
                         "Konkan coast rather than the delayed response a Bay "
                         "system gives.")
+                else:
+                    # Said "eastern Arabian Sea" for a centre at 65E before
+                    # this test existed - which is the far side of the basin,
+                    # nearer Oman than Mumbai, and the opposite situation.
+                    bits.append(
+                        "This sits in the **western** half of the Arabian Sea, "
+                        "the far side of the basin from us. A low out there "
+                        "draws moisture toward Oman and Pakistan rather than "
+                        "onto the Konkan, so despite being an Arabian Sea "
+                        "system it is not an approaching one — treat it as "
+                        "background unless the track turns east.")
 
             if len(mine) > 1:
                 bits.append(f"{len(mine) - 1} weaker circulation"

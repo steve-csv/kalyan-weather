@@ -582,7 +582,7 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
         out += (f"\n> {thermals[0].caveat}\n\n")
 
     out += report.h(2, "Synoptic setting")
-    out += synoptic.render(sp) + "\n"
+    out += synoptic.render(sp, sys_pic) + "\n"
     if enso is not None or iod is not None or mjo is not None:
         out += report.h(3, "Background climate drivers")
         out += ("These set the season's odds, not any single day. Read them as "
@@ -645,7 +645,7 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
         _narrative_rows(pf, ens, day_list),
         (regime, regime_note),
         issued,
-        _synoptic_html(synoptic.render(sp)),
+        _synoptic_html(synoptic.render(sp, sys_pic)),
     )
     weekly_payload["alerts"] = [
         {"severity": a.severity, "icon": a.icon, "title": a.title,
@@ -677,7 +677,9 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
              "reasoning": a.reasoning,
              "distanceKm": round(a.track.closest_approach.distance_km),
              "pressure": round(a.track.peak.pressure, 1),
-             "movedKm": round(a.track.moved_km)}
+             "movedKm": round(a.track.moved_km),
+             "motion": a.track.motion,
+             "durationH": round(a.track.duration_hours)}
             for a in (sys_pic.significant if sys_pic else [])
         ],
     }
