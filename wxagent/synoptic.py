@@ -106,8 +106,9 @@ def _incoming_note(systems_picture) -> str:
         f"{tr.closest_approach.distance_km:.0f} km. A low crossing central "
         "India along the trough is the usual mechanism for pulling the trough "
         "back south and re-strengthening the westerlies into the Konkan, so "
-        "read the dry signal above as **the state now**, not as a forecast "
-        "that the week stays dry. The systems section below has the track.\n"
+        "read the verdict above as **a description of today**, not as a "
+        "forecast for the rest of the week. The systems section below has the "
+        "track.\n"
     )
 
 
