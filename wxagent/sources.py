@@ -116,11 +116,22 @@ def _get_json(url: str, params: dict[str, Any], *, timeout: int = 45,
                     body = exc.read().decode("utf-8", "replace")[:400]
                 except Exception:                 # noqa: BLE001
                     pass
-                if "daily" in body.lower() or "try again tomorrow" in body.lower():
+                low = body.lower()
+                if "daily" in low or "try again tomorrow" in low:
                     raise QuotaExhausted(
                         "Open-Meteo daily request limit exhausted — it resets "
                         "at 00:00 UTC (05:30 IST). Cached results still work; "
                         "live fetches will not until then."
+                    ) from exc
+                if "hourly" in low or "next hour" in low:
+                    # Backing off in SECONDS cannot clear a cap measured in
+                    # HOURS. The old code spent 35 s of sleeps per call
+                    # discovering that, so a run with a dozen fetches took
+                    # minutes to fail and still failed. Say so and stop.
+                    raise QuotaExhausted(
+                        "Open-Meteo hourly request limit exhausted — it "
+                        "resets at the top of the hour. Cached results still "
+                        "work; live fetches will not until then."
                     ) from exc
                 if attempt < retries - 1:
                     time.sleep(5 * (2 ** attempt))   # 5s, 10s, 20s

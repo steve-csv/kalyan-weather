@@ -40,7 +40,7 @@ from typing import Sequence
 
 from . import config as C
 from .diagnostics import imd_category
-from .sources import FetchError, _get_json
+from .sources import FetchError, QuotaExhausted, _get_json
 
 _MODEL_LABEL = {m.key: m.label for m in C.MODELS}
 
@@ -204,6 +204,11 @@ def fetch(days: int = 7, *, quiet: bool = True) -> list[RegionOutlook]:
             "forecast_days": days,
             "timezone": C.TIMEZONE,
         }, timeout=90)
+    except QuotaExhausted:
+        # Let this one through. It means every later fetch in this run will
+        # fail too, and the central handler aborts rather than publishing a
+        # bulletin with half its sections quietly missing.
+        raise
     except FetchError as exc:
         if not quiet:
             print(f"  ! regional outlook unavailable: {exc}")
