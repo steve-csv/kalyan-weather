@@ -22,6 +22,7 @@ from . import config as C
 from . import (
     arrivals as arrmod,
     belts as beltmod,
+    radar as radarmod,
     recent as recentmod,
     reconcile,
     nowcast, observed, plain, report, synoptic, systems, thermal,
@@ -366,6 +367,15 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     steer = arrmod.steering(C.HOME, now=issued, quiet=quiet)
     arrivals_list = arrmod.arrivals(steer, quiet=quiet)
 
+    # Observation first, model second. The radar is the only thing on this
+    # page that knows whether it is raining on someone RIGHT NOW, so it goes
+    # above the modelled belt table rather than below it.
+    if not quiet:
+        print("  reading the IMD radar...")
+    scan_img = radarmod.fetch("maxz", quiet=quiet)
+    if scan_img is not None:
+        extra += radarmod.render_now(scan_img, beltmod.BELTS) + "\n"
+
     extra += beltmod.render(belt_status)
     extra += arrmod.render(steer, arrivals_list)
 
@@ -413,6 +423,32 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         synoptic_text=_synoptic_html(synoptic.render(sp, sys_pic)),
     )
     payload["gradientVerdict"] = grad_verdict
+    # Radar: observation, so the card renders above the modelled belts.
+    if scan_img is not None:
+        payload["radarNow"] = {
+            "at": (scan_img.scanned_at.strftime("%H:%M")
+                   if scan_img.scanned_at else None),
+            "ageMin": (round(scan_img.age_minutes)
+                       if scan_img.age_minutes is not None else None),
+            "peakDbz": scan_img.scene_max_dbz,
+            "peakMmH": (round(radarmod.dbz_to_mm_h(scan_img.scene_max_dbz), 1)
+                        if scan_img.scene_max_dbz else 0),
+            "belts": [
+                {"name": b.name,
+                 "hereMmH": round(max(
+                     (scan_img.sample(la, lo)["mm_h_here"]
+                      for _n, la, lo in b.points), default=0.0), 1),
+                 "nearMmH": round(max(
+                     (scan_img.sample(la, lo)["mm_h_near"]
+                      for _n, la, lo in b.points), default=0.0), 1),
+                 "nearKm": min(
+                     (scan_img.sample(la, lo)["near_km"]
+                      for _n, la, lo in b.points
+                      if scan_img.sample(la, lo)["near_km"] is not None),
+                     default=None)}
+                for b in beltmod.BELTS
+            ],
+        }
     payload["alerts"] = [
         {"severity": a.severity, "icon": a.icon, "title": a.title,
          "body": a.body, "label": plain.SEVERITY_LABEL.get(a.severity, "")}

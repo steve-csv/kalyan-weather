@@ -28,11 +28,11 @@ spread everywhere else.
 
 WHAT THIS IS NOT
 ----------------
-It is not radar. The rain areas it finds are the model's analysis, not echoes,
-because IMD publishes no georeferencing for its radar images - there is no
-documented map extent or projection in the file, so pixel-to-place would be
-guesswork, and a guessed geometry would put arrival alerts on the wrong
-suburbs. Inside an hour the radar loop still outranks this.
+It is not radar. The rain areas it finds are the model's analysis, not echoes.
+Radar IS now read directly - see radar.py, which turned out to be possible
+after all once the georeferencing printed in IMD's own image header was
+noticed - but radar tells you where rain IS, not where it will be in three
+hours. That is what this is for. Inside an hour, read the radar section.
 """
 
 from __future__ import annotations
@@ -299,8 +299,9 @@ def render(st: Steering | None, arr: list[Arrival]) -> str:
     out += ("\n> Arrival times are distance divided by the steering wind, so "
             "they assume the rain keeps moving and keeps going. Cells grow and "
             "die, and one that dies on the way never arrives. The rain areas "
-            "come from the model analysis rather than radar, because IMD's "
-            "radar images carry no map extent or projection, and a guessed "
-            "geometry would put these alerts on the wrong suburbs. **Inside an "
-            "hour the radar loop above beats this table.**\n")
+            "here come from the model analysis, which smooths a shower across "
+            "a 25 km box. So for what is falling right now, **the radar "
+            "section above outranks this table** — it is an observation and "
+            "this is not. This one answers the next question instead: where "
+            "the model puts rain a few hours from now.\n")
     return out

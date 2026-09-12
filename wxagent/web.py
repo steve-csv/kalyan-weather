@@ -2397,9 +2397,11 @@ function arrivalsHtml(D){
     <div class="arrs">${a.list.map(row).join('')}</div>
     <p class="rwarn" style="margin-top:10px">Arrival time is distance divided
       by wind speed, so it assumes the rain keeps moving and keeps going —
-      cells die on the way. Positions come from the model analysis, not radar:
-      IMD's radar images carry no map extent, so pixel-to-place would be
-      guesswork. <b>Inside an hour, the radar loop above beats this.</b></p>`;
+      cells die on the way. Positions come from the model analysis, which
+      smooths a shower across a 25 km box. <b>For what is falling right now the
+      radar section above outranks this</b> &mdash; that one is an observation.
+      This answers the next question: where the model puts rain in a few
+      hours.</p>`;
 }
 
 const MODEL_SHORT = {ecmwf_ifs025:'ECMWF', gfs_seamless:'GFS', icon_seamless:'ICON'};
@@ -2465,6 +2467,52 @@ function radarExplainHtml(D){
      point is to change how the rates underneath are read. */
   if (D.burst && D.burst.note){
     h += `<div class="burst b-${esc(D.burst.level)}">${mdBold(D.burst.note)}</div>`;
+  }
+
+  /* OBSERVATION BEFORE MODEL. Everything below this point is a model's
+     opinion about the day; this block is the beam reporting what is actually
+     in the air over each place. Where the two disagree about the present
+     tense, this one is right, and putting it second would bury that. */
+  if (D.radarNow && D.radarNow.belts && D.radarNow.belts.length){
+    const R = D.radarNow;
+    const band = v => v < 0.5 ? 'nothing' : v < 2.5 ? 'light'
+                    : v < 7.5 ? 'moderate' : v < 20 ? 'heavy' : 'very heavy';
+    const wet = R.belts.filter(x => x.hereMmH >= 0.5);
+    h += `<h3>What the radar can see falling right now</h3>
+      <p class="rhead">Observation, not forecast. Scan from
+        <b>${esc(R.at || 'an unknown time')}</b>${
+          (R.ageMin !== null && R.ageMin !== undefined)
+            ? `, ${R.ageMin} minute${R.ageMin === 1 ? '' : 's'} old` : ''}.
+        ${wet.length
+          ? 'Rain is reaching the ground over <b>' +
+            wet.map(x => esc(x.name)).join(', ') + '</b>.'
+          : '<b>Nothing is reaching the ground anywhere in the MMR</b> on this scan.'}</p>
+      <div class="belts">` + R.belts.map(x => {
+        const st = band(x.hereMmH);
+        const cls = st === 'nothing' ? 'b-dry'
+                  : (st === 'light' ? 'b-drizzling' : 'b-raining');
+        const near = (x.nearMmH >= 2.5 && x.nearKm > 3)
+          ? `${band(x.nearMmH)} ~${x.nearKm} km away`
+          : (x.nearMmH > 0 ? 'only light echo nearby'
+                           : 'clear for 16 km around');
+        return `<div class="belt ${cls}">
+          <div class="bname">${esc(x.name)}</div>
+          <div class="bsent">${st === 'nothing'
+            ? 'Nothing overhead'
+            : `<b>${st.charAt(0).toUpperCase() + st.slice(1)} rain</b> &middot; ~${x.hereMmH} mm/hr`}
+            &middot; <span class="muted">${near}</span></div>
+        </div>`;
+      }).join('') + `</div>`;
+    if (R.peakDbz){
+      h += `<p class="rhow">Strongest return anywhere in range
+        <b>${Math.round(R.peakDbz)} dBZ</b> &mdash; about <b>${R.peakMmH} mm/hr</b>
+        where it is falling.</p>`;
+    }
+    h += `<p class="rwarn" style="margin-top:8px">Rates come from reflectivity
+      via the standard Marshall&ndash;Palmer relationship, an average over many
+      storms rather than a measurement of this one &mdash; the same 40 dBZ can
+      be 6 mm/hr in one shower and 20 in another. Trust the <b>where</b> and
+      the <b>whether</b> far more than the millimetres.</p>`;
   }
 
   h += arrivalsHtml(D);
