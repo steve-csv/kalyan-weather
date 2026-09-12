@@ -815,14 +815,12 @@ class SystemsPicture:
     def significant(self) -> list[SystemAssessment]:
         return [a for a in self.assessments if a.relevance in ("high", "moderate")]
 
-    @property
-    def events(self) -> list[SystemEvent]:
-        """The significant assessments grouped into distinct weather events.
-
-        THIS IS THE LIST EVERY OTHER SECTION SHOULD USE. `significant` is raw
-        detector output; one broad low routinely appears in it several times.
-        """
-        return cluster_events(self.significant, self.times)
+    # Computed once in analyse(): clustering walks the pressure field, so a
+    # property that re-ran it would repeat that work for every section that
+    # asks. THIS IS THE LIST EVERY OTHER SECTION SHOULD USE - `significant` is
+    # raw detector output, and one broad low routinely appears in it several
+    # times over.
+    events: list[SystemEvent] = field(default_factory=list)
 
 
 # --------------------------------------------------------------------------
@@ -1037,15 +1035,61 @@ class SystemEvent:
         return out
 
 
+# How much pressure may rise BETWEEN two centres before they count as two
+# separate lows rather than two minima inside one area.
+#
+# Distance alone gets this wrong, and measurably so. Grouping purely on a
+# 600 km radius merged pairs that had a 1.4-1.5 hPa ridge standing between
+# them - larger than the depth of either low relative to its own surroundings,
+# which is the textbook definition of two separate circulations separated by a
+# col. It also merged pairs with only a 0.4 hPa rise between them, which
+# genuinely are one broad area.
+#
+# So the test is the one a forecaster does by eye on a chart: walk the line
+# from one centre to the other and see whether you have to climb over anything
+# to get there.
+COL_HPA = 1.0
+
+
+def _col_between(field: PressureField, a: LowCentre, b: LowCentre,
+                 t: int, samples: int = 9) -> float | None:
+    """How far pressure rises between two centres, above the shallower one.
+
+    Positive means a ridge stands between them. Near zero means the low
+    pressure is continuous and they are two minima in one area.
+    """
+    vals: list[float] = []
+    for i in range(samples):
+        f = i / (samples - 1)
+        lat = a.lat + (b.lat - a.lat) * f
+        lon = a.lon + (b.lon - a.lon) * f
+        la = min(field.lats, key=lambda x: abs(x - lat))
+        lo = min(field.lons, key=lambda x: abs(x - lon))
+        v = field.p(la, lo, t)
+        if v is None:
+            return None
+        vals.append(v)
+    return max(vals[1:-1]) - max(vals[0], vals[-1])
+
+
 def cluster_events(assessments: Sequence[SystemAssessment],
-                   times: Sequence[str]) -> list[SystemEvent]:
+                   times: Sequence[str],
+                   field: PressureField | None = None) -> list[SystemEvent]:
     """Group detections that are really the same weather event.
 
-    Two tracks join when, at some hour they were BOTH resolved in, their
-    centres sit within CLUSTER_KM of each other. Requiring a shared hour
-    matters: two lows that pass through the same place a week apart are two
-    systems, and only comparing positions at the same moment can tell them
-    apart.
+    Two tracks join when all three hold:
+
+      * they were BOTH resolved at the same hour - two lows that pass through
+        the same place a week apart are two systems, and only comparing
+        positions at the same moment can tell them apart;
+      * their centres sit within CLUSTER_KM at that hour;
+      * and no ridge worth the name stands between them (see COL_HPA). This
+        is the test that actually decides it. Without it the grouping merged
+        centres with 1.5 hPa of high pressure sitting in the gap.
+
+    The col is taken as the MEDIAN across every qualifying hour, not the
+    minimum: one hour where two lows briefly appear joined is noise on a
+    2 degree grid, a persistent connection is a shared circulation.
     """
     items = list(assessments)
     n = len(items)
@@ -1065,12 +1109,25 @@ def cluster_events(assessments: Sequence[SystemAssessment],
     pos = [{p.time_index: p for p in a.track.positions} for a in items]
     for i in range(n):
         for j in range(i + 1, n):
-            shared = pos[i].keys() & pos[j].keys()
-            if not shared:
+            shared = sorted(pos[i].keys() & pos[j].keys())
+            near = [t for t in shared
+                    if haversine(pos[i][t].lat, pos[i][t].lon,
+                                 pos[j][t].lat, pos[j][t].lon) <= CLUSTER_KM]
+            if not near:
                 continue
-            if any(haversine(pos[i][t].lat, pos[i][t].lon,
-                             pos[j][t].lat, pos[j][t].lon) <= CLUSTER_KM
-                   for t in shared):
+            if field is None:
+                # No field to walk: fall back to distance alone, which is what
+                # this did before the col test and is better than nothing.
+                union(i, j)
+                continue
+            cols = [c for c in (_col_between(field, pos[i][t], pos[j][t], t)
+                                for t in near) if c is not None]
+            if not cols:
+                continue
+            cols.sort()
+            median = cols[len(cols) // 2] if len(cols) % 2 else \
+                (cols[len(cols) // 2 - 1] + cols[len(cols) // 2]) / 2
+            if median < COL_HPA:
                 union(i, j)
 
     groups: dict[int, list[SystemAssessment]] = {}
@@ -1101,11 +1158,14 @@ def analyse(days: int = 7, *, today: date | None = None,
     trough_field = strip or field
     t_idx = min(12, len(trough_field.times) - 1)
 
+    kept = assessments[:8]
+    significant = [a for a in kept if a.relevance in ("high", "moderate")]
     return SystemsPicture(
-        assessments=assessments[:8],
+        assessments=kept,
         trough=offshore_trough_2d(trough_field, t_idx),
         cyclone_window=today.month in C.CYCLONE_WATCH_MONTHS,
         times=field.times,
+        events=cluster_events(significant, field.times, field),
     )
 
 
