@@ -303,57 +303,83 @@ _TEMPLATE = r"""<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__TITLE__</title>
 <style>
+/* Ethnocentric is a commercial Typodermic face. It is not on any font CDN
+   this page is permitted to load from, and shipping a copy we have no licence
+   for is not an option, so the display role uses ORBITRON - the closest
+   freely-licensed match for Ethnocentric's wide, squared, technical letter -
+   with Rajdhani carrying that squared feel down into labels and figures.
+   Long explanatory prose deliberately stays on a neutral humanist stack: a
+   squared display face at reading size turns the paragraphs this page exists
+   to be read for into a wall of blocks. */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap');
+
 :root{
   color-scheme: light;
-  /* Neutrals are cool with a slate-green cast rather than the warm sand this
-     page used to carry. The subject is a monsoon instrument, so the ground
-     reads like wet slate and the accents each do one job: marine for rain,
-     fern for dry-and-correct, ochre for sun-and-caution, brick for severe.
-     Nothing here is a decorative colour - if a mark is coloured, the colour
-     means something. */
-  --marine:#1e6fa8; --fern:#2f7d57; --ochre:#b5860b; --brick:#a83e2c;
+
+  --font-display:"Orbitron",ui-sans-serif,system-ui,"Segoe UI",sans-serif;
+  --font-ui:"Rajdhani","Orbitron",ui-sans-serif,system-ui,sans-serif;
+  --font-body:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,
+              "Helvetica Neue",Arial,sans-serif;
+
+  /* YELLOW, GREY, BLACK on a light ground.
+     Yellow is a FILL and an EDGE, never body text. At the brightness that
+     makes it read as yellow it cannot reach 4.5:1 against a light surface,
+     so wherever yellow has to carry words the words are BLACK ON YELLOW, and
+     wherever yellow-family text is genuinely needed the token is --amber-ink,
+     which is measured rather than eyeballed (5.9:1 on --surface-1).
+     Everything else is ink and grey, which is what keeps a page this
+     saturated legible. */
+  --yellow:#ffc400; --yellow-hi:#ffd84d; --yellow-deep:#e0a800;
+  --amber-ink:#7a5600;
   --ease:cubic-bezier(.22,.61,.36,1);
-  --surface-1:#fbfcfc; --plane:#f1f4f3;
-  --text-primary:#0e1518; --text-secondary:#42545a;
-  /* Measured, not eyeballed: at #75868b this failed WCAG AA against the
-     card (3.3:1) and it is used for real label text, not just rules. */
-  --muted:#5e7176;
-  --grid:#dde5e3; --axis:#b7c5c4; --border:rgba(14,21,24,0.11);
-  --series-1:#1e6fa8;
-  /* Ordinal ramp, light surface: progressively DARKER as the value grows.
-     All five steps are declared - a missing custom property resolves to
-     nothing and the mark renders black, which is how two donut slices came
-     out solid black on the first build. */
-  --seq-100:#d6e7f2; --seq-250:#a3c9e0; --seq-350:#74abd0;
-  --seq-400:#4f92c1; --seq-450:#2f7fb2; --seq-550:#1e6fa8; --seq-650:#124d78;
-  --good:#2f7d57; --warning:#b5860b; --serious:#c2662f; --critical:#a83e2c;
-  --radius:13px;
+
+  --surface-1:#fffef9; --plane:#eceade;
+  --text-primary:#0d0d0c; --text-secondary:#3b3a36;
+  --muted:#5c5a53;                        /* 7.0:1 on --surface-1 */
+  --grid:#e2e0d6; --axis:#b2afa2; --border:rgba(13,13,12,0.13);
+  --series-1:#e0a800;
+
+  /* Ordinal ramp: pale straw to near-black, so magnitude always reads as
+     MORE INK on the page. Every step is declared - a missing custom property
+     resolves to nothing and the mark renders solid black, which is how two
+     donut slices came out black on an early build. */
+  --seq-100:#fdf2c4; --seq-250:#fbe291; --seq-350:#f8cd4e;
+  --seq-400:#eab308; --seq-450:#c08f04; --seq-550:#8a6603; --seq-650:#4a3701;
+
+  /* Semantics stay their own hues - a severity scale rendered in shades of
+     the brand colour is a severity scale nobody can read at a glance. All
+     four are measured at 4.5:1 or better on --surface-1. */
+  --good:#2e7d32; --warning:#9a6a00; --serious:#b85009; --critical:#c0271f;
+  --radius:12px;
 }
+
 @media (prefers-color-scheme: dark){
   :root:where(:not([data-theme="light"])){
     color-scheme: dark;
-    --marine:#5aa6db; --fern:#57b183; --ochre:#d8ab41; --brick:#d4705c;
-    --surface-1:#151d20; --plane:#0c1315;
-    --text-primary:#e8efee; --text-secondary:#a6b8bb; --muted:#7c9095;
-    --grid:#222e32; --axis:#33434a; --border:rgba(232,239,238,0.13);
-    --series-1:#5aa6db;
-    --good:#57b183; --warning:#d8ab41; --serious:#dc8b57; --critical:#d4705c;
-    /* Same ramp stepped for the dark surface: progressively LIGHTER as the
-       value grows, so magnitude still reads as "more ink against the page". */
-    --seq-100:#123f63; --seq-250:#1a5480; --seq-350:#236c9f;
-    --seq-400:#2e85bd; --seq-450:#469cd2; --seq-550:#6db4e0; --seq-650:#9dcdec;
+    --yellow:#ffd23d; --yellow-hi:#ffe480; --yellow-deep:#f0b400;
+    --amber-ink:#ffd23d;
+    --surface-1:#17170f; --plane:#0c0c08;
+    --text-primary:#f4f2e6; --text-secondary:#c0bdac; --muted:#908d7e;
+    --grid:#2a2a1e; --axis:#45422f; --border:rgba(244,242,230,0.14);
+    --series-1:#ffc400;
+    /* Ramp reversed for the dark ground: lighter as the value grows, so
+       magnitude is still "more ink against the page". */
+    --seq-100:#4a3701; --seq-250:#6b5002; --seq-350:#8a6603;
+    --seq-400:#c08f04; --seq-450:#eab308; --seq-550:#f8cd4e; --seq-650:#fde68a;
+    --good:#62c168; --warning:#e5b93a; --serious:#ef8a4a; --critical:#ef5f52;
   }
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
-  --marine:#5aa6db; --fern:#57b183; --ochre:#d8ab41; --brick:#d4705c;
-  --surface-1:#151d20; --plane:#0c1315;
-  --text-primary:#e8efee; --text-secondary:#a6b8bb; --muted:#7c9095;
-  --grid:#222e32; --axis:#33434a; --border:rgba(232,239,238,0.13);
-  --series-1:#5aa6db;
-  --good:#57b183; --warning:#d8ab41; --serious:#dc8b57; --critical:#d4705c;
-  --seq-100:#123f63; --seq-250:#1a5480; --seq-350:#236c9f;
-  --seq-400:#2e85bd; --seq-450:#469cd2; --seq-550:#6db4e0; --seq-650:#9dcdec;
+  --yellow:#ffd23d; --yellow-hi:#ffe480; --yellow-deep:#f0b400;
+  --amber-ink:#ffd23d;
+  --surface-1:#17170f; --plane:#0c0c08;
+  --text-primary:#f4f2e6; --text-secondary:#c0bdac; --muted:#908d7e;
+  --grid:#2a2a1e; --axis:#45422f; --border:rgba(244,242,230,0.14);
+  --series-1:#ffc400;
+  --seq-100:#4a3701; --seq-250:#6b5002; --seq-350:#8a6603;
+  --seq-400:#c08f04; --seq-450:#eab308; --seq-550:#f8cd4e; --seq-650:#fde68a;
+  --good:#62c168; --warning:#e5b93a; --serious:#ef8a4a; --critical:#ef5f52;
 }
 
 /* Motion: one easing curve for the whole page, and a single global stop.
@@ -367,53 +393,43 @@ _TEMPLATE = r"""<!doctype html>
 }
 
 /* ---- weather mood -------------------------------------------------------
-   The page takes a tint from the day being forecast: warm and bright when it
-   is dry, progressively cooler and greyer as the rain gets heavier.
+   The page takes its ground from the day being forecast: bright yellow when
+   it is dry, draining through straw to grey and then charcoal as the rain
+   gets heavier. That progression is the whole reason the palette is yellow
+   and grey - they are the two ends of the weather, and the page moves along
+   the axis between them instead of swapping unrelated hues.
 
-   The tint is applied to the PAGE PLANE only - never to the chart surface or
-   to any mark. Charts keep their validated palette against an unchanged
-   surface, so tinting the page cannot quietly break a contrast ratio. It is
-   also kept low-saturation: this is a forecast people read in a hurry, not a
-   mood board, and a strong wash would fight the data. */
-/* A restrained slate-blue range rather than saturated weather colours. The
-   page plane shifts through cool greys as the rain gets heavier, and --mood
-   (the accent used on headings, the hero figure and the sky) is a muted
-   steel blue rather than a vivid one. --sky tints the animated layer.
-   Saturation is kept low deliberately: this sits behind a page of numbers,
-   and a strong wash competes with the data it is meant to frame. */
-/* Weather-reactive colour. The page is a GRADIENT sky rather than a flat
-   fill - that is what makes it read as weather instead of a tinted document.
-   Cards keep their own near-neutral surface on top, so the colour underneath
-   can be bold without touching the contrast of any text or chart. */
-:root[data-wx="sunny"]  { --plane:#f6f1e2; --g1:#faf6ec; --g2:#eee2c6;
-                          --mood:#d98416; --sky:#ffb545; }
-:root[data-wx="light"]  { --plane:#e6eef3; --g1:#f0f5f8; --g2:#d3e2ec;
-                          --mood:#1f79c9; --sky:#5fb0ea; }
-:root[data-wx="wet"]    { --plane:#dde8f0; --g1:#e9f0f5; --g2:#c6d9e6;
-                          --mood:#15629f; --sky:#3d8fcc; }
-:root[data-wx="heavy"]  { --plane:#d0dce7; --g1:#dde6ee; --g2:#b4c6d7;
-                          --mood:#0f4b86; --sky:#2f6ba6; }
-:root[data-wx="severe"] { --plane:#d5cfd6; --g1:#e1dce2; --g2:#bfb5c4;
-                          --mood:#8c2f4a; --sky:#6a4470; }
+   The tint is applied to the PAGE PLANE only, never to a card surface or a
+   mark. Charts keep their validated palette against an unchanged surface, so
+   tinting the page can never quietly break a contrast ratio. */
+:root[data-wx="sunny"]  { --plane:#faf0cf; --g1:#fff8e0; --g2:#f3e2a6;
+                          --mood:#c98a00; --sky:#ffc400; }
+:root[data-wx="light"]  { --plane:#f2efe2; --g1:#faf7ec; --g2:#e6e1cc;
+                          --mood:#a8801a; --sky:#ecc95f; }
+:root[data-wx="wet"]    { --plane:#e7e6df; --g1:#f2f1ea; --g2:#d3d2c8;
+                          --mood:#6d6a5d; --sky:#b9b6a6; }
+:root[data-wx="heavy"]  { --plane:#d9d8d1; --g1:#e6e5df; --g2:#c1c0b8;
+                          --mood:#46443d; --sky:#8f8d83; }
+:root[data-wx="severe"] { --plane:#d7cfc8; --g1:#e3ddd6; --g2:#bdb3aa;
+                          --mood:#a33b1e; --sky:#c2604a; }
 
 @media (prefers-color-scheme: dark){
-  :root:where(:not([data-theme="light"]))[data-wx="sunny"]  { --plane:#20180a; --g1:#2c2110; --g2:#120d05; --mood:#e8a33c; --sky:#c07d22; }
-  :root:where(:not([data-theme="light"]))[data-wx="light"]  { --plane:#0d1c2e; --g1:#12283f; --g2:#07111c; --mood:#4aa3e8; --sky:#2f7cb8; }
-  :root:where(:not([data-theme="light"]))[data-wx="wet"]    { --plane:#0a1e33; --g1:#0f2b47; --g2:#050f1a; --mood:#3f97dd; --sky:#2a6f9f; }
-  :root:where(:not([data-theme="light"]))[data-wx="heavy"]  { --plane:#0b1c33; --g1:#13294a; --g2:#040b16; --mood:#5b9ede; --sky:#2b5f96; }
-  :root:where(:not([data-theme="light"]))[data-wx="severe"] { --plane:#241026; --g1:#33163a; --g2:#120612; --mood:#e05c7e; --sky:#8a4a86; }
+  :root:where(:not([data-theme="light"]))[data-wx="sunny"]  { --plane:#241c04; --g1:#33280a; --g2:#140f02; --mood:#ffc400; --sky:#e0a800; }
+  :root:where(:not([data-theme="light"]))[data-wx="light"]  { --plane:#1f1c0c; --g1:#2c2812; --g2:#110f06; --mood:#ecc95f; --sky:#c9a63f; }
+  :root:where(:not([data-theme="light"]))[data-wx="wet"]    { --plane:#16160f; --g1:#202016; --g2:#0b0b07; --mood:#b9b6a6; --sky:#8f8d83; }
+  :root:where(:not([data-theme="light"]))[data-wx="heavy"]  { --plane:#121210; --g1:#1b1b18; --g2:#080808; --mood:#9c9a91; --sky:#6d6b63; }
+  :root:where(:not([data-theme="light"]))[data-wx="severe"] { --plane:#210f08; --g1:#31170d; --g2:#120703; --mood:#ef7a54; --sky:#a33b1e; }
 }
-:root[data-theme="dark"][data-wx="sunny"]  { --plane:#20180a; --g1:#2c2110; --g2:#120d05; --mood:#e8a33c; --sky:#c07d22; }
-:root[data-theme="dark"][data-wx="light"]  { --plane:#0d1c2e; --g1:#12283f; --g2:#07111c; --mood:#4aa3e8; --sky:#2f7cb8; }
-:root[data-theme="dark"][data-wx="wet"]    { --plane:#0a1e33; --g1:#0f2b47; --g2:#050f1a; --mood:#3f97dd; --sky:#2a6f9f; }
-:root[data-theme="dark"][data-wx="heavy"]  { --plane:#0b1c33; --g1:#13294a; --g2:#040b16; --mood:#5b9ede; --sky:#2b5f96; }
-:root[data-theme="dark"][data-wx="severe"] { --plane:#241026; --g1:#33163a; --g2:#120612; --mood:#e05c7e; --sky:#8a4a86; }
+:root[data-theme="dark"][data-wx="sunny"]  { --plane:#241c04; --g1:#33280a; --g2:#140f02; --mood:#ffc400; --sky:#e0a800; }
+:root[data-theme="dark"][data-wx="light"]  { --plane:#1f1c0c; --g1:#2c2812; --g2:#110f06; --mood:#ecc95f; --sky:#c9a63f; }
+:root[data-theme="dark"][data-wx="wet"]    { --plane:#16160f; --g1:#202016; --g2:#0b0b07; --mood:#b9b6a6; --sky:#8f8d83; }
+:root[data-theme="dark"][data-wx="heavy"]  { --plane:#121210; --g1:#1b1b18; --g2:#080808; --mood:#9c9a91; --sky:#6d6b63; }
+:root[data-theme="dark"][data-wx="severe"] { --plane:#210f08; --g1:#31170d; --g2:#120703; --mood:#ef7a54; --sky:#a33b1e; }
 
 *{box-sizing:border-box}
 body{
   margin:0; color:var(--text-primary);
-  font:15px/1.62 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,
-       "Helvetica Neue",Arial,sans-serif;
+  font:15.5px/1.68 var(--font-body);
   -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
   padding:0 0 72px;
   /* Sky gradient: light at the horizon, deeper overhead. `fixed` keeps it
@@ -498,7 +514,7 @@ header{
 .card,.skoda{
   box-shadow:0 1px 2px rgba(0,0,0,.06),0 14px 34px -22px rgba(0,0,0,.5);
 }
-.skoda{background:color-mix(in srgb, var(--surface-1) 92%, var(--mood))}
+.skoda{background:color-mix(in srgb, var(--surface-1) 97%, var(--mood))}
 .card>h2:first-child{
   display:flex;align-items:center;gap:9px;
 }
@@ -510,11 +526,32 @@ header{
 /* One type scale, used everywhere: 11.5 / 12.5 / 13.5 / 15 / 17 / 22 / 27.
    Display sizes get negative tracking because system grotesques set loose at
    large sizes; small labels get positive tracking for the opposite reason. */
-h1{font-size:26px;margin:0 0 3px;font-weight:660;letter-spacing:-0.022em;
-   line-height:1.16;text-wrap:balance}
-h2{font-size:17px;margin:0 0 14px;font-weight:640;letter-spacing:-0.014em;
-   line-height:1.3;text-wrap:balance}
-h3{font-size:13.5px;margin:0 0 9px;font-weight:660;letter-spacing:-0.004em}
+/* Orbitron is a WIDE face. Every size here is a step or two below what the
+   same level would take in a normal grotesque, and the tracking is positive
+   rather than negative, because a squared display letter needs air between
+   the forms instead of the tightening a humanist face wants. Uppercase on
+   headings only - Orbitron's lowercase is where it looks most like a sci-fi
+   prop and least like an instrument. */
+h1{font-family:var(--font-display);font-size:20px;margin:0 0 5px;
+   font-weight:800;letter-spacing:.028em;line-height:1.24;text-wrap:balance;
+   text-transform:uppercase}
+h2{font-family:var(--font-display);font-size:13.5px;margin:0 0 15px;
+   font-weight:700;letter-spacing:.075em;line-height:1.38;text-wrap:balance;
+   text-transform:uppercase}
+h3{font-family:var(--font-ui);font-size:13px;margin:0 0 9px;font-weight:700;
+   letter-spacing:.055em;text-transform:uppercase}
+
+/* Figures, labels and anything that sits in a column get the squared UI face
+   so the technical register carries past the headings, while paragraphs stay
+   on the body stack. */
+.tile .val,.dval,.tstat b,.sval,.uval,.hero .fig,.av,.rgw,.rgp,
+.tile .lab,.dname,.tkey,.rname span,.slab,.ulab,.tlab,.hlab,.bstat,
+th,.pill,.tag,.navbtn,.tabs button,.rbtn,.sk-chip{
+  font-family:var(--font-ui);
+}
+.tile .lab,.dname,.tkey,.rname span,.bstat,th{
+  text-transform:uppercase;letter-spacing:.07em;font-weight:700;
+}
 p{text-wrap:pretty}
 .sub{color:var(--text-secondary);font-size:13px;margin:0;line-height:1.55}
 
@@ -531,7 +568,7 @@ p{text-wrap:pretty}
   /* Mixed with a trace of the weather colour so cards sit in the scene rather
      than on top of it. The proportion is small on purpose: text and charts
      must keep a near-neutral background whatever the mood. */
-  background:color-mix(in srgb, var(--surface-1) 92%, var(--mood));
+  background:color-mix(in srgb, var(--surface-1) 97%, var(--mood));
   border:1px solid var(--border);
   border-radius:var(--radius); padding:20px; margin-bottom:16px;
 }
@@ -558,7 +595,7 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:16p
 
 /* hero */
 .hero{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
-.hero .fig{font-size:56px;font-weight:670;line-height:1;letter-spacing:-0.02em}
+.hero .fig{font-family:var(--font-display);font-size:46px;font-weight:900;line-height:1;letter-spacing:.01em}
 .hero .cap{color:var(--text-secondary);font-size:14px;max-width:34ch}
 .headline{margin:14px 0 0;font-size:17px;font-weight:600;line-height:1.45}
 
@@ -949,6 +986,101 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
   box-shadow:0 4px 14px rgba(0,0,0,.18);
 }
 .hit{fill:transparent;cursor:pointer}
+/* ---- finish -----------------------------------------------------------
+   Placed last on purpose: everything here is meant to win on source order
+   over the component rules above it.
+
+   The page had the right structure and not enough resolution - flat card
+   edges, no entrance, and one accent doing every job at once. */
+
+/* A hairline of the brand colour across the top of every card. One
+   pseudo-element, and it is most of what separates a panel from a box.
+   It carries its own radius rather than relying on overflow:hidden, because
+   clipping the card would cut the SVG labels that legitimately sit outside
+   their viewBox. */
+.card::before,.skoda::before{
+  content:'';position:absolute;inset:0 0 auto 0;height:2px;
+  border-radius:var(--radius) var(--radius) 0 0;
+  background:linear-gradient(90deg,var(--yellow) 0%,var(--yellow-deep) 22%,
+             var(--mood) 44%,transparent 80%);
+}
+
+/* Entrance. Cards are injected by script, so this fires as each is inserted
+   and the page assembles itself rather than appearing all at once. The
+   stagger stops after five steps: a long stagger on a long page just makes
+   the reader wait for content they can already see the top of. */
+@keyframes cardin{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:none}
+}
+.card,.skoda,.rbar{animation:cardin .5s var(--ease) both}
+#app>*:nth-child(2){animation-delay:.05s}
+#app>*:nth-child(3){animation-delay:.10s}
+#app>*:nth-child(4){animation-delay:.15s}
+#app>*:nth-child(5){animation-delay:.20s}
+#app>*:nth-child(n+6){animation-delay:.25s}
+
+/* Hover lift. Pointer-only, so it never sticks as a stuck state on touch. */
+@media (hover:hover){
+  .card{transition:transform .22s var(--ease),box-shadow .22s var(--ease),
+        border-color .22s var(--ease)}
+  .card:hover{transform:translateY(-2px);border-color:var(--yellow-deep);
+    box-shadow:0 2px 4px rgba(0,0,0,.07),0 22px 44px -26px rgba(0,0,0,.55)}
+}
+
+/* The heading marker becomes a yellow-to-mood gradient, so the accent still
+   tracks the forecast while the brand colour stays constant at the top. */
+.card>h2:first-child::before{
+  width:4px;height:15px;border-radius:1px;
+  background:linear-gradient(180deg,var(--yellow) 0%,var(--mood) 100%);
+}
+
+/* Header: a highlight that travels the bottom rule once, then waits. Long
+   pause on purpose - a continuous sweep is a marquee, an occasional one
+   reads as a live instrument. */
+header{position:relative;border-bottom:2px solid var(--border)}
+header::after{
+  content:'';position:absolute;left:0;right:0;bottom:-2px;height:2px;
+  background:linear-gradient(90deg,transparent 0%,var(--yellow) 16%,
+             var(--yellow-hi) 27%,transparent 46%);
+  background-size:240% 100%;
+  animation:sweep 9s var(--ease) infinite;
+}
+@keyframes sweep{
+  0%{background-position:-70% 0}
+  36%{background-position:170% 0}
+  100%{background-position:170% 0}
+}
+
+/* Most of the page's extra colour now lives on edges rather than in fills,
+   which is how a saturated accent stays usable behind this much text. */
+.tile{border-left:3px solid var(--yellow)}
+.tstat{border-left:3px solid var(--series-1)}
+.dtile.d-neu{border-left-color:var(--yellow-deep)}
+
+/* Links. Ink text with a yellow underline is the accessible way to use a
+   colour that cannot carry text weight on a light ground - the old
+   a{color:var(--series-1)} put #e0a800 text on near-white at 2.1:1. */
+a{color:var(--text-primary);text-decoration-color:var(--yellow-deep);
+  text-decoration-thickness:2px;text-underline-offset:3px;
+  transition:text-decoration-color .18s var(--ease)}
+a:hover{text-decoration-color:var(--yellow)}
+.lk b{color:var(--amber-ink)}
+.tabs button[aria-selected="true"]{background:var(--yellow);color:#0d0d0c;
+  font-weight:700}
+.rbtn,a.rbtn{background:var(--yellow);color:#0d0d0c;font-weight:700;
+  letter-spacing:.04em}
+.sk-av,.bpin{background:var(--yellow);color:#0d0d0c}
+.sk-q{background:var(--yellow);color:#0d0d0c}
+.sk-send{background:var(--yellow);color:#0d0d0c;font-weight:700}
+
+/* Tables: the header row earns a tinted ground now that it is set in the
+   squared face, and rows respond to the pointer. */
+thead th{background:color-mix(in srgb,var(--yellow) 14%,transparent)}
+tbody tr{transition:background-color .15s var(--ease)}
+@media (hover:hover){
+  tbody tr:hover{background:color-mix(in srgb,var(--yellow) 8%,transparent)}
+}
 </style>
 </head>
 <body>
