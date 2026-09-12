@@ -24,7 +24,7 @@ import re
 
 from . import config as C
 from . import (
-    climate, oscillations, plain, report, synoptic, systems, thermal,
+    climate, oscillations, plain, regions, report, synoptic, systems, thermal,
     upstream, web,
 )
 from .diagnostics import (
@@ -482,6 +482,14 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
     sys_pic = systems.analyse(days=days + 1, today=start, quiet=quiet)
 
     if not quiet:
+        print("  building the regional outlook (who gets this system)...")
+    region_outlooks = regions.fetch(days=days, quiet=quiet)
+    region_lead = None
+    if sys_pic and sys_pic.significant:
+        region_lead = min(sys_pic.significant,
+                          key=lambda a: a.track.closest_approach.distance_km)
+
+    if not quiet:
         print("  computing Indian Ocean Dipole...")
     iod = climate.compute_iod(quiet=quiet)
 
@@ -548,6 +556,8 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
     basins = systems.basin_outlook(sys_pic)
     out += systems.render_basins(
         basins, cyclone_window=bool(sys_pic and sys_pic.cyclone_window))
+
+    out += regions.render(region_outlooks, lead=region_lead)
 
     if thermals:
         out += report.h(2, "Heat and cold across the region")
@@ -669,6 +679,29 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
          "windyPressure": b.windy_pressure, "windyWind": b.windy_wind}
         for b in basins
     ]
+    weekly_payload["regions"] = {
+        "lead": ({"headline": region_lead.headline,
+                  "pressure": round(region_lead.track.peak.pressure),
+                  "closestKm": round(
+                      region_lead.track.closest_approach.distance_km)}
+                 if region_lead else None),
+        "list": [
+            {"key": o.region.key, "name": o.region.name,
+             "short": o.region.short, "note": o.region.note,
+             "band": o.band, "agreement": o.agreement,
+             "totalMm": round(o.total_median, 1),
+             "peakDay": o.peak.day.strftime("%a %d %b") if o.peak else "",
+             "peakLo": round(o.peak.lo) if o.peak else 0,
+             "peakHi": round(o.peak.hi) if o.peak else 0,
+             "perModel": ({regions._MODEL_LABEL.get(m, m): round(v)
+                           for m, v in o.peak.per_model.items()}
+                          if o.peak else {}),
+             "windowFrom": o.window[0].strftime("%a %d %b") if o.window else "",
+             "windowTo": o.window[1].strftime("%a %d %b") if o.window else "",
+             "wet": bool(o.window)}
+            for o in sorted(region_outlooks, key=lambda o: -o.total_median)
+        ],
+    }
     weekly_payload["systems"] = {
         "trough": sys_pic.trough.note if sys_pic else "",
         "cycloneWindow": bool(sys_pic and sys_pic.cyclone_window),

@@ -687,6 +687,11 @@ def _band_rank(band: str) -> int:
     return order.index(band) if band in order else 0
 
 
+# Most system alerts the page will carry at once. Beyond this they stop being
+# read; see the comment at the call site.
+MAX_SYSTEM_ALERTS = 3
+
+
 def _spell_phrase(day: date, run: int, open_ended: bool) -> dict[str, str]:
     """Title fragment and body sentence for a regime that lasts `run` days.
 
@@ -905,7 +910,15 @@ def detect_shifts(diagnoses: Sequence, *,
 
     # ---- synoptic systems ------------------------------------------------
     if systems_picture is not None:
-        for a in systems_picture.significant:
+        # Cap the list. On a messy monsoon-trough day the tracker legitimately
+        # finds half a dozen weak centres over the peninsula, and six alerts
+        # carrying the SAME Guide Case Study E paragraph is not six warnings -
+        # it is one warning repeated until nobody reads any of them. Keep the
+        # ones that come closest, which is what decides whether a reader is
+        # affected, and say plainly that the rest exist.
+        ranked = sorted(systems_picture.significant,
+                        key=lambda a: a.track.closest_approach.distance_km)
+        for a in ranked[:MAX_SYSTEM_ALERTS]:
             sev = "warning" if a.relevance == "high" else "watch"
             # Lead with how close it comes and when. The reasoning explains the
             # mechanism well but never states the two facts a reader needs to
@@ -927,6 +940,20 @@ def detect_shifts(diagnoses: Sequence, *,
                     f"{a.track.peak.pressure:.0f} hPa. ")
             alerts.append(ShiftAlert(
                 sev, None, a.headline, lead + a.reasoning, "🌀"))
+        extra = len(ranked) - MAX_SYSTEM_ALERTS
+        if extra > 0:
+            nearest_extra = ranked[MAX_SYSTEM_ALERTS].track.closest_approach
+            alerts.append(ShiftAlert(
+                "info", None,
+                f"{extra} further weak circulation"
+                f"{'s' if extra > 1 else ''} tracked, none closer than "
+                f"{nearest_extra.distance_km:,.0f} km",
+                "The monsoon trough usually has several shallow centres "
+                "embedded in it at once. They are listed in full in the "
+                "systems section of the weekly bulletin; none of them comes "
+                "close enough to change what the days above say, which is why "
+                "they are summarised here rather than alerted individually.",
+                "🌀"))
         if systems_picture.cyclone_window:
             alerts.append(ShiftAlert(
                 "info", None, "Arabian Sea cyclone window",

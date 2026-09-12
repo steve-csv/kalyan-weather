@@ -160,10 +160,22 @@ class Record:
             return "No days verified yet."
         br = self.base_rate
         plural = "day" if len(v) == 1 else "days"
+        # State where the scored window ENDS. ERA5 publishes in patches, so
+        # the last few days of the outlook carry no observation yet and are
+        # not in these figures. Without this line the page could print
+        # "missed" against a recent day a few centimetres above a headline
+        # claiming a perfect record, with nothing to reconcile them - which is
+        # exactly what it did on 12 Sep 2026.
+        window = ""
+        if v:
+            window = (f" That window runs to **{v[-1].day:%d %b}** — anything "
+                      "since then has no observation to score against yet, so "
+                      "a recent day marked as a miss elsewhere on this page is "
+                      "not yet counted here.")
         core = (f"Over the last **{len(v)} verified {plural}**, the one-day "
                 f"forecast landed in the right IMD rainfall band on "
                 f"**{self.band_accuracy:.0%}** of them, and on days it rained "
-                f"the average error was **{self.mae_wet:.1f} mm**.")
+                f"the average error was **{self.mae_wet:.1f} mm**.{window}")
         if br is not None and br >= 0.98:
             return (core + f" It also called rain correctly on all {len(v)} — "
                     "but **every one of those days rained**, so that particular "

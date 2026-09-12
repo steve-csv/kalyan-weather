@@ -692,6 +692,23 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
 .hcell.h4{background:color-mix(in srgb,var(--critical) 28%,var(--surface-1));
   border-color:var(--critical)}
 
+/* regional outlook - who gets this system, and when */
+.regs{display:grid;gap:9px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.reg{background:var(--plane);border:1px solid var(--border);
+  border-left:3px solid var(--series-1);border-radius:10px;padding:10px 12px}
+/* The left edge carries model agreement, because a 13-69 mm bracket and a
+   25-40 mm one are not the same forecast and should not look the same. */
+.reg-close{border-left-color:var(--good)}
+.reg-loose{border-left-color:var(--warning)}
+.reg-wide{border-left-color:var(--critical)}
+.reg-dry{border-left-color:var(--muted);opacity:.7}
+.rgn{font-size:12px;font-weight:700;letter-spacing:.02em;margin-bottom:3px}
+.rgw{font-size:13.5px;line-height:1.4;font-variant-numeric:tabular-nums}
+.rgp{font-size:12.5px;color:var(--text-secondary);margin-top:2px;
+  font-variant-numeric:tabular-nums}
+.rgm{font-size:11px;color:var(--muted);margin-top:4px;
+  font-variant-numeric:tabular-nums}
+
 /* basin outlook */
 .bas{display:grid;gap:12px}
 @media(min-width:820px){ .bas{grid-template-columns:1fr 1fr} }
@@ -1339,6 +1356,54 @@ function renderWeekly(){
         Arabian Sea cyclone window. IMD's official cyclone bulletins are
         authoritative; this tool is not.</div>`;
     }
+    h += `</div>`;
+  }
+
+  /* ---- who gets this system, and when ----
+     The regional forecasters people actually follow answer a question this
+     page did not: a low is crossing the country, so which regions get rain
+     and on which dates. Ordered wettest-first over the week. */
+  if (D.regions && D.regions.list && D.regions.list.length){
+    const rg = D.regions;
+    h += `<div class="card"><h2>Who gets this system, and when</h2>
+      <p class="sub" style="margin:-6px 0 12px">The rest of this page answers
+        what happens at Kalyan. This answers who else gets wet, and on which
+        days. Ordered by the week's total, wettest first.</p>`;
+    if (rg.lead){
+      h += `<p class="bline" style="margin:0 0 12px">
+        <b>The system driving it.</b> ${esc(rg.lead.headline)} &mdash; minimum
+        ${rg.lead.pressure} hPa, closest about ${rg.lead.closestKm.toLocaleString()} km
+        from Kalyan. Every window below is downstream of that track: if the low
+        runs further north or south, or falls apart early, the dates move with
+        it.</p>`;
+    }
+    h += `<div class="regs">` + rg.list.map(r => {
+      if (!r.wet){
+        return `<div class="reg reg-dry">
+          <div class="rgn">${esc(r.short)}</div>
+          <div class="rgw">No meaningful spell this week.</div></div>`;
+      }
+      const models = Object.keys(r.perModel)
+        .map(k => `${esc(k)} ${r.perModel[k]}`).join(' · ');
+      const span = r.windowFrom === r.windowTo
+        ? esc(r.windowFrom)
+        : esc(r.windowFrom) + '–' + esc(r.windowTo);
+      const agree = r.agreement === 'close'
+        ? 'models close'
+        : (r.agreement === 'loose' ? 'models differ' : 'models disagree badly');
+      return `<div class="reg reg-${esc(r.agreement)}">
+        <div class="rgn">${esc(r.short)}</div>
+        <div class="rgw"><b>${span}</b></div>
+        <div class="rgp">Heaviest ${esc(r.peakDay)} &middot;
+          <b>${r.peakLo}–${r.peakHi} mm</b></div>
+        <div class="rgm">${models} &middot; ${agree}</div>
+      </div>`;
+    }).join('') + `</div>`;
+    h += `<div class="quote">Seven-day model totals over large areas, so a
+      region here is not a place &mdash; Nagpur and Akola are 200 km apart and
+      share a tile. Read this for the <b>sequence and the dates</b>: who gets it
+      first, who gets it worst, who misses out. For what to do tomorrow, use the
+      Kalyan sections.</div>`;
     h += `</div>`;
   }
 
@@ -3001,6 +3066,54 @@ function render(){
         Arabian Sea cyclone window. For anything beyond casual tracking, IMD's
         official cyclone bulletins are authoritative and this tool is not.</div>`;
     }
+    h += `</div>`;
+  }
+
+  /* ---- who gets this system, and when ----
+     The regional forecasters people actually follow answer a question this
+     page did not: a low is crossing the country, so which regions get rain
+     and on which dates. Ordered wettest-first over the week. */
+  if (D.regions && D.regions.list && D.regions.list.length){
+    const rg = D.regions;
+    h += `<div class="card"><h2>Who gets this system, and when</h2>
+      <p class="sub" style="margin:-6px 0 12px">The rest of this page answers
+        what happens at Kalyan. This answers who else gets wet, and on which
+        days. Ordered by the week's total, wettest first.</p>`;
+    if (rg.lead){
+      h += `<p class="bline" style="margin:0 0 12px">
+        <b>The system driving it.</b> ${esc(rg.lead.headline)} &mdash; minimum
+        ${rg.lead.pressure} hPa, closest about ${rg.lead.closestKm.toLocaleString()} km
+        from Kalyan. Every window below is downstream of that track: if the low
+        runs further north or south, or falls apart early, the dates move with
+        it.</p>`;
+    }
+    h += `<div class="regs">` + rg.list.map(r => {
+      if (!r.wet){
+        return `<div class="reg reg-dry">
+          <div class="rgn">${esc(r.short)}</div>
+          <div class="rgw">No meaningful spell this week.</div></div>`;
+      }
+      const models = Object.keys(r.perModel)
+        .map(k => `${esc(k)} ${r.perModel[k]}`).join(' · ');
+      const span = r.windowFrom === r.windowTo
+        ? esc(r.windowFrom)
+        : esc(r.windowFrom) + '–' + esc(r.windowTo);
+      const agree = r.agreement === 'close'
+        ? 'models close'
+        : (r.agreement === 'loose' ? 'models differ' : 'models disagree badly');
+      return `<div class="reg reg-${esc(r.agreement)}">
+        <div class="rgn">${esc(r.short)}</div>
+        <div class="rgw"><b>${span}</b></div>
+        <div class="rgp">Heaviest ${esc(r.peakDay)} &middot;
+          <b>${r.peakLo}–${r.peakHi} mm</b></div>
+        <div class="rgm">${models} &middot; ${agree}</div>
+      </div>`;
+    }).join('') + `</div>`;
+    h += `<div class="quote">Seven-day model totals over large areas, so a
+      region here is not a place &mdash; Nagpur and Akola are 200 km apart and
+      share a tile. Read this for the <b>sequence and the dates</b>: who gets it
+      first, who gets it worst, who misses out. For what to do tomorrow, use the
+      Kalyan sections.</div>`;
     h += `</div>`;
   }
 

@@ -58,6 +58,36 @@ MOTION_FLOOR_KM = 200.0
 # this the low has not been watched long enough to say whether it travels.
 MOTION_MIN_HOURS = 18.0
 
+# DIRECTNESS: net displacement divided by the length of the path walked.
+#
+# Net displacement alone cannot tell a system that travelled from one that
+# wandered. Repairing the track linking made this bite immediately: on
+# 12 Sep 2026 the page carried six near-identical alerts, one labelled
+# "tracking SE" for a low that made a single hop and then sat at 16N 77E for
+# 120 hours, and another labelled "tracking WSW" for a centre that went
+# 26N -> 22N -> back to 26N -> 22N and then parked. First-to-last bearing
+# described none of them.
+#
+# It also let the Pakistan/Rajasthan heat low through the seasonal filter:
+# 162 hours of wandering around 26-28N 65-71E that happened to END 222 km
+# from where it STARTED, which is just past the "this travels" threshold.
+#
+# A real travelling low goes roughly one way. Below this ratio the track is a
+# wandering centre, and neither a direction nor systemhood is claimed from it.
+MIN_DIRECTNESS = 0.55
+
+# Slowest a centre can average and still be called "tracking" somewhere.
+#
+# Directness alone does not catch the other failure: a track that makes ONE
+# hop and then sits still scores a perfect 1.0, because its single leg is also
+# its net displacement. The 12 Sep 2026 bulletin labelled such a centre
+# "tracking SE" when it had moved once and then parked at 16N 77E for 120
+# hours - an average of 2.4 km/h.
+#
+# A monsoon low that is genuinely on the move manages 15-30 km/h. The floor
+# here is well below that so only the parked cases fall through it.
+MIN_TRACK_SPEED_KMH = 4.0
+
 # Fastest a monsoon low is assumed to travel, used to widen the search radius
 # across a gap in detection. Well above the 20-30 km/h these systems actually
 # manage, because the cost of missing a link is a fragmented track and the
@@ -345,34 +375,71 @@ class SystemTrack:
         return float(self.last.time_index - self.first.time_index)
 
     @property
+    def path_km(self) -> float:
+        """Total ground covered, summed leg by leg."""
+        return sum(haversine(a.lat, a.lon, b.lat, b.lon)
+                   for a, b in zip(self.positions, self.positions[1:]))
+
+    @property
+    def directness(self) -> float:
+        """Net displacement as a fraction of the path walked. 1.0 is a straight
+        line; a centre that returns to where it started approaches 0."""
+        path = self.path_km
+        if path <= 0:
+            return 0.0
+        return self.moved_km / path
+
+    @property
+    def mean_speed_kmh(self) -> float:
+        """Net displacement over the whole tracked period."""
+        if self.duration_hours <= 0:
+            return 0.0
+        return self.moved_km / self.duration_hours
+
+    @property
     def motion(self) -> str:
         """
         How much can honestly be said about this track's displacement.
 
-        'moving'     - travelled at least one grid step, direction is real
-        'slow'       - watched long enough, went less than one grid step
+        'moving'     - went at least one grid step, one way, at a real pace
+        'wandering'  - covered ground but ended near where it started
+        'slow'       - went under one grid step, or averaged barely any speed
         'unresolved' - not watched long enough to say either way
         """
         if len(self.positions) < 2 or self.duration_hours < MOTION_MIN_HOURS:
             return "unresolved"
-        return "moving" if self.moved_km >= MOTION_FLOOR_KM else "slow"
+        if self.moved_km < MOTION_FLOOR_KM:
+            return "slow"
+        if self.directness < MIN_DIRECTNESS:
+            return "wandering"
+        if self.mean_speed_kmh < MIN_TRACK_SPEED_KMH:
+            return "slow"
+        return "moving"
 
     @property
     def motion_phrase(self) -> str:
         """Words for the motion state - never asserts more than `motion` knows."""
-        if self.motion == "moving":
+        m = self.motion
+        if m == "moving":
             brg = self.track_bearing
             return f"tracking {compass16(brg)}" if brg is not None else "moving"
-        if self.motion == "slow":
+        if m == "wandering":
+            return "drifting without a settled direction"
+        if m == "slow":
             return "moving slowly"
         return "motion not yet resolved"
 
     @property
     def track_bearing(self) -> float | None:
-        # The floor is one grid step, not 50 km: below a grid step the
-        # displacement is quantisation, and a bearing computed from it points
-        # in a direction the data never actually measured.
+        # Two gates, and both are needed. The floor is one grid step because
+        # below that the displacement is quantisation. The directness test is
+        # because a bearing drawn from first to last describes a wandering
+        # centre no better than a coin toss would.
         if len(self.positions) < 2 or self.moved_km < MOTION_FLOOR_KM:
+            return None
+        if self.directness < MIN_DIRECTNESS:
+            return None
+        if self.mean_speed_kmh < MIN_TRACK_SPEED_KMH:
             return None
         return bearing(self.first.lat, self.first.lon,
                        self.last.lat, self.last.lon)
@@ -397,8 +464,15 @@ class SystemTrack:
         newly-arrived depressions. They are the background state - the trough
         is already diagnosed separately - and calling them "systems" would be
         pure noise in every monsoon bulletin.
+
+        Net displacement is not enough on its own. The heat low wanders a
+        thousand kilometres over a week and can finish 222 km from where it
+        began, which clears a bare distance test while being the very thing
+        the test exists to exclude. A system that travels also goes one way.
         """
-        return self.moved_km >= MOTION_FLOOR_KM
+        return (self.moved_km >= MOTION_FLOOR_KM
+                and self.directness >= MIN_DIRECTNESS
+                and self.mean_speed_kmh >= MIN_TRACK_SPEED_KMH)
 
     @property
     def is_seasonal_feature(self) -> bool:
@@ -794,6 +868,11 @@ def render(sp: SystemsPicture | None) -> str:
             elif tr.motion == "slow":
                 move = (f"moves less than one grid cell in "
                         f"{tr.duration_hours:.0f} h, so it is genuinely slow")
+            elif tr.motion == "wandering":
+                move = (f"covers {tr.path_km:.0f} km of ground in "
+                        f"{tr.duration_hours:.0f} h but ends only "
+                        f"{tr.moved_km:.0f} km from where it began, so it is "
+                        "milling about rather than travelling")
             else:
                 move = (f"moves {tr.moved_km:.0f} km over "
                         f"{tr.duration_hours:.0f} h")
