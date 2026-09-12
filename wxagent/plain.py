@@ -24,7 +24,7 @@ Two jobs:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field as dc_field
 from datetime import date, datetime, timedelta
 from typing import Sequence
 
@@ -675,6 +675,11 @@ class ShiftAlert:
     title: str
     body: str
     icon: str
+    # How one event could resolve, as sub-points. A broad low is resolved by
+    # the models as several closed centres; those are not several events and
+    # must never become several alerts. The spread between them IS the
+    # forecast uncertainty, and it belongs in the open under the one alert.
+    points: list[str] = dc_field(default_factory=list)
 
     @property
     def rank(self) -> int:
@@ -910,39 +915,40 @@ def detect_shifts(diagnoses: Sequence, *,
 
     # ---- synoptic systems ------------------------------------------------
     if systems_picture is not None:
-        # Cap the list. On a messy monsoon-trough day the tracker legitimately
-        # finds half a dozen weak centres over the peninsula, and six alerts
-        # carrying the SAME Guide Case Study E paragraph is not six warnings -
-        # it is one warning repeated until nobody reads any of them. Keep the
-        # ones that come closest, which is what decides whether a reader is
-        # affected, and say plainly that the rest exist.
-        ranked = sorted(systems_picture.significant,
-                        key=lambda a: a.track.closest_approach.distance_km)
-        for a in ranked[:MAX_SYSTEM_ALERTS]:
-            sev = "warning" if a.relevance == "high" else "watch"
-            # Lead with how close it comes and when. The reasoning explains the
-            # mechanism well but never states the two facts a reader needs to
-            # decide whether it concerns them, and once track linking was fixed
-            # this became the top alert on the page with neither of them in it.
-            ca = a.track.closest_approach
-            when = ""
-            try:
-                when = datetime.fromisoformat(
-                    systems_picture.times[ca.time_index]).strftime("%A %d %b")
-            except (AttributeError, IndexError, ValueError):
-                when = ""
+        # ONE ALERT PER EVENT, never one per detection.
+        #
+        # The detector finds closed centres, and a single broad low routinely
+        # contains several of them. Alerting on each produced three "low
+        # pressure area inland over the peninsula" entries on 12 Sep 2026 that
+        # differed only by distance - which read as three approaching systems
+        # when it was one, and simultaneously hid the fact worth knowing: that
+        # the models disagreed about where that one low sat. `events` groups
+        # them; the disagreement becomes sub-points underneath.
+        events = sorted(systems_picture.events,
+                        key=lambda e: e.closest.distance_km)
+        for e in events[:MAX_SYSTEM_ALERTS]:
+            sev = "warning" if e.relevance == "high" else "watch"
+            # Lead with how close it comes and when: the two facts a reader
+            # needs to decide whether it concerns them at all.
+            when = e.closest_day()
+            if e.split:
+                press = (f"{e.min_pressure:.0f}–{e.max_pressure:.0f} hPa"
+                         if e.max_pressure - e.min_pressure >= 1
+                         else f"{e.min_pressure:.0f} hPa")
+            else:
+                press = f"{e.min_pressure:.0f} hPa"
             lead = (f"Comes closest on **{when}**, about "
-                    f"**{ca.distance_km:,.0f} km** from Kalyan, with a minimum "
-                    f"pressure of {a.track.peak.pressure:.0f} hPa. "
+                    f"**{e.closest.distance_km:,.0f} km** from Kalyan, with a "
+                    f"minimum pressure of {press}. "
                     if when else
-                    f"Closest approach about **{ca.distance_km:,.0f} km** from "
-                    f"Kalyan, minimum pressure "
-                    f"{a.track.peak.pressure:.0f} hPa. ")
+                    f"Closest approach about **{e.closest.distance_km:,.0f} km** "
+                    f"from Kalyan, minimum pressure {press}. ")
             alerts.append(ShiftAlert(
-                sev, None, a.headline, lead + a.reasoning, "🌀"))
-        extra = len(ranked) - MAX_SYSTEM_ALERTS
+                sev, None, e.headline, lead + e.reasoning, "🌀",
+                points=e.possibilities()))
+        extra = len(events) - MAX_SYSTEM_ALERTS
         if extra > 0:
-            nearest_extra = ranked[MAX_SYSTEM_ALERTS].track.closest_approach
+            nearest_extra = events[MAX_SYSTEM_ALERTS].closest
             alerts.append(ShiftAlert(
                 "info", None,
                 f"{extra} further weak circulation"
@@ -993,6 +999,9 @@ def render_alerts(alerts: Sequence[ShiftAlert]) -> str:
     for a in alerts:
         out += (f"- {a.icon} **[{SEVERITY_LABEL.get(a.severity, a.severity.upper())}] "
                 f"{a.title}**  \n  {a.body}\n")
+        # Sub-points: how this ONE event could resolve. Never a second alert.
+        for pt in a.points:
+            out += f"    - {pt}\n"
     return out
 
 

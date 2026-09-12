@@ -558,14 +558,17 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         "troughPresent": bool(sys_pic and sys_pic.trough.present),
         "cycloneWindow": bool(sys_pic and sys_pic.cyclone_window),
         "list": [
-            {"relevance": a.relevance, "headline": a.headline,
-             "reasoning": a.reasoning,
-             "distanceKm": round(a.track.closest_approach.distance_km),
-             "pressure": round(a.track.peak.pressure, 1),
-             "movedKm": round(a.track.moved_km),
-             "motion": a.track.motion,
-             "durationH": round(a.track.duration_hours)}
-            for a in (sys_pic.significant if sys_pic else [])
+            {"relevance": e.relevance, "headline": e.headline,
+             "reasoning": e.reasoning,
+             "distanceKm": round(e.closest.distance_km),
+             "pressure": round(e.min_pressure, 1),
+             "closestDay": e.closest_day(),
+             "centres": len(e.members),
+             "movedKm": round(e.lead.track.moved_km),
+             "motion": e.lead.track.motion,
+             "durationH": round(e.lead.track.duration_hours),
+             "points": e.possibilities()}
+            for e in (sys_pic.events if sys_pic else [])
         ],
     }
     # Rain split by time of day, for today (donut) and across the week

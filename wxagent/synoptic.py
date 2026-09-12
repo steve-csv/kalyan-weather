@@ -86,24 +86,24 @@ def _incoming_note(systems_picture) -> str:
     if systems_picture is None:
         return ""
     try:
-        sig = systems_picture.significant
+        sig = systems_picture.events          # events, never raw detections
     except AttributeError:
         return ""
 
-    incoming = [a for a in sig
-                if a.relevance in ("high", "moderate")
-                and a.track.motion == "moving"
-                and a.track.closest_approach.distance_km < 1200]
+    incoming = [e for e in sig
+                if e.relevance in ("high", "moderate")
+                and e.lead.track.motion == "moving"
+                and e.closest.distance_km < 1200]
     if not incoming:
         return ""
 
-    nearest = min(incoming, key=lambda a: a.track.closest_approach.distance_km)
-    tr = nearest.track
+    nearest = min(incoming, key=lambda e: e.closest.distance_km)
+    tr = nearest.lead.track
     return (
         "> **But this is today's snapshot, and a system is already on the "
         f"way.** The tracker is following a low ({tr.motion_phrase}, minimum "
-        f"{tr.peak.pressure:.0f} hPa) that closes to about "
-        f"{tr.closest_approach.distance_km:.0f} km. A low crossing central "
+        f"{nearest.min_pressure:.0f} hPa) that closes to about "
+        f"{nearest.closest.distance_km:.0f} km. A low crossing central "
         "India along the trough is the usual mechanism for pulling the trough "
         "back south and re-strengthening the westerlies into the Konkan, so "
         "read the verdict above as **a description of today**, not as a "

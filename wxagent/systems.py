@@ -815,6 +815,273 @@ class SystemsPicture:
     def significant(self) -> list[SystemAssessment]:
         return [a for a in self.assessments if a.relevance in ("high", "moderate")]
 
+    @property
+    def events(self) -> list[SystemEvent]:
+        """The significant assessments grouped into distinct weather events.
+
+        THIS IS THE LIST EVERY OTHER SECTION SHOULD USE. `significant` is raw
+        detector output; one broad low routinely appears in it several times.
+        """
+        return cluster_events(self.significant, self.times)
+
+
+# --------------------------------------------------------------------------
+# Grouping detections into EVENTS
+# --------------------------------------------------------------------------
+#
+# THE BUG THIS EXISTS FOR
+# -----------------------
+# On 12 Sep 2026 the alert list read:
+#
+#   [PREPARE] Well-marked low ... moving slowly          241 km, 1008 hPa
+#   [PREPARE] Well-marked low ... drifting, no direction 307 km, 1006 hPa
+#   [BE AWARE] Low ... tracking WNW                      506 km, 1005 hPa
+#
+# Three alerts, all "inland over the peninsula", all closest on the SAME DAY,
+# separated by a couple of hundred kilometres. That is not three systems. It
+# is one broad low-pressure area that a 2 degree grid resolves as several
+# closed centres, which is the normal state of a monsoon trough: a synoptic
+# LPA is 500-1000 km across and easily holds more than one local minimum.
+#
+# Reporting them separately is wrong twice over. It triples the apparent
+# number of threats, and it hides the thing that actually matters - that the
+# models disagree about WHERE THE SAME LOW SITS, by 265 km. That disagreement
+# is a forecast uncertainty and belongs in the open, as the range of
+# possibilities for one event.
+#
+# Two centres closer than this, seen at the same hour, are treated as parts of
+# one area. It is deliberately near the low end of synoptic LPA width: the
+# cost of splitting one system is the bug above, and the cost of merging two
+# genuinely separate ones is a sub-point saying they might be distinct.
+CLUSTER_KM = 600.0
+
+# Linking is single-linkage, so A-B and B-C merge A and C even when A and C
+# are far apart. Across a monsoon trough that is usually RIGHT - the trough
+# genuinely is one continuous low-pressure axis - but an event spanning this
+# much ground should be described as an axis rather than as "a low pressure
+# area", because the reader would otherwise picture one compact centre.
+AXIS_KM = 1300.0
+
+# Coarse place names, checked in order, first box wins. The point is only to
+# make two different events DISTINGUISHABLE in a headline: before this, two
+# unrelated lows a thousand kilometres apart both read "inland over the
+# peninsula" and looked like the same alert printed twice.
+_PLACES: tuple[tuple[float, float, float, float, str], ...] = (
+    (20.0, 26.0, 66.0, 72.0, "Kutch and Saurashtra"),
+    (26.0, 33.0, 66.0, 72.0, "Sindh and the Thar"),
+    (20.0, 25.0, 72.0, 75.0, "Gujarat"),
+    (24.0, 30.0, 72.0, 78.0, "Rajasthan"),
+    (21.0, 26.0, 74.0, 80.0, "Madhya Pradesh"),
+    (21.0, 26.0, 80.0, 84.0, "east Madhya Pradesh and Chhattisgarh"),
+    (18.5, 22.0, 76.0, 81.0, "Vidarbha"),
+    (17.0, 21.0, 73.5, 76.0, "north Maharashtra"),
+    (16.5, 20.0, 76.0, 79.0, "Marathwada and Telangana"),
+    (13.0, 17.0, 74.0, 78.5, "interior Karnataka"),
+    (13.0, 18.0, 78.5, 82.0, "Telangana and coastal Andhra"),
+    (8.0, 13.5, 76.0, 81.0, "Tamil Nadu and south Karnataka"),
+    (17.0, 23.0, 82.0, 87.0, "Odisha"),
+    (23.0, 28.0, 84.0, 90.0, "Bihar and north Bengal"),
+    (24.0, 29.0, 78.0, 84.0, "the Gangetic plain"),
+    (21.0, 25.0, 87.0, 90.0, "Bengal and Bangladesh"),
+    (22.0, 29.0, 90.0, 95.0, "the northeast"),
+)
+
+
+def _place_name(lat: float, lon: float) -> str:
+    """Where a centre is, in words a reader can picture."""
+    for la0, la1, lo0, lo1, name in _PLACES:
+        if la0 <= lat < la1 and lo0 <= lon < lo1:
+            return name
+    b = _basin(lat, lon)
+    if b == "Arabian Sea":
+        return "the eastern Arabian Sea" if lon >= EASTERN_ARABIAN_SEA_LON \
+            else "the western Arabian Sea"
+    if b == "Bay of Bengal":
+        return "the north Bay" if lat >= 18 else "the central Bay"
+    return f"{lat:.0f}°N {lon:.0f}°E"
+
+
+@dataclass
+class SystemEvent:
+    """One weather event, however many centres the detector resolved in it."""
+    members: list[SystemAssessment]
+    times: list[str] = field(default_factory=list)
+
+    @property
+    def lead(self) -> SystemAssessment:
+        """The member that decides how the event is described and ranked.
+
+        The one that comes CLOSEST, not the deepest: the question an alert
+        answers is whether this reaches the reader, and the nearest centre is
+        the one that settles it.
+        """
+        return min(self.members,
+                   key=lambda a: a.track.closest_approach.distance_km)
+
+    @property
+    def relevance(self) -> str:
+        for level in ("high", "moderate", "low"):
+            if any(m.relevance == level for m in self.members):
+                return level
+        return "low"
+
+    @property
+    def closest(self) -> LowCentre:
+        return self.lead.track.closest_approach
+
+    @property
+    def min_pressure(self) -> float:
+        return min(m.track.peak.pressure for m in self.members)
+
+    @property
+    def max_pressure(self) -> float:
+        return max(m.track.peak.pressure for m in self.members)
+
+    @property
+    def distance_span(self) -> tuple[float, float]:
+        d = [m.track.closest_approach.distance_km for m in self.members]
+        return (min(d), max(d))
+
+    @property
+    def split(self) -> bool:
+        return len(self.members) > 1
+
+    @property
+    def extent_km(self) -> float:
+        """How far apart the furthest two centres in this event sit."""
+        pts = [m.track.closest_approach for m in self.members]
+        return max((haversine(a.lat, a.lon, b.lat, b.lon)
+                    for i, a in enumerate(pts) for b in pts[i + 1:]),
+                   default=0.0)
+
+    @property
+    def place(self) -> str:
+        return _place_name(self.closest.lat, self.closest.lon)
+
+    @property
+    def bearing_word(self) -> str:
+        return compass16(bearing(REF_LAT, REF_LON,
+                                 self.closest.lat, self.closest.lon))
+
+    @property
+    def headline(self) -> str:
+        """A headline that says WHERE, so two different events cannot read as
+        the same alert printed twice - which is what "low pressure area inland
+        over the peninsula", emitted three times, looked like."""
+        ca = self.closest
+        if self.extent_km > AXIS_KM:
+            far = max(self.members,
+                      key=lambda m: m.track.closest_approach.distance_km)
+            fp = _place_name(far.track.closest_approach.lat,
+                             far.track.closest_approach.lon)
+            return (f"Low pressure axis running from {fp} to {self.place} — "
+                    f"nearest centre {ca.distance_km:,.0f} km to the "
+                    f"{self.bearing_word}")
+        return (f"{self.lead.track.peak.intensity.capitalize()} over "
+                f"{self.place} — {ca.distance_km:,.0f} km to the "
+                f"{self.bearing_word}")
+
+    @property
+    def reasoning(self) -> str:
+        if self.extent_km > AXIS_KM:
+            return (
+                "This is the monsoon trough itself rather than one compact "
+                "low: a continuous belt of low pressure with several "
+                "circulations strung along it. Guide s12.3 still applies — "
+                "what reaches this coast is the flow the belt sets up, not "
+                "the distance to any single centre. " + self.lead.reasoning)
+        return self.lead.reasoning
+
+    def closest_day(self) -> str:
+        idx = self.closest.time_index
+        return _day_label(self.times, idx) if self.times else ""
+
+    def possibilities(self) -> list[str]:
+        """The sub-points: how this one event could resolve.
+
+        Empty when the detector found a single centre - there is nothing
+        uncertain to report and a lone bullet reading "the models agree" is
+        noise.
+        """
+        if not self.split:
+            return []
+        lo, hi = self.distance_span
+        out = [
+            f"**The models do not agree where its centre sits.** They resolve "
+            f"it as {len(self.members)} circulations between "
+            f"**{lo:,.0f} km** and **{hi:,.0f} km** from Kalyan — one broad "
+            f"area, not {len(self.members)} separate systems. A low pressure "
+            f"area is several hundred kilometres across, so a grid this coarse "
+            f"picks out more than one centre inside the same feature."
+        ]
+        for m in sorted(self.members,
+                        key=lambda a: a.track.closest_approach.distance_km):
+            ca = m.track.closest_approach
+            when = _day_label(self.times, ca.time_index) if self.times else ""
+            out.append(
+                f"One centre **{ca.distance_km:,.0f} km** out, "
+                f"{m.track.motion_phrase}, down to "
+                f"{m.track.peak.pressure:.0f} hPa"
+                + (f", closest on {when}" if when else "") + ".")
+        if self.max_pressure - self.min_pressure >= 2.0:
+            out.append(
+                f"**Depth is unsettled too** — {self.min_pressure:.0f} to "
+                f"{self.max_pressure:.0f} hPa across those centres. Take the "
+                "deeper end as the reasonable worst case rather than the "
+                "expected one.")
+        out.append(
+            "**What to watch.** If these centres consolidate into one, the "
+            "system gets better organised and its rain becomes heavier and "
+            "more concentrated. If they stay separate, expect rain spread "
+            "more thinly over a wider area.")
+        return out
+
+
+def cluster_events(assessments: Sequence[SystemAssessment],
+                   times: Sequence[str]) -> list[SystemEvent]:
+    """Group detections that are really the same weather event.
+
+    Two tracks join when, at some hour they were BOTH resolved in, their
+    centres sit within CLUSTER_KM of each other. Requiring a shared hour
+    matters: two lows that pass through the same place a week apart are two
+    systems, and only comparing positions at the same moment can tell them
+    apart.
+    """
+    items = list(assessments)
+    n = len(items)
+    parent = list(range(n))
+
+    def find(i: int) -> int:
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    def union(i: int, j: int) -> None:
+        a, b = find(i), find(j)
+        if a != b:
+            parent[b] = a
+
+    pos = [{p.time_index: p for p in a.track.positions} for a in items]
+    for i in range(n):
+        for j in range(i + 1, n):
+            shared = pos[i].keys() & pos[j].keys()
+            if not shared:
+                continue
+            if any(haversine(pos[i][t].lat, pos[i][t].lon,
+                             pos[j][t].lat, pos[j][t].lon) <= CLUSTER_KM
+                   for t in shared):
+                union(i, j)
+
+    groups: dict[int, list[SystemAssessment]] = {}
+    for i, a in enumerate(items):
+        groups.setdefault(find(i), []).append(a)
+
+    events = [SystemEvent(members=g, times=list(times))
+              for g in groups.values()]
+    events.sort(key=lambda e: e.closest.distance_km)
+    return events
+
 
 def analyse(days: int = 7, *, today: date | None = None,
             quiet: bool = True) -> SystemsPicture | None:
@@ -848,7 +1115,9 @@ def render(sp: SystemsPicture | None) -> str:
 
     out = f"**Offshore trough.** {sp.trough.note}\n\n"
 
-    sig = sp.significant
+    # Events, not raw detections: the same grouping the alerts use, so the two
+    # sections cannot disagree about how many systems there are.
+    sig = sp.events
     if not sig:
         out += ("**Low pressure systems.** No significant low pressure area or "
                 "depression is tracked within range over the next week. Rain, "
@@ -857,7 +1126,7 @@ def render(sp: SystemsPicture | None) -> str:
     else:
         out += "**Low pressure systems tracked.**\n\n"
         for a in sig:
-            tr = a.track
+            tr = a.lead.track
             first_t = datetime.fromisoformat(sp.times[tr.first.time_index])
             # Say what the displacement actually establishes. "moves 0 km"
             # reads as a finding; usually it means the low has been resolved
@@ -879,17 +1148,21 @@ def render(sp: SystemsPicture | None) -> str:
             # Closest approach is the number that decides whether a system
             # matters here, so it belongs in the text and not only in the
             # web card - the headline omits it whenever the system is near.
-            ca = tr.closest_approach
-            ca_day = _day_label(sp.times, ca.time_index)
+            ca = a.closest
+            ca_day = a.closest_day()
             out += (f"- **{a.headline}** ({a.relevance} relevance)  \n"
-                    f"  Centre first resolved {first_t:%a %d %b} near "
+                    f"  Nearest centre first resolved {first_t:%a %d %b} near "
                     f"{tr.first.lat:.0f}°N {tr.first.lon:.0f}°E, "
                     f"{tr.first.distance_km:.0f} km from Mumbai; "
                     f"{move}. Closest approach about "
                     f"**{ca.distance_km:,.0f} km**"
                     + (f" on {ca_day}" if ca_day else "")
-                    + f". Minimum pressure {tr.peak.pressure:.0f} hPa.  \n"
+                    + f". Minimum pressure {a.min_pressure:.0f} hPa.  \n"
                     f"  {a.reasoning}\n")
+            # The centres inside this one event, and what their disagreement
+            # means - never as separate list entries.
+            for pt in a.possibilities():
+                out += f"    - {pt}\n"
         out += "\n"
 
     if sp.cyclone_window:

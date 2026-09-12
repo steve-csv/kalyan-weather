@@ -291,15 +291,28 @@ def render(outlooks: Sequence[RegionOutlook], *, lead=None) -> str:
     )
 
     if lead is not None:
-        tr = lead.track
-        ca = tr.closest_approach
+        # `lead` is a systems.SystemEvent - one weather event, however many
+        # closed centres the detector resolved inside it. Reading .track off
+        # it would be reading one centre and calling it the system.
+        ca = lead.closest
+        press = (f"**{lead.min_pressure:.0f}–{lead.max_pressure:.0f} hPa**"
+                 if lead.max_pressure - lead.min_pressure >= 1
+                 else f"**{lead.min_pressure:.0f} hPa**")
+        spread = ""
+        if lead.split:
+            lo, hi = lead.distance_span
+            spread = (f" The models put its centre anywhere between "
+                      f"{lo:,.0f} km and {hi:,.0f} km from Kalyan, so the "
+                      "regional dates below carry that same uncertainty.")
         out += (
             f"**The system driving it.** {lead.headline}. Minimum pressure "
-            f"**{tr.peak.pressure:.0f} hPa**, coming closest to Kalyan at about "
-            f"**{ca.distance_km:,.0f} km**. Everything in the table below is "
-            "downstream of that track — the dates are the model's answer to "
-            "*where will this low be*, so if it runs further north, further "
-            "south, or falls apart early, every window moves with it.\n\n"
+            f"{press}, coming closest to Kalyan at about "
+            f"**{ca.distance_km:,.0f} km**"
+            + (f" on {lead.closest_day()}" if lead.closest_day() else "")
+            + ". Everything in the table below is downstream of that track — "
+            "the dates are the model's answer to *where will this low be*, so "
+            "if it runs further north, further south, or falls apart early, "
+            "every window moves with it." + spread + "\n\n"
         )
 
     ranked = sorted(outlooks, key=lambda o: -o.total_median)

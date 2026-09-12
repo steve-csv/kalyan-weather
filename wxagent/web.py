@@ -729,6 +729,18 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
 .hcell.h4{background:color-mix(in srgb,var(--critical) 28%,var(--surface-1));
   border-color:var(--critical)}
 
+/* Sub-points under an alert or a system row: the possibilities for ONE
+   event. Indented and rule-marked so they read as belonging to the entry
+   above rather than as further entries. */
+.apts{margin:9px 0 0;padding:0 0 0 15px;list-style:none;
+  border-left:2px solid var(--yellow);}
+.apts li{position:relative;font-size:12.5px;line-height:1.6;
+  color:var(--text-secondary);margin-bottom:6px}
+.apts li:last-child{margin-bottom:0}
+.apts li::before{content:'';position:absolute;left:-19px;top:.62em;
+  width:6px;height:2px;background:var(--yellow-deep)}
+.apts b{color:var(--text-primary);font-weight:700}
+
 /* regional outlook - who gets this system, and when */
 .regs{display:grid;gap:9px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
 .reg{background:var(--plane);border:1px solid var(--border);
@@ -1131,6 +1143,14 @@ function toggleTheme(){
 /* ---------- helpers ---------- */
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* Sub-points describe ONE event's possible resolutions. They arrive with
+   **bold** markers; escape first, then promote only that marker, so nothing
+   else in the string can become markup. */
+const subList = pts => (pts && pts.length)
+  ? `<ul class="apts">` + pts.map(t =>
+      `<li>${esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')}</li>`
+    ).join('') + `</ul>`
+  : '';
 const nn = v => (v === null || v === undefined) ? '--' : v;
 
 const tip = document.getElementById('tip');
@@ -1347,7 +1367,7 @@ function renderWeekly(){
       ${D.alerts.map(a => `<div class="alert a-${esc(a.severity)}">
         <div class="ai">${esc(a.icon)}</div>
         <div><div class="at"><span class="tag">${esc(a.label)}</span> ${esc(a.title)}</div>
-        <div class="ab">${esc(a.body)}</div></div></div>`).join('')}
+        <div class="ab">${esc(a.body)}${subList(a.points)}</div></div></div>`).join('')}
     </div>`;
   } else {
     h += `<div class="card"><h2>⚡ Major weather shifts this week</h2>
@@ -1476,7 +1496,7 @@ function renderWeekly(){
     if (sy.list && sy.list.length){
       h += sy.list.map(s => `<div class="sysrow">
         <div class="at"><span class="tag t-${esc(s.relevance)}">${esc(s.relevance)}</span> ${esc(s.headline)}</div>
-        <div class="ab">${esc(s.reasoning)}</div>
+        <div class="ab">${esc(s.reasoning)}${subList(s.points)}</div>
         <div class="pc">Closest approach ~${s.distanceKm} km · minimum ${s.pressure} hPa · ${s.motion==='unresolved' ? `resolved over ${s.durationH} h — too short to say if it is moving` : s.motion==='slow' ? `moves under one grid cell in ${s.durationH} h` : `moves ${s.movedKm} km in ${s.durationH} h`}</div>
       </div>`).join('');
     } else {
@@ -2878,7 +2898,7 @@ function render(){
       ${D.alerts.map(a => `<div class="alert a-${esc(a.severity)}">
         <div class="ai">${esc(a.icon)}</div>
         <div><div class="at"><span class="tag">${esc(a.label)}</span> ${esc(a.title)}</div>
-        <div class="ab">${esc(a.body)}</div></div></div>`).join('')}
+        <div class="ab">${esc(a.body)}${subList(a.points)}</div></div></div>`).join('')}
     </div>`;
   } else {
     h += `<div class="card"><h2>⚡ Major weather shifts</h2>
@@ -3185,7 +3205,7 @@ function render(){
     if (sy.list && sy.list.length){
       h += sy.list.map(s => `<div class="sysrow">
         <div class="at"><span class="tag t-${esc(s.relevance)}">${esc(s.relevance)}</span> ${esc(s.headline)}</div>
-        <div class="ab">${esc(s.reasoning)}</div>
+        <div class="ab">${esc(s.reasoning)}${subList(s.points)}</div>
         <div class="pc">Closest approach ~${s.distanceKm} km · minimum ${s.pressure} hPa · ${s.motion==='unresolved' ? `resolved over ${s.durationH} h — too short to say if it is moving` : s.motion==='slow' ? `moves under one grid cell in ${s.durationH} h` : `moves ${s.movedKm} km in ${s.durationH} h`}</div>
       </div>`).join('');
     } else {

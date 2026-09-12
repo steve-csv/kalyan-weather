@@ -485,9 +485,9 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
         print("  building the regional outlook (who gets this system)...")
     region_outlooks = regions.fetch(days=days, quiet=quiet)
     region_lead = None
-    if sys_pic and sys_pic.significant:
-        region_lead = min(sys_pic.significant,
-                          key=lambda a: a.track.closest_approach.distance_km)
+    if sys_pic and sys_pic.events:
+        region_lead = min(sys_pic.events,
+                          key=lambda e: e.closest.distance_km)
 
     if not quiet:
         print("  computing Indian Ocean Dipole...")
@@ -681,9 +681,8 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
     ]
     weekly_payload["regions"] = {
         "lead": ({"headline": region_lead.headline,
-                  "pressure": round(region_lead.track.peak.pressure),
-                  "closestKm": round(
-                      region_lead.track.closest_approach.distance_km)}
+                  "pressure": round(region_lead.min_pressure),
+                  "closestKm": round(region_lead.closest.distance_km)}
                  if region_lead else None),
         "list": [
             {"key": o.region.key, "name": o.region.name,
@@ -705,15 +704,21 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
     weekly_payload["systems"] = {
         "trough": sys_pic.trough.note if sys_pic else "",
         "cycloneWindow": bool(sys_pic and sys_pic.cyclone_window),
+        # One entry per EVENT. `points` carries the centres inside it and what
+        # their disagreement means, so the card can nest them instead of
+        # printing the same event several times over.
         "list": [
-            {"relevance": a.relevance, "headline": a.headline,
-             "reasoning": a.reasoning,
-             "distanceKm": round(a.track.closest_approach.distance_km),
-             "pressure": round(a.track.peak.pressure, 1),
-             "movedKm": round(a.track.moved_km),
-             "motion": a.track.motion,
-             "durationH": round(a.track.duration_hours)}
-            for a in (sys_pic.significant if sys_pic else [])
+            {"relevance": e.relevance, "headline": e.headline,
+             "reasoning": e.reasoning,
+             "distanceKm": round(e.closest.distance_km),
+             "pressure": round(e.min_pressure, 1),
+             "closestDay": e.closest_day(),
+             "centres": len(e.members),
+             "movedKm": round(e.lead.track.moved_km),
+             "motion": e.lead.track.motion,
+             "durationH": round(e.lead.track.duration_hours),
+             "points": e.possibilities()}
+            for e in (sys_pic.events if sys_pic else [])
         ],
     }
     # Drivers are cached separately so the daily page and `render` can show
