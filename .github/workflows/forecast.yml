@@ -65,7 +65,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      # The agent is standard library only - there is nothing to install.
+      # One dependency: Pillow, to decode IMD's radar GIF. The agent was
+      # standard library only until radar ingestion arrived, and this line
+      # used to say so. Without the install, radar.fetch() catches the
+      # ImportError and returns None - so every scheduled run and every press
+      # of the Update button would publish a page with no radar section and
+      # no error anywhere to say why. Silent loss of the one observation on
+      # the page is exactly the failure worth a step of its own.
+      - name: Install dependencies
+        run: python -m pip install --quiet Pillow
 
       # .cache/ holds the ERA5 climate normals (ten years per site, fetched
       # from the slow archive API) and the oscillation downloads. On the

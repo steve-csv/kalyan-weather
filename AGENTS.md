@@ -33,9 +33,14 @@ a confidently wrong forecast at some point.
    filtering that quietly improves it.
 5. **State limits where the reader will see them**, not only in comments. The
    page carries its own caveats deliberately.
-6. **No new dependencies.** Standard library only — that is what lets the
-   GitHub Actions run need no install step. There is a hand-written PNG
-   decoder (`pngread.py`) rather than Pillow, for exactly this reason.
+6. **One dependency, and no more without asking.** Standard library only,
+   with a single exception: **Pillow**, used by `radar.py` to decode IMD's
+   radar GIF. It was added on 12 Sep 2026 and it broke the earlier rule that
+   this line stated — flagged at the time, not quietly rewritten. The cloud
+   workflow has an install step for it; do not remove that step, because
+   `radar.fetch()` degrades silently to "no radar section" when Pillow is
+   missing. If the project should go back to zero dependencies, the path is a
+   hand-written GIF/LZW decoder alongside `pngread.py`, not deleting Pillow.
 
 ## Layout
 
