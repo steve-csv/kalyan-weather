@@ -994,6 +994,30 @@ class SystemEvent:
         idx = self.closest.time_index
         return _day_label(self.times, idx) if self.times else ""
 
+    def distance_on(self, day: date) -> float | None:
+        """How close this event's nearest centre comes ON A GIVEN DAY.
+
+        `closest` is the minimum over the WHOLE track, which is the right
+        number for an alert - "this is the worst it gets" - and the wrong one
+        for asking what drives Tuesday's rain. Using it per-day made every day
+        of the week read as system-driven because the system was 546 km away
+        on one of them.
+        """
+        if not self.times:
+            return None
+        best: float | None = None
+        for m in self.members:
+            for p in m.track.positions:
+                if p.time_index >= len(self.times):
+                    continue
+                try:
+                    when = datetime.fromisoformat(self.times[p.time_index]).date()
+                except ValueError:
+                    continue
+                if when == day and (best is None or p.distance_km < best):
+                    best = p.distance_km
+        return best
+
     def possibilities(self) -> list[str]:
         """The sub-points: how this one event could resolve.
 

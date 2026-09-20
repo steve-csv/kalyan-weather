@@ -23,6 +23,7 @@ from . import (
     arrivals as arrmod,
     belts as beltmod,
     radar as radarmod,
+    rainsource as rsmod,
     recent as recentmod,
     reconcile,
     nowcast, observed, plain, report, synoptic, systems, thermal,
@@ -356,8 +357,21 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     body = body.replace("---\n\n## Forecast",
                         "---\n\n" + alert_block + plain_block + "## Forecast", 1)
 
+    # WHAT KIND of rain, before how much. Placed ahead of the observation and
+    # nowcast sections because it frames how every number below should be
+    # read: the same millimetres mean different weather from different drivers.
+    lead_event = None
+    if sys_pic and sys_pic.events:
+        lead_event = min(sys_pic.events, key=lambda e: e.closest.distance_km)
+    today_idx = window_indices(pf.times, today, 0, 24)
+    primary_ms = pf.models.get(PRIMARY_MODEL) or next(iter(pf.models.values()))
+    rsrc = rsmod.classify(primary_ms, today_idx, season=season,
+                          zone=C.HOME.zone, nearest_system=lead_event,
+                          day=today)
+    extra = rsmod.render(rsrc, day_label="today")
+
     # Extra sections specific to the daily product.
-    extra = report.h(2, "What fell — last complete IMD day")
+    extra += report.h(2, "What fell — last complete IMD day")
     extra += observed.render(obs) if obs else "_Not available this run._\n"
     extra += "\n" + report.h(2, "Now — next few hours")
     extra += nowcast.render(short)
@@ -423,6 +437,18 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         synoptic_text=_synoptic_html(synoptic.render(sp, sys_pic)),
     )
     payload["gradientVerdict"] = grad_verdict
+    payload["rainSource"] = {
+        "key": rsrc.key, "label": rsrc.label,
+        "headline": rsrc.headline, "detail": rsrc.detail,
+        "terrain": rsrc.terrain_note,
+        "thunder": rsrc.thunder_risk,
+        "burst": (round(rsrc.burst_share, 3)
+                  if rsrc.burst_share is not None else None),
+        "windFrom": (round(rsrc.wind_from) if rsrc.wind_from is not None else None),
+        "windMs": (round(rsrc.wind_ms, 1) if rsrc.wind_ms is not None else None),
+        "systemKm": (round(rsrc.system_km) if rsrc.system_km else None),
+        "contributors": rsrc.contributors,
+    }
     # Radar: observation, so the card renders above the modelled belts.
     if scan_img is not None:
         payload["radarNow"] = {

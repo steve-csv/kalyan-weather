@@ -729,6 +729,19 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
 .hcell.h4{background:color-mix(in srgb,var(--critical) 28%,var(--surface-1));
   border-color:var(--critical)}
 
+/* rain-source card */
+.srcline{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.srctag{display:inline-block;font-size:11.5px;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;padding:4px 10px;
+  border-radius:999px;background:var(--plane);border:1px solid var(--border)}
+.src-sw_monsoon{background:var(--yellow);color:#0d0d0c;border-color:transparent}
+.src-easterly{background:var(--serious);color:#fff;border-color:transparent}
+.src-system{background:var(--critical);color:#fff;border-color:transparent}
+.src-thunderstorm{background:var(--warning);color:#0d0d0c;border-color:transparent}
+.src-northerly{background:var(--good);color:#fff;border-color:transparent}
+.src-thunder{background:var(--critical);color:#fff;border-color:transparent}
+.srcwind{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+
 /* Sub-points under an alert or a system row: the possibilities for ONE
    event. Indented and rule-marked so they read as belonging to the entry
    above rather than as further entries. */
@@ -1362,6 +1375,34 @@ function renderWeekly(){
   h += skodaHtml();
 
   /* ---- alerts ---- */
+  /* ---- what KIND of rain ----
+     Placed before the amounts. Millimetres alone cannot tell a reader what a
+     day will feel like: twelve from the monsoon is a grey hours-long soak,
+     twelve from an easterly storm is one violent quarter-hour. The driver
+     also decides WHERE it lands, because an easterly reverses the terrain. */
+  if (D.rainSource && D.rainSource.headline){
+    const S = D.rainSource;
+    const tw = S.thunder === 'likely' ? 'Thunderstorms likely'
+             : S.thunder === 'possible' ? 'Thunderstorms possible' : '';
+    h += `<div class="card"><h2>What kind of rain this is</h2>
+      <div class="srcline">
+        <span class="srctag src-${esc(S.key)}">${esc(S.label)}</span>
+        ${tw ? `<span class="srctag src-thunder">&#9889; ${tw}</span>` : ''}
+        ${S.windFrom !== null && S.windFrom !== undefined
+          ? `<span class="srcwind">850 hPa wind ${S.windFrom}&deg; at ${S.windMs} m/s</span>` : ''}
+      </div>
+      <p class="rhead" style="margin-top:10px"><b>${esc(S.headline)}.</b></p>
+      ${mdBold(esc(S.detail)).split('
+
+').map(p => `<p class="pt">${p}</p>`).join('')}
+      ${S.terrain ? `<div class="quote">${mdBold(esc(S.terrain))}</div>` : ''}
+      ${S.burst !== null && S.burst !== undefined
+        ? `<p class="rhow">About <b>${Math.round(S.burst*100)}%</b> of the day's
+           rain is modelled to fall in a single hour &mdash; the shape of a
+           shower rather than of steady rain.</p>` : ''}
+    </div>`;
+  }
+
   if (D.alerts && D.alerts.length){
     h += `<div class="card"><h2>⚡ Major weather shifts this week</h2>
       ${D.alerts.map(a => `<div class="alert a-${esc(a.severity)}">

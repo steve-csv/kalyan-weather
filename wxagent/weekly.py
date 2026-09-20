@@ -24,7 +24,8 @@ import re
 
 from . import config as C
 from . import (
-    climate, oscillations, plain, regions, report, synoptic, systems, thermal,
+    climate, oscillations, plain, rainsource as rsmod, regions, report,
+    synoptic, systems, thermal,
     upstream, web,
 )
 from .diagnostics import (
@@ -544,6 +545,26 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
 
     out += report.h(2, "⚡ Major weather shifts this week")
     out += plain.render_alerts(alerts) + "\n"
+
+    # WHICH DRIVER, day by day. A change of driver matters more than a change
+    # of total: monsoon rain and easterly thunderstorms land on opposite sides
+    # of the Ghats, so identical millimetres mean different places get wet.
+    ms_home = pf.models.get(PRIMARY_MODEL) or next(iter(pf.models.values()))
+    lead_event = None
+    if sys_pic and sys_pic.events:
+        lead_event = min(sys_pic.events, key=lambda e: e.closest.distance_km)
+    drivers = []
+    for d in day_list:
+        idx = window_indices(pf.times, d, 0, 24)
+        if not idx:
+            continue
+        drivers.append((d.strftime("%a %d %b"),
+                        rsmod.classify(ms_home, idx, season=season,
+                                       zone=C.HOME.zone,
+                                       nearest_system=lead_event, day=d)))
+    if drivers:
+        out += report.h(2, "What kind of rain, day by day")
+        out += rsmod.week_summary(drivers) + "\n"
 
     out += report.h(2, "Across the MMR — area by area")
     out += plain.render_areas(areas, home_key=C.HOME_AREA) + "\n"
