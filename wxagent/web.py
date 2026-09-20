@@ -1375,34 +1375,6 @@ function renderWeekly(){
   h += skodaHtml();
 
   /* ---- alerts ---- */
-  /* ---- what KIND of rain ----
-     Placed before the amounts. Millimetres alone cannot tell a reader what a
-     day will feel like: twelve from the monsoon is a grey hours-long soak,
-     twelve from an easterly storm is one violent quarter-hour. The driver
-     also decides WHERE it lands, because an easterly reverses the terrain. */
-  if (D.rainSource && D.rainSource.headline){
-    const S = D.rainSource;
-    const tw = S.thunder === 'likely' ? 'Thunderstorms likely'
-             : S.thunder === 'possible' ? 'Thunderstorms possible' : '';
-    h += `<div class="card"><h2>What kind of rain this is</h2>
-      <div class="srcline">
-        <span class="srctag src-${esc(S.key)}">${esc(S.label)}</span>
-        ${tw ? `<span class="srctag src-thunder">&#9889; ${tw}</span>` : ''}
-        ${S.windFrom !== null && S.windFrom !== undefined
-          ? `<span class="srcwind">850 hPa wind ${S.windFrom}&deg; at ${S.windMs} m/s</span>` : ''}
-      </div>
-      <p class="rhead" style="margin-top:10px"><b>${esc(S.headline)}.</b></p>
-      ${mdBold(esc(S.detail)).split('
-
-').map(p => `<p class="pt">${p}</p>`).join('')}
-      ${S.terrain ? `<div class="quote">${mdBold(esc(S.terrain))}</div>` : ''}
-      ${S.burst !== null && S.burst !== undefined
-        ? `<p class="rhow">About <b>${Math.round(S.burst*100)}%</b> of the day's
-           rain is modelled to fall in a single hour &mdash; the shape of a
-           shower rather than of steady rain.</p>` : ''}
-    </div>`;
-  }
-
   if (D.alerts && D.alerts.length){
     h += `<div class="card"><h2>⚡ Major weather shifts this week</h2>
       ${D.alerts.map(a => `<div class="alert a-${esc(a.severity)}">
@@ -2981,6 +2953,32 @@ function render(){
   </header>` + refreshBarHtml();
 
   /* ---- major weather shift alerts, above everything ---- */
+  /* ---- what KIND of rain ----
+     Placed before the amounts. Millimetres alone cannot tell a reader what a
+     day will feel like: twelve from the monsoon is a grey hours-long soak,
+     twelve from an easterly storm is one violent quarter-hour. The driver
+     also decides WHERE it lands, because an easterly reverses the terrain. */
+  if (D.rainSource && D.rainSource.headline){
+    const S = D.rainSource;
+    const tw = S.thunder === 'likely' ? 'Thunderstorms likely'
+             : S.thunder === 'possible' ? 'Thunderstorms possible' : '';
+    h += `<div class="card"><h2>What kind of rain this is</h2>
+      <div class="srcline">
+        <span class="srctag src-${esc(S.key)}">${esc(S.label)}</span>
+        ${tw ? `<span class="srctag src-thunder">&#9889; ${tw}</span>` : ''}
+        ${S.windFrom !== null && S.windFrom !== undefined
+          ? `<span class="srcwind">850 hPa wind ${S.windFrom}&deg; at ${S.windMs} m/s</span>` : ''}
+      </div>
+      <p class="rhead" style="margin-top:10px"><b>${esc(S.headline)}.</b></p>
+      ${mdBold(esc(S.detail)).split(/\n\n+/).map(p => `<p class="pt">${p}</p>`).join('')}
+      ${S.terrain ? `<div class="quote">${mdBold(esc(S.terrain))}</div>` : ''}
+      ${S.burst !== null && S.burst !== undefined
+        ? `<p class="rhow">About <b>${Math.round(S.burst*100)}%</b> of the day's
+           rain is modelled to fall in a single hour &mdash; the shape of a
+           shower rather than of steady rain.</p>` : ''}
+    </div>`;
+  }
+
   if (D.alerts && D.alerts.length){
     h += `<div class="card" style="border-color:var(--alert-edge)">
       <h2>⚡ Major weather shifts — next 7 days</h2>
