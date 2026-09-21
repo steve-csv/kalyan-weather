@@ -47,6 +47,16 @@ GRADIENT_KEYS = ("santacruz", "thane", "kalyan_west", "badlapur",
                  "igatpuri", "matheran", "malshej", "lonavala", "pune")
 
 
+def _radar_belt(scan, belt) -> dict:
+    """One belt of the radar card. Uses the same reading as the markdown
+    table, so the nearby echo's rate and distance come from the same point
+    rather than the heaviest rate paired with the closest distance."""
+    here, near = radarmod.belt_reading(scan, belt)
+    return {"name": belt.name, "hereMmH": round(here, 1),
+            "nearMmH": round(near[0], 1) if near else 0.0,
+            "nearKm": round(near[1]) if near else None}
+
+
 def _synoptic_html(markdown: str) -> str:
     """
     Minimal markdown -> HTML for the synoptic block on the web page.
@@ -329,12 +339,22 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         synoptic.render(sp, sys_pic), PRIMARY_MODEL, issued,
     )
 
+    # Fetched here rather than beside its section below, because the top line
+    # of the page needs it: the radar is the only thing on this page that
+    # knows whether it is raining on someone RIGHT NOW.
+    if not quiet:
+        print("  reading the IMD radar...")
+    scan_img = radarmod.fetch("maxz", quiet=quiet)
+    home_belt = next((b for b in beltmod.BELTS if b.key == "thane_kalyan"), None)
+    radar_now = radarmod.now_clause(scan_img, home_belt, beltmod.BELTS)
+
     # ---- nowcast line first: the one line worth reading on a phone ------
     home_area = plain.summarise_areas(
         forecasts, [today], [C.AREAS_BY_KEY[C.HOME_AREA]])
     alert_block = report.h(2, "Right now")
-    alert_block += plain.nowcast_line(short, home_area, issued,
-                                      home_area=C.HOME_AREA) + "\n\n"
+    now_line = plain.nowcast_line(short, home_area, issued,
+                                  home_area=C.HOME_AREA, observed=radar_now)
+    alert_block += now_line + "\n\n"
     vline = plain.verification_line()
     if vline:
         alert_block += vline + "\n\n"
@@ -381,12 +401,8 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     steer = arrmod.steering(C.HOME, now=issued, quiet=quiet)
     arrivals_list = arrmod.arrivals(steer, quiet=quiet)
 
-    # Observation first, model second. The radar is the only thing on this
-    # page that knows whether it is raining on someone RIGHT NOW, so it goes
-    # above the modelled belt table rather than below it.
-    if not quiet:
-        print("  reading the IMD radar...")
-    scan_img = radarmod.fetch("maxz", quiet=quiet)
+    # Observation first, model second: the radar goes above the modelled belt
+    # table rather than below it.
     if scan_img is not None:
         extra += radarmod.render_now(scan_img, beltmod.BELTS) + "\n"
 
@@ -459,22 +475,9 @@ def run(target_day: date | None = None, *, quiet: bool = False,
             "peakDbz": scan_img.scene_max_dbz,
             "peakMmH": (round(radarmod.dbz_to_mm_h(scan_img.scene_max_dbz), 1)
                         if scan_img.scene_max_dbz else 0),
-            "belts": [
-                {"name": b.name,
-                 "hereMmH": round(max(
-                     (scan_img.sample(la, lo)["mm_h_here"]
-                      for _n, la, lo in b.points), default=0.0), 1),
-                 "nearMmH": round(max(
-                     (scan_img.sample(la, lo)["mm_h_near"]
-                      for _n, la, lo in b.points), default=0.0), 1),
-                 "nearKm": min(
-                     (scan_img.sample(la, lo)["near_km"]
-                      for _n, la, lo in b.points
-                      if scan_img.sample(la, lo)["near_km"] is not None),
-                     default=None)}
-                for b in beltmod.BELTS
-            ],
+            "belts": [_radar_belt(scan_img, b) for b in beltmod.BELTS],
         }
+    payload["nowLine"] = now_line
     payload["alerts"] = [
         {"severity": a.severity, "icon": a.icon, "title": a.title,
          "body": a.body, "label": plain.SEVERITY_LABEL.get(a.severity, "")}

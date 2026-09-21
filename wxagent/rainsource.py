@@ -45,7 +45,8 @@ From fields the agent already fetches, so this costs no extra requests:
     on which model was asked, which is worse than no signal at all.
   * CAPE, CIN and SHEAR - whether a thunderstorm has fuel, a lid, and the
     organisation to last.
-  * THE TRACKED SYSTEMS - if a low is close enough, it owns the day.
+  * THE TRACKED SYSTEMS - if a low is close enough AND its circulation is
+    felt here as real wind, it owns the day.
   * 500 hPa WIND in the cold half of the year, for the western-disturbance
     case.
 
@@ -82,8 +83,16 @@ NORTHERLY_FROM = ((315.0, 360.0), (0.0, 45.0))
 # Below this the 850 hPa flow is too weak to be called a driver at all.
 MIN_DRIVER_MS = 3.0
 
-# A system this close owns the day's rain regardless of the local wind.
+# A system this close CAN own the day's rain - but only if its circulation is
+# actually felt here, i.e. the 850 hPa wind clears MIN_DRIVER_MS. Distance
+# alone let a 1011 hPa low 546 km away claim a day with 2.8 m/s of wind
+# (21 Sep 2026) and describe it as widespread, long-lasting system rain.
 SYSTEM_OWNS_KM = 700.0
+
+# ...except when the centre is this close. Within about one step of the 2
+# degree pressure grid the low is effectively overhead at the resolution we
+# have, and light wind there is the calm near its centre, not its absence.
+SYSTEM_CORE_KM = 250.0
 
 # BURSTINESS: the busiest hour's share of the day's total. A day that drops
 # half its rain in one hour is showery; one that spreads it over twelve is
@@ -199,7 +208,17 @@ def classify(ms, idx: Sequence[int], *, season: str = "monsoon",
         else:
             km = getattr(getattr(nearest_system, "closest", None),
                          "distance_km", None)
-        if km is not None and km <= SYSTEM_OWNS_KM:
+        felt = wind_ms >= MIN_DRIVER_MS or (km is not None
+                                              and km <= SYSTEM_CORE_KM)
+        if km is not None and km <= SYSTEM_OWNS_KM and not felt:
+            # Near enough to set the direction of a light wind, not to drive
+            # rain. Named, so the reader is not left wondering why the alert
+            # above mentions a low that this section then ignores.
+            src.contributors.append(
+                f"a low pressure area about {km:,.0f} km away — close enough to set "
+                "the direction of the light wind here, too far to drive rain "
+                "on its own")
+        if km is not None and km <= SYSTEM_OWNS_KM and felt:
             src.key, src.label = "system", LABELS["system"]
             src.system_km, src.system_name = km, nearest_system.headline
             src.headline = "Rain from a low pressure system"
@@ -339,8 +358,8 @@ def classify(ms, idx: Sequence[int], *, season: str = "monsoon",
         src.detail = (
             "There is no strong wind or system driving rain onto this coast, "
             f"but the air holds real energy ({cape:.0f} J/kg) and the models "
-            "are putting most of what falls into their thunderstorm scheme. "
-            "That means rain built **locally by daytime heating** rather than "
+            "drop much of the day's rain in a single burst rather than "
+            "spreading it out. That means rain built **locally by daytime heating** rather than "
             "blown in: it fires in the afternoon, it is extremely patchy, and "
             "where it does land it can be brief and violent. Lightning is the "
             "real hazard with this kind of day, more than the rainfall.")
@@ -351,14 +370,27 @@ def classify(ms, idx: Sequence[int], *, season: str = "monsoon",
 
     # ---- 6. Nothing in charge -------------------------------------------
     src.headline = "No clear driver"
-    src.detail = (
-        f"The wind about a kilometre and a half up is light "
-        f"({wind_ms:.0f} m/s"
-        + (f" from the {compass(from_deg)}" if from_deg is not None else "")
-        + "), there is no system close enough to matter, and the air is not "
-        "unstable enough for storms to build on their own. Rain on a day like "
-        "this is **incidental rather than driven** — whatever falls will be "
-        "light, scattered and hard to place in advance.")
+    wind = (f"The wind about a kilometre and a half up is light "
+            f"({wind_ms:.1f} m/s"
+            + (f" from the {compass(from_deg)}" if from_deg is not None else "")
+            + "), too weak to carry rain in from anywhere")
+    if cape >= CAPE_POSSIBLE:
+        # Thunder is "none" here only because the rain is modelled as spread
+        # out. The fuel is real, and saying the air is stable would be false.
+        src.detail = (
+            wind + f". The air does hold energy for storms ({cape:.0f} J/kg), "
+            "but the models spread the day's rain out rather than dropping it "
+            "in one burst, so nothing is lining up to set that energy off. "
+            "Rain on a day like this is **incidental rather than driven** — "
+            "mostly light and scattered, with the outside chance of a local "
+            "pop-up storm, likeliest over the hills in the afternoon, that no "
+            "model can place in advance.")
+    else:
+        src.detail = (
+            wind + ", and the air is not unstable enough for storms to build "
+            "on their own. Rain on a day like this is **incidental rather "
+            "than driven** — whatever falls will be light, scattered and hard "
+            "to place in advance.")
     return src
 
 
@@ -408,8 +440,8 @@ def render(src: RainSource | None, *, day_label: str = "today") -> str:
 
     out += (
         "> The driver is read from the wind direction about a kilometre and a "
-        "half up, the models' own split between thundery and steady rain, the "
-        "energy available for storms, and how close any low pressure system "
+        "half up, whether the models drop the rain in bursts or spread it out, "
+        "the energy available for storms, and how close any low pressure system "
         "is. Where two of those disagree the page says so rather than picking "
         "one.\n"
     )

@@ -308,6 +308,61 @@ def now_band(mm_h: float) -> str:
     return NOW_BANDS[-1][1]
 
 
+def belt_reading(scan: RadarScan,
+                 belt) -> tuple[float, tuple[float, float] | None]:
+    """Heaviest rate over a belt's points, and the heaviest echo near them.
+
+    Returns (mm_h overhead, (mm_h, km) of the nearest-best echo or None).
+    """
+    here_max = 0.0
+    near_best: tuple[float, float] | None = None   # (mm_h, km)
+    for _nm, la, lo in belt.points:
+        r = scan.sample(la, lo)
+        here_max = max(here_max, r["mm_h_here"])
+        if r["dbz_near"] is not None:
+            cand = (r["mm_h_near"], r["near_km"] or 0.0)
+            if near_best is None or cand[0] > near_best[0]:
+                near_best = cand
+    return here_max, near_best
+
+
+# Older than this, a scan no longer describes "now" well enough to lead the
+# page with. A convective cell can form and rain out inside three quarters of
+# an hour.
+STALE_MINUTES = 45.0
+
+
+def now_clause(scan: RadarScan | None, home, belts) -> str | None:
+    """The radar's half of the top-of-page line: what the beam sees over home.
+
+    None when there is no usable scan, so the caller falls back to the model.
+    """
+    if scan is None or home is None:
+        return None
+    age = scan.age_minutes
+    if age is not None and age > STALE_MINUTES:
+        return None
+    when = f"{scan.scanned_at:%H:%M} " if scan.scanned_at else ""
+
+    here, near = belt_reading(scan, home)
+    if here >= 0.5:
+        return (f"radar shows **{now_band(here)}** falling here now "
+                f"(~{here:.0f} mm/hr on the {when}scan).")
+
+    first = f"nothing falling here on the {when}radar scan"
+    if near and near[0] >= 2.5 and near[1] > 3:
+        return f"{first}, but {now_band(near[0])} is ~{near[1]:.0f} km away."
+
+    elsewhere = [b.name.removesuffix(" belt") for b in belts
+                 if b is not home and belt_reading(scan, b)[0] >= 0.5]
+    if elsewhere:
+        shown = elsewhere[:3]
+        names = (", ".join(shown[:-1]) + " and " + shown[-1]
+                 if len(shown) > 1 else shown[0])
+        return f"{first}; rain is falling over {names}."
+    return f"{first}, and none anywhere else in the MMR."
+
+
 def render_now(scan: RadarScan | None, belts) -> str:
     """The observed-conditions section: what radar has, belt by belt.
 
@@ -336,15 +391,7 @@ def render_now(scan: RadarScan | None, belts) -> str:
     rows: list[str] = []
     wet_names: list[str] = []
     for belt in belts:
-        here_max = 0.0
-        near_best: tuple[float, float] | None = None   # (mm_h, km)
-        for _nm, la, lo in belt.points:
-            r = scan.sample(la, lo)
-            here_max = max(here_max, r["mm_h_here"])
-            if r["dbz_near"] is not None:
-                cand = (r["mm_h_near"], r["near_km"] or 0.0)
-                if near_best is None or cand[0] > near_best[0]:
-                    near_best = cand
+        here_max, near_best = belt_reading(scan, belt)
 
         if here_max >= 0.5:
             wet_names.append(belt.name)

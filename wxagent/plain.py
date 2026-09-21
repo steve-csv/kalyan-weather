@@ -580,8 +580,22 @@ def render_weekend(wk: Weekend | None) -> str:
 # The nowcast line
 # --------------------------------------------------------------------------
 
+def _model_next_hours(short) -> str:
+    """The model's half of the line, once radar has said what is falling."""
+    if short is None or short.total_mm < 0.5:
+        return "The models add nothing for the next few hours."
+    if short.peak_mm_h >= C.HEAVY_SPELL_MM_PER_H:
+        return ("The models line up heavy downpours over the next few hours — "
+                "waterlogging likely, travel accordingly. ⛈️")
+    when = (f" from about {short.first_wet_hour:%H:%M}"
+            if short.first_wet_hour else "")
+    return (f"The models bring spells of rain{when}, about "
+            f"{short.total_mm:.0f} mm over the next few hours. 🌧️")
+
+
 def nowcast_line(short, areas: Sequence[AreaSummary], now: datetime, *,
-                 home_area: str = "kalyan_belt") -> str:
+                 home_area: str = "kalyan_belt",
+                 observed: str | None = None) -> str:
     """
     One timestamped line, written the way a live nowcast is written here:
     time, which part of the MMR, what is coming, what to do about it.
@@ -589,12 +603,19 @@ def nowcast_line(short, areas: Sequence[AreaSummary], now: datetime, *,
     Deliberately short. This is the line that would be read on a phone while
     someone decides whether to leave now or wait twenty minutes, and every
     extra clause makes it less likely to be read at all.
+
+    `observed` is radar.now_clause(): when there is a fresh scan it leads,
+    because it is the only input that knows what is falling right now. The
+    model is then asked only what it is for - the hours after the scan.
     """
     # %-I (no zero pad) is POSIX-only and raises on Windows, so pad and strip.
     stamp = now.strftime("%I:%M %p").lstrip("0")
 
     home = next((a for a in areas if a.key == home_area), None)
     label = home.name if home else "the MMR"
+
+    if observed:
+        return f"**{stamp}** – {label}: {observed} {_model_next_hours(short)}"
 
     if short is None or short.total_mm < 0.5:
         return (f"**{stamp}** – {label}: nothing significant on the models for "

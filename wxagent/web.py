@@ -203,7 +203,8 @@ def build_weekly_payload(days: list, wind_rows: list[dict],
 
 
 def render(payload: dict, windy_links: list, model_links: list, *,
-           weekly: dict | None = None, public: bool = False) -> str:
+           weekly: dict | None = None, public: bool = False,
+           carry_key: bool = True) -> str:
     """Render a standalone page. Pass `weekly` to add the tabbed week view."""
     # Config-derived values are injected at RENDER time, not read from the
     # cached payload. A cache written before a setting existed would otherwise
@@ -213,7 +214,7 @@ def render(payload: dict, windy_links: list, model_links: list, *,
     # be embedded in plain sight in a world-readable page - and a repository
     # scanner will flag it even though this particular key is inert. The map
     # simply does not appear on the public build.
-    map_key = "" if public else C.WINDY_MAP_KEY
+    map_key = "" if (public or not carry_key) else C.WINDY_MAP_KEY
 
     payload = dict(payload)
     payload.setdefault("lat", C.HOME.lat)
@@ -259,7 +260,11 @@ def render_artifact(payload: dict, weekly: dict, windy_links: list,
     payload = dict(payload)
     payload["artifact"] = True
 
-    full = render(payload, windy_links, model_links, weekly=weekly)
+    # No map key: the Artifact sandbox only loads scripts from two CDNs, so
+    # Windy's map library cannot run there anyway, and the page can be shared
+    # further than the owner - the same reason the public build drops it.
+    full = render(payload, windy_links, model_links, weekly=weekly,
+                  carry_key=False)
 
     style = re.search(r"<style>(.*?)</style>", full, re.S)
     body = re.search(r"<body>(.*?)</body>", full, re.S)
@@ -1380,7 +1385,7 @@ function renderWeekly(){
       ${D.alerts.map(a => `<div class="alert a-${esc(a.severity)}">
         <div class="ai">${esc(a.icon)}</div>
         <div><div class="at"><span class="tag">${esc(a.label)}</span> ${esc(a.title)}</div>
-        <div class="ab">${esc(a.body)}${subList(a.points)}</div></div></div>`).join('')}
+        <div class="ab">${mdBold(a.body)}${subList(a.points)}</div></div></div>`).join('')}
     </div>`;
   } else {
     h += `<div class="card"><h2>⚡ Major weather shifts this week</h2>
@@ -2952,7 +2957,14 @@ function render(){
     ${navHtml('today')}
   </header>` + refreshBarHtml();
 
-  /* ---- major weather shift alerts, above everything ---- */
+  /* ---- right now: the radar leads, the model follows ----
+     The one line worth reading on a phone. When there is a fresh scan it says
+     what the beam sees falling, and only then what the models expect. */
+  if (D.nowLine){
+    h += `<div class="card"><h2>Right now</h2>
+      <p class="rhead" style="margin:0">${mdBold(D.nowLine)}</p></div>`;
+  }
+
   /* ---- what KIND of rain ----
      Placed before the amounts. Millimetres alone cannot tell a reader what a
      day will feel like: twelve from the monsoon is a grey hours-long soak,
@@ -2970,12 +2982,14 @@ function render(){
           ? `<span class="srcwind">850 hPa wind ${S.windFrom}&deg; at ${S.windMs} m/s</span>` : ''}
       </div>
       <p class="rhead" style="margin-top:10px"><b>${esc(S.headline)}.</b></p>
-      ${mdBold(esc(S.detail)).split(/\n\n+/).map(p => `<p class="pt">${p}</p>`).join('')}
-      ${S.terrain ? `<div class="quote">${mdBold(esc(S.terrain))}</div>` : ''}
-      ${S.burst !== null && S.burst !== undefined
+      ${mdBold(S.detail).split(/\n\n+/).map(p => `<p class="pt">${p}</p>`).join('')}
+      ${S.terrain ? `<div class="quote">${mdBold(S.terrain)}</div>` : ''}
+      ${tw && S.burst !== null && S.burst !== undefined
         ? `<p class="rhow">About <b>${Math.round(S.burst*100)}%</b> of the day's
            rain is modelled to fall in a single hour &mdash; the shape of a
            shower rather than of steady rain.</p>` : ''}
+      ${S.contributors && S.contributors.length
+        ? `<p class="rhow">Also in play: ${S.contributors.map(mdBold).join('; ')}.</p>` : ''}
     </div>`;
   }
 
@@ -2985,7 +2999,7 @@ function render(){
       ${D.alerts.map(a => `<div class="alert a-${esc(a.severity)}">
         <div class="ai">${esc(a.icon)}</div>
         <div><div class="at"><span class="tag">${esc(a.label)}</span> ${esc(a.title)}</div>
-        <div class="ab">${esc(a.body)}${subList(a.points)}</div></div></div>`).join('')}
+        <div class="ab">${mdBold(a.body)}${subList(a.points)}</div></div></div>`).join('')}
     </div>`;
   } else {
     h += `<div class="card"><h2>⚡ Major weather shifts</h2>
@@ -3227,8 +3241,9 @@ function render(){
         : `<ol class="qs">${nc.questions.map(q => `<li>${esc(q)}</li>`).join('')}</ol>`}
       <div class="quote"><b>What radar will not tell you.</b>
         ${nc.limits.map(esc).join(' ')}
-        This page deliberately does not compute arrival times from radar images —
-        inverting a colour scale and extrapolating it produces a number that
+        This page reads the latest scan for what is falling now, but does not
+        extrapolate it into arrival times — one frame gives position, not
+        motion, and a straight line projected from it produces a number that
         looks precise and is not. Use IMD's own nowcasts for anything
         safety-critical.</div>
     </div>`;

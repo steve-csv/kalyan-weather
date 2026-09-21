@@ -451,8 +451,9 @@ def render(sr: ShortRange | None) -> str:
     # section read as though the checklist had gone unanswered.
     out += "> **What radar will not tell you** (Guide §16.2): "
     out += " ".join(RADAR_LIMITS)
-    out += ("\n>\n> This agent deliberately does not compute arrival times from "
-            "radar images. Inverting a colour scale into reflectivity and "
-            "extrapolating it would produce a number that looks precise and "
-            "is not. Use IMD's own nowcasts for anything safety-critical.\n\n")
+    out += ("\n>\n> This agent reads the latest scan for what is falling now, "
+            "but deliberately does not extrapolate it into arrival times. One "
+            "frame gives position, not motion, and a straight line projected "
+            "from it would produce a number that looks precise and is not. "
+            "Use IMD's own nowcasts for anything safety-critical.\n\n")
     return out
