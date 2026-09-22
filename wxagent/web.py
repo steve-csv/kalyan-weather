@@ -3021,7 +3021,7 @@ function render(){
       <p class="rhead" style="margin-top:10px"><b>${esc(S.headline)}.</b></p>
       ${mdBold(S.detail).split(/\n\n+/).map(p => `<p class="pt">${p}</p>`).join('')}
       ${S.terrain ? `<div class="quote">${mdBold(S.terrain)}</div>` : ''}
-      ${tw && S.burst !== null && S.burst !== undefined
+      ${tw && S.burst !== null && S.burst !== undefined && S.burst >= 0.28
         ? `<p class="rhow">About <b>${Math.round(S.burst*100)}%</b> of the day's
            rain is modelled to fall in a single hour &mdash; the shape of a
            shower rather than of steady rain.</p>` : ''}

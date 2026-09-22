@@ -803,8 +803,17 @@ COMMON_MIN_DBZ = 25.0
 # Below this share of the lead radar's echo area, the other one is not seeing
 # the same sky and cannot be used to doubt it. On 22 Sep 2026 at 11:20 the
 # C-band had an organised rain band over the sea WSW of the city and Colaba's
-# S-band showed one speck in 250 km.
-MIN_CHECK_SHARE = 0.15
+# S-band showed one speck in 250 km; at 18:00 the same day Colaba saw 31% of
+# the C-band's echo and missed most of a Ghat storm complex - enough echo to
+# pass a 15% bar, not enough to be trusted to say "nothing here".
+MIN_CHECK_SHARE = 0.5
+# Convective cells change completely in half an hour, so two scans further
+# apart than this cannot confirm or doubt each other at all.
+CHECK_MAX_GAP_MIN = 15.0
+# Where a scan time is only an upload time (Colaba), the scan is taken to be
+# this much earlier: the two gaps measured on 21-22 Sep 2026 were 11.5 and 16
+# minutes.
+UPLOAD_LAG_EST_MIN = 14.0
 # ...unless the lead radar itself has little echo, when a small patch the
 # other cannot see is exactly the case the check exists for.
 CHECK_FLOOR_KM2 = 200.0
@@ -824,10 +833,28 @@ def echo_area_km2(scan: RadarScan) -> float:
     return n * k * k
 
 
+def scan_time_estimate(scan: RadarScan | None) -> datetime | None:
+    """The scan time, or for an upload-time-only radar, a best estimate."""
+    if scan is None or scan.scanned_at is None:
+        return None
+    if scan.time_exact:
+        return scan.scanned_at
+    from datetime import timedelta
+    return scan.scanned_at - timedelta(minutes=UPLOAD_LAG_EST_MIN)
+
+
 def can_check(scan: RadarScan, other: RadarScan | None) -> tuple[bool, str]:
     """Whether `other` is fit to confirm or doubt `scan` this run."""
     if not fresh(other):
         return False, ""
+    t1, t2 = scan_time_estimate(scan), scan_time_estimate(other)
+    if t1 is not None and t2 is not None:
+        gap = abs((t1 - t2).total_seconds()) / 60.0
+        if gap > CHECK_MAX_GAP_MIN:
+            return False, (
+                f"The two Mumbai radars' latest scans are about {gap:.0f} "
+                f"minutes apart, too far for one to confirm or doubt the other "
+                f"— showers form and die in less time than that.")
     lead, second = echo_area_km2(scan), echo_area_km2(other)
     if lead >= CHECK_FLOOR_KM2 and second < MIN_CHECK_SHARE * lead:
         return False, (

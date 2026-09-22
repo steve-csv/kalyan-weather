@@ -580,6 +580,12 @@ def render_weekend(wk: Weekend | None) -> str:
 # The nowcast line
 # --------------------------------------------------------------------------
 
+def _mm(v: float) -> str:
+    """A small total in words. Rounding 0.5-0.9 mm to "0 mm" read as a
+    contradiction of the "spells of rain" in the same sentence."""
+    return "under 1 mm" if v < 1.0 else f"about {v:.0f} mm"
+
+
 def _model_next_hours(short) -> str:
     """The model's half of the line, once radar has said what is falling."""
     if short is None or short.total_mm < 0.5:
@@ -589,8 +595,8 @@ def _model_next_hours(short) -> str:
                 "waterlogging likely, travel accordingly. ⛈️")
     when = (f" from about {short.first_wet_hour:%H:%M}"
             if short.first_wet_hour else "")
-    return (f"The models bring spells of rain{when}, about "
-            f"{short.total_mm:.0f} mm over the next few hours. 🌧️")
+    return (f"The models bring spells of rain{when}, "
+            f"{_mm(short.total_mm)} over the next few hours. 🌧️")
 
 
 def nowcast_line(short, areas: Sequence[AreaSummary], now: datetime, *,
@@ -633,7 +639,7 @@ def nowcast_line(short, areas: Sequence[AreaSummary], now: datetime, *,
              "steady": "steady", "dry": "petering out"}.get(short.trend, "")
     return (f"**{stamp}** – {label}: spells of rain{when}, "
             f"{trend} through the next few hours. "
-            f"About {short.total_mm:.0f} mm expected in that window. 🌧️")
+            f"{_mm(short.total_mm).capitalize()} expected in that window. 🌧️")
 
 
 # --------------------------------------------------------------------------

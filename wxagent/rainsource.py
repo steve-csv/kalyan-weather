@@ -106,6 +106,9 @@ BURST_SOME = 0.28
 CAPE_LIKELY = 1000.0
 CAPE_POSSIBLE = 600.0
 
+# IMD's threshold for a day with measurable rain.
+WET_DAY_MM = 2.5
+
 LABELS = {
     "system": "Low pressure system",
     "sw_monsoon": "Southwest monsoon flow",
@@ -299,8 +302,54 @@ def classify(ms, idx: Sequence[int], *, season: str = "monsoon",
 
     # ---- 3b. Dry continental northerly ----------------------------------
     if wind_ms >= MIN_DRIVER_MS and any(_in(from_deg, w) for w in NORTHERLY_FROM):
-        src.key, src.label = "northerly", LABELS["northerly"]
         withdrawing = season in ("monsoon", "post_monsoon")
+        # A northerly only means DRY when the column is dry and the models
+        # agree. On 22 Sep 2026 it came with 95/91/78% humidity, 2300 J/kg
+        # and 11-23 mm forecast, while the radar had a storm complex over the
+        # Ghats - and this branch said "expect little or no rain".
+        still_wet = total >= WET_DAY_MM or moist.depth_class == "deep"
+        if still_wet and cape >= CAPE_POSSIBLE:
+            # Nothing is blowing rain in, so what falls is built in place by
+            # rising warm air - convective, whatever shape the model gives it.
+            if src.thunder_risk == "none":
+                src.thunder_risk = "possible"
+            src.key, src.label = "thunderstorm", LABELS["thunderstorm"]
+            src.headline = ("Heat-built storms under a northerly — the monsoon "
+                            "pulling back" if withdrawing else
+                            "Heat-built storms under a northerly")
+            src.detail = (
+                f"The wind a kilometre and a half up is from the "
+                f"**{compass(from_deg)}** at {wind_ms:.0f} m/s — off the land, "
+                "not in off the sea"
+                + (", the pattern of the monsoon withdrawing" if withdrawing
+                   else "")
+                + ". So today's rain is **not blown in**. But the air is still "
+                "humid a long way up — the monsoon has left its moisture "
+                f"behind — and it holds real energy ({cape:.0f} J/kg). The "
+                "day's heat lifts it, so rain comes as **thunderstorms that "
+                "build over the Ghats in the afternoon and drift out in the "
+                "evening**: heavy and very local where they land, with dry "
+                "gaps between, and lightning.")
+            src.terrain_note = (
+                "The hills set these storms off, not the sea wind, so the Ghat "
+                "belts — Karjat, Badlapur, Malshej, Matheran — usually light up "
+                "first, and the coast gets whatever drifts down from them "
+                "later, if anything.")
+            src.contributors.append(
+                "northerly flow aloft — the monsoon pulling back")
+            return src
+        if still_wet:
+            src.key, src.label = "weak", LABELS["weak"]
+            src.headline = "Leftover moisture under a northerly"
+            src.detail = (
+                f"The wind a kilometre and a half up is from the "
+                f"**{compass(from_deg)}** at {wind_ms:.0f} m/s, off the land, "
+                "so nothing is blowing rain in. The air is still humid from "
+                "the monsoon but too stable for storms, so expect **light, "
+                "patchy rain** at most rather than organised spells.")
+            return src
+
+        src.key, src.label = "northerly", LABELS["northerly"]
         src.headline = ("Dry northerly air — the monsoon pulling back"
                         if withdrawing else "Dry northerly air")
         src.detail = (
@@ -425,8 +474,12 @@ def render(src: RainSource | None, *, day_label: str = "today") -> str:
             + (f"About **{burst:.0%}** of the day's rain is modelled to fall "
                "in a single hour, which is the shape of a shower rather than "
                "of steady rain"
-               if burst is not None else
-               "The rainfall is modelled as showery rather than steady")
+               if burst is not None and burst >= BURST_SOME else
+               "The models spread the rain over the day, but with nothing "
+               "blowing it in, what falls has to be built in place by rising "
+               "warm air — which is what a thunderstorm is. A model's hourly "
+               "grid smears a storm across its box, so the shape it gives "
+               "is not the shape you will see")
             + ". Treat this as a risk, not a promise — stored energy only "
               "becomes a storm if something sets it off, and plenty of days "
               "with this much fuel produce nothing at all.\n\n"
