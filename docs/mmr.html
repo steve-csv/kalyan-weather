@@ -826,10 +826,12 @@ tbody tr{transition:background-color .15s var(--ease)}
 <div id="tip"></div>
 
 <script>
-const DAILY = {"page": "weekly", "site": "Mumbai MMR", "issued": "22 Sep 2026, 18:19 IST", "validDate": "Tue 22 Sep – Mon 28 Sep 2026", "season": "Southwest monsoon", "weekRegime": {"label": "BREAK / SUBDUED", "note": "5 of 7 days have negligible onshore forcing (mean +2.3 m/s). Handbook Ch.13: the break pattern — longer dry intervals, shallower cloud, weaker rain bands. Local convection can still fire, but the monsoon engine is idling."}, "synoptic": "<p style='margin:0 0 10px'><b>Season:</b> Southwest monsoon. Monsoon mechanisms are the primary framework: monsoon trough position, offshore trough, onshore 850hPa flow and orographic lift against the Ghats. Convective triggers are secondary.</p><p style='margin:0 0 10px'><b>Monsoon trough:</b> axis near <b>20.0°N</b> (minimum 1005.9 hPa along the 80°E transect) — <b>active-leaning</b>.   The trough is in or south of its normal position over the plains. Handbook Ch.13: this is the active-spell configuration - cross-equatorial flow strong, rain widespread and often heavy across the west coast.</p><p style='margin:0 0 10px'><b>Cross-coast gradient:</b> Cross-coast pressure gradient (sea minus inland) is +0.9 hPa — pressure falls inland, which strengthens the westerly moisture transport toward the Konkan (Guide s2.3). Trough detection itself is handled on a finer 2D grid; see the systems section.</p><div class=\"quote\">The two features disagree. Guide s10.3: models often disagree most on timing during these transitions, so lean harder on observations — radar and satellite — than usual.</div><div class=\"quote\"><b>But this is today&#x27;s snapshot, and a system is already on the way.</b> The tracker is following a low (tracking NW, minimum 992 hPa) that closes to about 874 km. A low crossing central India along the trough is the usual mechanism for pulling the trough back south and re-strengthening the westerlies into the Konkan, so read the verdict above as <b>a description of today</b>, not as a forecast for the rest of the week. The systems section below has the track.</div>", "windRows": [{"day": "Tue 22 Sep", "short": "Tue", "dir": "N (6°)", "speed": 3.5, "orographic": -1.0, "forcing": "offshore"}, {"day": "Wed 23 Sep", "short": "Wed", "dir": "N (353°)", "speed": 5.2, "orographic": -0.3, "forcing": "offshore"}, {"day": "Thu 24 Sep", "short": "Thu", "dir": "N (359°)", "speed": 8.1, "orographic": -1.2, "forcing": "offshore"}, {"day": "Fri 25 Sep", "short": "Fri", "dir": "NW (322°)", "speed": 7.9, "orographic": 3.7, "forcing": "negligible"}, {"day": "Sat 26 Sep", "short": "Sat", "dir": "W (278°)", "speed": 5.8, "orographic": 5.5, "forcing": "weak"}, {"day": "Sun 27 Sep", "short": "Sun", "dir": "W (269°)", "speed": 6.0, "orographic": 5.9, "forcing": "weak"}, {"day": "Mon 28 Sep", "short": "Mon", "dir": "W (277°)", "speed": 3.6, "orographic": 3.5, "forcing": "negligible"}], "siteRows": [{"name": "Mumbai - Colaba", "zone": "coastal", "home": false, "cells": [{"short": "Tue", "lo": 10.7, "hi": 16.0, "tip": "Mumbai - Colaba Tue 22 Sep: 11-16 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.1, "hi": 7.9, "tip": "Mumbai - Colaba Wed 23 Sep: 1-8 mm (Light rain)"}, {"short": "Thu", "lo": 0.1, "hi": 4.5, "tip": "Mumbai - Colaba Thu 24 Sep: 0-4 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 3.6, "tip": "Mumbai - Colaba Fri 25 Sep: 0-4 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.2, "tip": "Mumbai - Colaba Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Mumbai - Colaba Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Mumbai - Colaba Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 25.3}, {"name": "Mumbai - Santacruz", "zone": "coastal", "home": false, "cells": [{"short": "Tue", "lo": 12.7, "hi": 19.3, "tip": "Mumbai - Santacruz Tue 22 Sep: 13-19 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.6, "hi": 8.9, "tip": "Mumbai - Santacruz Wed 23 Sep: 2-9 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 3.5, "tip": "Mumbai - Santacruz Thu 24 Sep: 0-4 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 3.6, "tip": "Mumbai - Santacruz Fri 25 Sep: 0-4 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.2, "tip": "Mumbai - Santacruz Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Mumbai - Santacruz Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Mumbai - Santacruz Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 24.4}, {"name": "Mumbai - Borivali", "zone": "coastal", "home": false, "cells": [{"short": "Tue", "lo": 17.4, "hi": 19.5, "tip": "Mumbai - Borivali Tue 22 Sep: 17-20 mm (Moderate rain)"}, {"short": "Wed", "lo": 0.8, "hi": 10.4, "tip": "Mumbai - Borivali Wed 23 Sep: 1-10 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 5.5, "tip": "Mumbai - Borivali Thu 24 Sep: 0-6 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 2.7, "tip": "Mumbai - Borivali Fri 25 Sep: 0-3 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 0.6, "tip": "Mumbai - Borivali Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Mumbai - Borivali Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Mumbai - Borivali Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 33.0}, {"name": "Mumbai - Chembur", "zone": "coastal", "home": false, "cells": [{"short": "Tue", "lo": 12.7, "hi": 19.3, "tip": "Mumbai - Chembur Tue 22 Sep: 13-19 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.6, "hi": 8.9, "tip": "Mumbai - Chembur Wed 23 Sep: 2-9 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 3.5, "tip": "Mumbai - Chembur Thu 24 Sep: 0-4 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 3.6, "tip": "Mumbai - Chembur Fri 25 Sep: 0-4 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.2, "tip": "Mumbai - Chembur Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Mumbai - Chembur Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Mumbai - Chembur Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 24.4}, {"name": "Vasai-Virar", "zone": "coastal", "home": false, "cells": [{"short": "Tue", "lo": 9.0, "hi": 12.2, "tip": "Vasai-Virar Tue 22 Sep: 9-12 mm (Light rain)"}, {"short": "Wed", "lo": 0.9, "hi": 8.2, "tip": "Vasai-Virar Wed 23 Sep: 1-8 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 2.4, "tip": "Vasai-Virar Thu 24 Sep: 0-2 mm (No / trace rain)"}, {"short": "Fri", "lo": 0.2, "hi": 2.7, "tip": "Vasai-Virar Fri 25 Sep: 0-3 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.2, "tip": "Vasai-Virar Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.3, "tip": "Vasai-Virar Sun 27 Sep: 0-0 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Vasai-Virar Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 19.7}, {"name": "Palghar", "zone": "coastal", "home": false, "cells": [{"short": "Tue", "lo": 0.9, "hi": 6.0, "tip": "Palghar Tue 22 Sep: 1-6 mm (Light rain)"}, {"short": "Wed", "lo": 1.8, "hi": 5.1, "tip": "Palghar Wed 23 Sep: 2-5 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 2.7, "tip": "Palghar Thu 24 Sep: 0-3 mm (Light rain)"}, {"short": "Fri", "lo": 0.1, "hi": 3.0, "tip": "Palghar Fri 25 Sep: 0-3 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 0.9, "tip": "Palghar Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.0, "tip": "Palghar Sun 27 Sep: 0-0 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Palghar Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 8.3}, {"name": "Thane", "zone": "transition", "home": false, "cells": [{"short": "Tue", "lo": 7.2, "hi": 21.6, "tip": "Thane Tue 22 Sep: 7-22 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.1, "hi": 9.6, "tip": "Thane Wed 23 Sep: 1-10 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 10.9, "tip": "Thane Thu 24 Sep: 0-11 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 2.7, "tip": "Thane Fri 25 Sep: 0-3 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 0.6, "tip": "Thane Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Thane Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Thane Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 33.8}, {"name": "Bhiwandi", "zone": "transition", "home": false, "cells": [{"short": "Tue", "lo": 7.2, "hi": 21.6, "tip": "Bhiwandi Tue 22 Sep: 7-22 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.1, "hi": 9.6, "tip": "Bhiwandi Wed 23 Sep: 1-10 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 10.9, "tip": "Bhiwandi Thu 24 Sep: 0-11 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 2.7, "tip": "Bhiwandi Fri 25 Sep: 0-3 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 0.6, "tip": "Bhiwandi Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Bhiwandi Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Bhiwandi Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 33.8}, {"name": "Kalyan West", "zone": "transition", "home": true, "cells": [{"short": "Tue", "lo": 11.0, "hi": 23.0, "tip": "Kalyan West Tue 22 Sep: 11-23 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.6, "hi": 9.9, "tip": "Kalyan West Wed 23 Sep: 2-10 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 19.0, "tip": "Kalyan West Thu 24 Sep: 0-19 mm (Moderate rain)"}, {"short": "Fri", "lo": 0.1, "hi": 3.9, "tip": "Kalyan West Fri 25 Sep: 0-4 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.5, "tip": "Kalyan West Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 1.2, "tip": "Kalyan West Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Kalyan West Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 29.7}, {"name": "Dombivli", "zone": "transition", "home": false, "cells": [{"short": "Tue", "lo": 11.0, "hi": 23.0, "tip": "Dombivli Tue 22 Sep: 11-23 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.6, "hi": 9.6, "tip": "Dombivli Wed 23 Sep: 2-10 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 19.0, "tip": "Dombivli Thu 24 Sep: 0-19 mm (Moderate rain)"}, {"short": "Fri", "lo": 0.1, "hi": 3.6, "tip": "Dombivli Fri 25 Sep: 0-4 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 0.6, "tip": "Dombivli Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Dombivli Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Dombivli Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 31.2}, {"name": "Navi Mumbai - Panvel", "zone": "transition", "home": false, "cells": [{"short": "Tue", "lo": 11.5, "hi": 14.7, "tip": "Navi Mumbai - Panvel Tue 22 Sep: 12-15 mm (Light rain)"}, {"short": "Wed", "lo": 2.5, "hi": 5.1, "tip": "Navi Mumbai - Panvel Wed 23 Sep: 2-5 mm (Light rain)"}, {"short": "Thu", "lo": 0.2, "hi": 19.2, "tip": "Navi Mumbai - Panvel Thu 24 Sep: 0-19 mm (Moderate rain)"}, {"short": "Fri", "lo": 0.1, "hi": 6.1, "tip": "Navi Mumbai - Panvel Fri 25 Sep: 0-6 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.2, "tip": "Navi Mumbai - Panvel Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Navi Mumbai - Panvel Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Navi Mumbai - Panvel Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 25.0}, {"name": "Alibag", "zone": "coastal", "home": false, "cells": [{"short": "Tue", "lo": 7.2, "hi": 12.4, "tip": "Alibag Tue 22 Sep: 7-12 mm (Light rain)"}, {"short": "Wed", "lo": 2.6, "hi": 9.6, "tip": "Alibag Wed 23 Sep: 3-10 mm (Light rain)"}, {"short": "Thu", "lo": 0.4, "hi": 8.6, "tip": "Alibag Thu 24 Sep: 0-9 mm (Light rain)"}, {"short": "Fri", "lo": 0.1, "hi": 5.4, "tip": "Alibag Fri 25 Sep: 0-5 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.8, "tip": "Alibag Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.9, "tip": "Alibag Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Alibag Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 25.5}, {"name": "Badlapur", "zone": "transition", "home": false, "cells": [{"short": "Tue", "lo": 13.6, "hi": 19.3, "tip": "Badlapur Tue 22 Sep: 14-19 mm (Moderate rain)"}, {"short": "Wed", "lo": 3.7, "hi": 9.9, "tip": "Badlapur Wed 23 Sep: 4-10 mm (Light rain)"}, {"short": "Thu", "lo": 0.2, "hi": 18.6, "tip": "Badlapur Thu 24 Sep: 0-19 mm (Moderate rain)"}, {"short": "Fri", "lo": 0.4, "hi": 6.1, "tip": "Badlapur Fri 25 Sep: 0-6 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.5, "tip": "Badlapur Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 1.2, "tip": "Badlapur Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Badlapur Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 30.4}, {"name": "Karjat", "zone": "transition", "home": false, "cells": [{"short": "Tue", "lo": 10.6, "hi": 17.9, "tip": "Karjat Tue 22 Sep: 11-18 mm (Moderate rain)"}, {"short": "Wed", "lo": 0.4, "hi": 21.0, "tip": "Karjat Wed 23 Sep: 0-21 mm (Moderate rain)"}, {"short": "Thu", "lo": 0.0, "hi": 9.3, "tip": "Karjat Thu 24 Sep: 0-9 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 6.6, "tip": "Karjat Fri 25 Sep: 0-7 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.5, "tip": "Karjat Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 1.2, "tip": "Karjat Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.6, "tip": "Karjat Mon 28 Sep: 0-1 mm (No / trace rain)"}], "week": 37.9}, {"name": "Igatpuri", "zone": "ghat", "home": false, "cells": [{"short": "Tue", "lo": 16.9, "hi": 23.7, "tip": "Igatpuri Tue 22 Sep: 17-24 mm (Moderate rain)"}, {"short": "Wed", "lo": 3.7, "hi": 6.3, "tip": "Igatpuri Wed 23 Sep: 4-6 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 9.3, "tip": "Igatpuri Thu 24 Sep: 0-9 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 1.5, "tip": "Igatpuri Fri 25 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sat", "lo": 0.0, "hi": 2.4, "tip": "Igatpuri Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 2.4, "tip": "Igatpuri Sun 27 Sep: 0-2 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 1.5, "tip": "Igatpuri Mon 28 Sep: 0-2 mm (No / trace rain)"}], "week": 28.1}, {"name": "Matheran", "zone": "ghat", "home": false, "cells": [{"short": "Tue", "lo": 12.6, "hi": 18.6, "tip": "Matheran Tue 22 Sep: 13-19 mm (Moderate rain)"}, {"short": "Wed", "lo": 2.1, "hi": 21.0, "tip": "Matheran Wed 23 Sep: 2-21 mm (Moderate rain)"}, {"short": "Thu", "lo": 0.0, "hi": 18.8, "tip": "Matheran Thu 24 Sep: 0-19 mm (Moderate rain)"}, {"short": "Fri", "lo": 0.0, "hi": 6.6, "tip": "Matheran Fri 25 Sep: 0-7 mm (Light rain)"}, {"short": "Sat", "lo": 0.1, "hi": 1.5, "tip": "Matheran Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 1.2, "tip": "Matheran Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.6, "tip": "Matheran Mon 28 Sep: 0-1 mm (No / trace rain)"}], "week": 37.5}, {"name": "Malshej Ghat", "zone": "ghat", "home": false, "cells": [{"short": "Tue", "lo": 9.9, "hi": 15.8, "tip": "Malshej Ghat Tue 22 Sep: 10-16 mm (Moderate rain)"}, {"short": "Wed", "lo": 3.1, "hi": 8.0, "tip": "Malshej Ghat Wed 23 Sep: 3-8 mm (Light rain)"}, {"short": "Thu", "lo": 0.1, "hi": 4.8, "tip": "Malshej Ghat Thu 24 Sep: 0-5 mm (Light rain)"}, {"short": "Fri", "lo": 0.4, "hi": 3.6, "tip": "Malshej Ghat Fri 25 Sep: 0-4 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 2.1, "tip": "Malshej Ghat Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 1.2, "tip": "Malshej Ghat Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Malshej Ghat Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 19.9}, {"name": "Lonavala", "zone": "ghat", "home": false, "cells": [{"short": "Tue", "lo": 9.5, "hi": 16.2, "tip": "Lonavala Tue 22 Sep: 10-16 mm (Moderate rain)"}, {"short": "Wed", "lo": 0.9, "hi": 9.2, "tip": "Lonavala Wed 23 Sep: 1-9 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 6.6, "tip": "Lonavala Thu 24 Sep: 0-7 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 5.1, "tip": "Lonavala Fri 25 Sep: 0-5 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 2.1, "tip": "Lonavala Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 1.8, "tip": "Lonavala Sun 27 Sep: 0-2 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Lonavala Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 24.2}, {"name": "Pune", "zone": "leeward", "home": false, "cells": [{"short": "Tue", "lo": 12.0, "hi": 16.7, "tip": "Pune Tue 22 Sep: 12-17 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.5, "hi": 7.2, "tip": "Pune Wed 23 Sep: 2-7 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 1.5, "tip": "Pune Thu 24 Sep: 0-2 mm (No / trace rain)"}, {"short": "Fri", "lo": 0.0, "hi": 0.3, "tip": "Pune Fri 25 Sep: 0-0 mm (No / trace rain)"}, {"short": "Sat", "lo": 0.0, "hi": 0.6, "tip": "Pune Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.0, "tip": "Pune Sun 27 Sep: 0-0 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Pune Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 15.1}], "troughRows": [{"day": "Tue 22 Sep", "axis": "20.0°N", "phase": "active-leaning"}, {"day": "Wed 23 Sep", "axis": "21.0°N", "phase": "active-leaning"}, {"day": "Thu 24 Sep", "axis": "20.0°N", "phase": "active-leaning"}, {"day": "Fri 25 Sep", "axis": "22.0°N", "phase": "active-leaning"}, {"day": "Sat 26 Sep", "axis": "22.0°N", "phase": "active-leaning"}, {"day": "Sun 27 Sep", "axis": "26.0°N", "phase": "transitional"}, {"day": "Mon 28 Sep", "axis": "26.0°N", "phase": "transitional"}], "narratives": [{"day": "Tuesday 22 September", "regime": "BREAK-PHASE CONVECTIVE", "text": "With the monsoon engine idling, sunshine returns and local heating takes over as the trigger. Rain becomes isolated, afternoon-weighted and spatially patchy - a Pune-like rhythm imposed on the Konkan. Guidance spans 11-23 mm (moderate rain); 100% chance of measurable rain. Character: continuous / steady. Confidence high on occurrence, low on amount."}, {"day": "Wednesday 23 September", "regime": "BREAK-PHASE CONVECTIVE", "text": "With the monsoon engine idling, sunshine returns and local heating takes over as the trigger. Rain becomes isolated, afternoon-weighted and spatially patchy - a Pune-like rhythm imposed on the Konkan. Guidance spans 2-10 mm (light rain); 84% chance of measurable rain. Character: continuous / steady. Confidence moderate-high on occurrence, low on amount."}, {"day": "Thursday 24 September", "regime": "BREAK-PHASE CONVECTIVE", "text": "With the monsoon engine idling, sunshine returns and local heating takes over as the trigger. Rain becomes isolated, afternoon-weighted and spatially patchy - a Pune-like rhythm imposed on the Konkan. Guidance spans 0-19 mm (moderate rain); 65% chance of measurable rain. Character: continuous / steady. Confidence moderate on occurrence, very low on amount."}, {"day": "Friday 25 September", "regime": "BREAK-PHASE CONVECTIVE", "text": "With the monsoon engine idling, sunshine returns and local heating takes over as the trigger. Rain becomes isolated, afternoon-weighted and spatially patchy - a Pune-like rhythm imposed on the Konkan. Guidance spans 0-4 mm (light rain); 45% chance of measurable rain. Character: continuous / steady. Confidence low on occurrence, very low on amount."}, {"day": "Saturday 26 September", "regime": "MIXED MONSOON", "text": "Rain is plausible from a combination of modest terrain lift and embedded convection, without a single clean driver. Timing confidence is lower than in a clean surge. Guidance spans 0-2 mm (no / trace rain); 19% chance of measurable rain. Character: intermittent spells. Confidence moderate on occurrence, moderate on amount."}, {"day": "Sunday 27 September", "regime": "MIXED MONSOON", "text": "Rain is plausible from a combination of modest terrain lift and embedded convection, without a single clean driver. Timing confidence is lower than in a clean surge. Guidance spans 0-1 mm (no / trace rain); 3% chance of measurable rain. Character: intermittent spells. Confidence moderate-high on occurrence, moderate on amount."}, {"day": "Monday 28 September", "regime": "MONSOON BREAK / LULL", "text": "Neither terrain nor heating is doing much lifting. Humid, cloudy, largely rainless - the frustrating kind of monsoon day where high humidity produces nothing. Guidance spans 0-0 mm (no / trace rain); 0% chance of measurable rain. Character: essentially dry. Confidence moderate on occurrence, very low on amount."}], "thresholds": {"orogWeak": 4.0, "orogModerate": 7.7, "orogStrong": 10.3, "orogVeryStrong": 14.0}, "tideUrl": "https://www.imd.gov.in/pages/tide_tables.php", "imdUrls": {"Mumbai radar": "https://mausam.imd.gov.in/imd_latest/contents/index_radar.php", "Nowcast / warnings": "https://mausam.imd.gov.in/", "Rainfall information": "https://mausam.imd.gov.in/responsive/rainfallinformation.php"}, "windyMapKey": "", "lat": 19.2437, "lon": 73.1305, "alerts": [{"severity": "watch", "icon": "🌀", "title": "Low pressure area over interior Karnataka — 546 km to the SE", "body": "Comes closest on **Sun 27 Sep**, about **546 km** from Kalyan, with a minimum pressure of 1007 hPa. An inland circulation this close can produce broad ascent over Maharashtra directly. Guide Case Study E: when ascent and moisture are both deep, rain becomes widespread and longer-lasting than a coastal orographic event, and Pune can get caught up in it too.", "label": "BE AWARE"}, {"severity": "watch", "icon": "🌀", "title": "Depression-strength circulation over east Madhya Pradesh and Chhattisgarh — 874 km to the ENE", "body": "Comes closest on **Sat 26 Sep**, about **874 km** from Kalyan, with a minimum pressure of 992 hPa. Guide s12.3: a Bay system can affect Mumbai without its centre coming close. As it moves inland it strengthens the cross-country pressure gradient and the Arabian Sea westerlies, deepens the moisture and produces broad ascent over central India — which can weaken the usual Pune rain shadow and give widespread rain rather than a purely coastal orographic event.", "label": "BE AWARE"}, {"severity": "watch", "icon": "🌀", "title": "Low pressure area over Tamil Nadu and south Karnataka — 1,021 km to the SE", "body": "Comes closest on **Sun 27 Sep**, about **1,021 km** from Kalyan, with a minimum pressure of 1006 hPa. The centre stays some distance away, but it is closing — and Guide s12.3 warns against dismissing a system on distance alone: a low tracking west-northwest across the peninsula strengthens the cross-country gradient and the Arabian Sea westerlies behind it, dragging a renewed surge of moisture up the coast. Examine the circulation footprint, not the centre.", "label": "BE AWARE"}, {"severity": "info", "icon": "🌤️", "title": "Dry window opens Saturday 26 Sep", "body": "At least two drier days in a row — the realistic slot for anything that needs to stay dry.", "label": "FYI"}, {"severity": "info", "icon": "☀️", "title": "Onshore wind falls away on Monday 28 Sep", "body": "The wind that carries moisture in off the sea slackens, so the hills lose the lift that normally wrings rain out of it. Expect longer dry gaps, more sun, and muggier air — with the odd sharp local thunderstorm rather than steady rain. On the current guidance this is a **single day** — the pattern goes back to what it was on either side of it. Read it as a one-day change, not the start of a spell. Note that the heavier rainfall guidance this week sits on **Tuesday 22 Sep** (11–23 mm) rather than on this day — the two are answering different questions, and this alert is about the wind and the moisture, not the total.", "label": "FYI"}], "areas": [{"key": "badlapur_belt", "name": "Ambernath–Badlapur–Karjat", "character": "Ulhas valley into the foothills. First to feel Ghat enhancement, and the belt where pre-monsoon storms most often fire.", "weekMm": 34.2, "wettestDay": "Tue 22", "wettestMm": 14.9, "band": "Light rain", "plain": "Scattered light. Wettest Tuesday.", "rank": 1, "home": false}, {"key": "thane_belt", "name": "Thane & Bhiwandi", "character": "Creek belt. Urban heat plus coastal convergence; Bhiwandi matters for warehousing and transport decisions.", "weekMm": 33.8, "wettestDay": "Tue 22", "wettestMm": 19.5, "band": "Moderate rain", "plain": "Mostly light with isolated moderate spells. Wettest Tuesday.", "rank": 2, "home": false}, {"key": "ghats", "name": "Matheran–Lonavala (central Ghats)", "character": "The central crest and the Bhor Ghat gap. Where the orographic engine does its classic work; trekking and hill-station calls hang here.", "weekMm": 30.8, "wettestDay": "Tue 22", "wettestMm": 13.2, "band": "Light rain", "plain": "Scattered light. Wettest Tuesday.", "rank": 3, "home": false}, {"key": "kalyan_belt", "name": "Kalyan–Dombivli", "character": "HOME belt. Guide s11's Thane–Kalyan–Karjat transition — picks up coastal bands AND terrain enhancement, so it often runs between the suburbs and the Ghats rather than tracking either.", "weekMm": 30.5, "wettestDay": "Tue 22", "wettestMm": 17.2, "band": "Moderate rain", "plain": "Mostly light with isolated moderate spells. Wettest Tuesday.", "rank": 4, "home": true}, {"key": "ghats_north", "name": "Igatpuri (northern Ghats)", "character": "Thal Ghat. Squarely in the path of the monsoon westerly and among the wettest places in the state — when the current is aimed slightly north, this is where it lands hardest.", "weekMm": 28.1, "wettestDay": "Tue 22", "wettestMm": 18.0, "band": "Moderate rain", "plain": "Mostly light with isolated moderate spells. Wettest Tuesday.", "rank": 5, "home": false}, {"key": "suburbs", "name": "Mumbai suburbs", "character": "Bandra to Dahisar and the eastern suburbs. Santacruz is the IMD reference gauge most headline Mumbai rainfall figures come from.", "weekMm": 27.3, "wettestDay": "Tue 22", "wettestMm": 15.7, "band": "Moderate rain", "plain": "Mostly light with isolated moderate spells. Wettest Tuesday.", "rank": 6, "home": false}, {"key": "south_mmr", "name": "Alibag & Raigad coast", "character": "Southern edge of the region. Nisarga's 2020 landfall zone — the stretch most exposed in an Arabian Sea cyclone.", "weekMm": 25.5, "wettestDay": "Tue 22", "wettestMm": 12.1, "band": "Light rain", "plain": "Scattered light. Wettest Tuesday.", "rank": 7, "home": false}, {"key": "island_city", "name": "Mumbai island city", "character": "Colaba to Dadar. Most sea-moderated part of the region — least temperature swing, and usually a touch less rain than the suburbs.", "weekMm": 25.3, "wettestDay": "Tue 22", "wettestMm": 14.7, "band": "Light rain", "plain": "Scattered light. Wettest Tuesday.", "rank": 8, "home": false}, {"key": "navi_mumbai", "name": "Navi Mumbai & Panvel", "character": "Harbour side and the approach to the Matheran foothills.", "weekMm": 25.0, "wettestDay": "Tue 22", "wettestMm": 14.1, "band": "Light rain", "plain": "Scattered light. Wettest Tuesday.", "rank": 9, "home": false}, {"key": "ghats_east", "name": "Malshej", "character": "Furthest inland of the crest sites. Needs a deeper moist layer to get properly wet, so it is the first of the three to fall away when the moisture is shallow — a useful read on depth, not just strength.", "weekMm": 19.9, "wettestDay": "Tue 22", "wettestMm": 10.6, "band": "Light rain", "plain": "Scattered light. Wettest Tuesday.", "rank": 10, "home": false}, {"key": "north_mmr", "name": "Vasai–Virar & Palghar", "character": "Northern MMR. Frequently the wettest coastal stretch when the monsoon current is aimed slightly north of the city.", "weekMm": 14.0, "wettestDay": "Tue 22", "wettestMm": 6.2, "band": "Light rain", "plain": "Mostly dry with isolated light spells. Wettest Tuesday.", "rank": 11, "home": false}], "basins": [{"basin": "Arabian Sea", "status": "quiet", "headline": "**Arabian Sea — nothing organised this week.**", "detail": "No closed low forms here in the current run. That is the ordinary state; most weeks have none.", "genesis": "", "depth": 0.0, "label": "", "closestKm": null, "windyPressure": "https://www.windy.com/?ecmwf,pressure,15.000,66.000,5", "windyWind": "https://www.windy.com/?ecmwf,wind,850h,15.000,66.000,5"}, {"basin": "Bay of Bengal", "status": "active", "headline": "**Bay of Bengal — depression-strength circulation, already present.**", "detail": "Deepest about **8.4 hPa** below its surroundings near 18°N 85°E, tracking NW, closest approach to Kalyan about **874 km**. A Bay system does its work on Konkan from a distance: as it tracks west-northwest along the monsoon trough it pulls the trough south and strengthens the westerlies feeding this coast. Expect any rainfall response here **two to four days after** it crosses the east coast, not while it is still over water.", "genesis": "", "depth": 8.4, "label": "depression-strength circulation", "closestKm": 874, "windyPressure": "https://www.windy.com/?ecmwf,pressure,17.000,88.000,5", "windyWind": "https://www.windy.com/?ecmwf,wind,850h,17.000,88.000,5"}], "regions": {"lead": {"headline": "Low pressure area over interior Karnataka — 546 km to the SE", "pressure": 1007, "closestKm": 546}, "list": [{"key": "south_konkan", "name": "South Konkan — Ratnagiri, Sindhudurg", "short": "S Konkan", "note": "Further from most west-tracking systems; often left out when one is compact.", "band": "Light rain", "agreement": "loose", "totalMm": 26.5, "peakDay": "Wed 23 Sep", "peakLo": 8, "peakHi": 14, "perModel": {"ECMWF": 14, "GFS": 10, "ICON": 8}, "windowFrom": "Wed 23 Sep", "windowTo": "Wed 23 Sep", "wet": true}, {"key": "north_konkan", "name": "North Konkan — Mumbai, Thane, Palghar", "short": "N Konkan", "note": "The home coast. Takes both coastal bands and Ghat enhancement.", "band": "Light rain", "agreement": "loose", "totalMm": 19.5, "peakDay": "Tue 22 Sep", "peakLo": 7, "peakHi": 11, "perModel": {"ECMWF": 11, "GFS": 7, "ICON": 11}, "windowFrom": "Tue 22 Sep", "windowTo": "Wed 23 Sep", "wet": true}, {"key": "vidarbha", "name": "Vidarbha — Nagpur, Akola", "short": "Vidarbha", "note": "First part of Maharashtra a Bay system reaches.", "band": "Light rain", "agreement": "loose", "totalMm": 18.9, "peakDay": "Thu 24 Sep", "peakLo": 2, "peakHi": 7, "perModel": {"ECMWF": 7, "GFS": 6, "ICON": 2}, "windowFrom": "Thu 24 Sep", "windowTo": "Thu 24 Sep", "wet": true}, {"key": "south_madhya", "name": "South Madhya Maharashtra — Pune, Solapur", "short": "S Mad MH", "note": "Rain-shadow country. Needs the system itself, not just onshore flow.", "band": "Light rain", "agreement": "loose", "totalMm": 17.6, "peakDay": "Tue 22 Sep", "peakLo": 10, "peakHi": 23, "perModel": {"ECMWF": 10, "GFS": 11, "ICON": 23}, "windowFrom": "Tue 22 Sep", "windowTo": "Wed 23 Sep", "wet": true}, {"key": "marathwada", "name": "Marathwada — Chh. Sambhajinagar, Latur", "short": "Marathwada", "note": "Agricultural belt that depends on system rain rather than terrain.", "band": "Light rain", "agreement": "loose", "totalMm": 14.2, "peakDay": "Tue 22 Sep", "peakLo": 6, "peakHi": 10, "perModel": {"ECMWF": 6, "GFS": 10, "ICON": 8}, "windowFrom": "Tue 22 Sep", "windowTo": "Tue 22 Sep", "wet": true}, {"key": "north_madhya", "name": "North Madhya Maharashtra — Nashik, Jalgaon", "short": "N Mad MH", "note": "The corridor a west-tracking low crosses on its way to Gujarat.", "band": "Light rain", "agreement": "close", "totalMm": 6.4, "peakDay": "Tue 22 Sep", "peakLo": 4, "peakHi": 7, "perModel": {"ECMWF": 4, "GFS": 7, "ICON": 5}, "windowFrom": "", "windowTo": "", "wet": false}, {"key": "saurashtra", "name": "Saurashtra — Rajkot, Dwarka", "short": "Saurashtra", "note": "Only gets wet when a system holds together all the way west.", "band": "No / trace rain", "agreement": "close", "totalMm": 0.4, "peakDay": "Tue 22 Sep", "peakLo": 0, "peakHi": 0, "perModel": {"ECMWF": 0, "GFS": 0, "ICON": 0}, "windowFrom": "", "windowTo": "", "wet": false}]}, "systems": {"trough": "Offshore trough running roughly 12–24°N (12° of latitude), about 1.2 hPa lower than the air either side of it. A trough like this squeezes the moist sea air together and nudges it upward, which is what turns a damp wind into real rain clouds. It also keeps the wind blowing steadily onshore instead of slackening.", "cycloneWindow": false, "list": [{"relevance": "moderate", "headline": "Low pressure area over interior Karnataka — 546 km to the SE", "reasoning": "An inland circulation this close can produce broad ascent over Maharashtra directly. Guide Case Study E: when ascent and moisture are both deep, rain becomes widespread and longer-lasting than a coastal orographic event, and Pune can get caught up in it too.", "distanceKm": 546, "pressure": 1006.7, "closestDay": "Sun 27 Sep", "centres": 1, "movedKm": 0, "motion": "slow", "durationH": 24, "points": []}, {"relevance": "moderate", "headline": "Depression-strength circulation over east Madhya Pradesh and Chhattisgarh — 874 km to the ENE", "reasoning": "Guide s12.3: a Bay system can affect Mumbai without its centre coming close. As it moves inland it strengthens the cross-country pressure gradient and the Arabian Sea westerlies, deepens the moisture and produces broad ascent over central India — which can weaken the usual Pune rain shadow and give widespread rain rather than a purely coastal orographic event.", "distanceKm": 874, "pressure": 992.3, "closestDay": "Sat 26 Sep", "centres": 1, "movedKm": 1380, "motion": "moving", "durationH": 144, "points": []}, {"relevance": "moderate", "headline": "Low pressure area over Tamil Nadu and south Karnataka — 1,021 km to the SE", "reasoning": "The centre stays some distance away, but it is closing — and Guide s12.3 warns against dismissing a system on distance alone: a low tracking west-northwest across the peninsula strengthens the cross-country gradient and the Arabian Sea westerlies behind it, dragging a renewed surge of moisture up the coast. Examine the circulation footprint, not the centre.", "distanceKm": 1021, "pressure": 1006.2, "closestDay": "Sun 27 Sep", "centres": 1, "movedKm": 222, "motion": "wandering", "durationH": 30, "points": []}]}, "drivers": {"enso": {"phase": "El Nino", "strength": "strong", "anomaly": 1.5, "text": "A strong El Nino is running in the Pacific, and it works against our monsoon. Here is why. Normally the warmest water sits on the western side of the Pacific, near Indonesia, and that is where the air rises. In an El Nino the warm water shifts east, so the rising air goes with it. Air that climbs in one place has to sink somewhere else, and a good part of that sinking happens over our side of the world. Sinking air squashes clouds before they can grow, which is why dry spells run longer in an El Nino year and the season usually finishes below normal. Read it as a tilt in the odds across the whole monsoon, not a verdict on any one week — El Nino years have still given this coast some of its wettest days.", "when": "2026-06", "lag": 3, "recent": [-0.41, -0.12, 0.09, 0.42, 1.01, 1.5]}, "iod": {"phase": "neutral", "dmi": 0.1, "text": "The Indian Ocean is even-handed at the moment. What matters here is which half of that ocean is warmer. When the western half, over towards Africa, runs warmer than the eastern half near Indonesia, storms gather on our side and the monsoon gets a push. When it tips the other way, the storms are drawn away from us. Right now neither side has the upper hand, so this is neither helping nor hurting. Whatever rain we get this week will be decided by things much closer to home — where the trough sits, and whether a low pressure area forms."}, "mjo": {"phase": 4, "region": "Maritime Continent", "favourability": "favourable", "text": "There is a vast band of thunderstorms that drifts slowly eastward right around the equator, taking a month or two to complete a lap. Where it happens to be sitting decides whether India gets a nudge or not. At the moment it is near 112°E, over the maritime continent — our side of its circuit, and the half that wakes the monsoon up. Put a steady sea wind underneath it and this is when rain organises into spells that last, rather than passing showers. It is drifting westward, roughly 33 km a day.", "lon": 112.3, "track": [111.1, 102.9, 104.9, 110.1, 115.0, 119.9, 119.5, 122.0, 132.3, 127.5, 122.3, 118.5, 114.1, 112.3]}, "miso": {"regime": "rain belt still down near the equator", "lat": 4.2, "text": "The rain is bunched up near 4°N, down by the equator. That is the very start of the cycle — weeks away from reaching us, and it does not always make the journey. It is moving southward at about 87 km a day.", "eta": null, "track": [19.6, 19.2, 17.1, 14.0, 11.2, 7.9, 7.1, 3.5, 3.9, 4.2, 4.0, 3.5, 3.8, 4.2]}, "coherence": "> **Drivers and pattern agree — leaning dry.** strong El Nino (against), MJO phase 4 (for), MISO band far south (against), and the local pattern is *break / subdued*. Both point the same way, which raises confidence in a subdued stretch.", "crosscheck": "**Cross-check against CPC** (4 matched pentads, 11 Aug–26 Aug): In 3 of 4 matched pentads CPC is NEGATIVE where the derived field puts convection — consistent with negative velocity-potential anomaly marking enhanced convection. Either way the forecast uses the rainfall-derived field, whose sign is unambiguous, so nothing here depends on resolving it."}, "thermalRows": [{"place": "Mumbai - Santacruz", "type": "coastal", "warmest": 30.1, "coolest": 24.2, "peakFeels": 37.06650350695034, "heatSpell": 0, "coldSpell": 0}, {"place": "Kalyan West", "type": "coastal", "warmest": 30.9, "coolest": 23.2, "peakFeels": 40.198217473875644, "heatSpell": 0, "coldSpell": 0}, {"place": "Karjat", "type": "plains", "warmest": 30.8, "coolest": 22.5, "peakFeels": 39.52453700324421, "heatSpell": 0, "coldSpell": 0}, {"place": "Pune", "type": "plains", "warmest": 29.9, "coolest": 19.9, "peakFeels": 33.04010986159781, "heatSpell": 0, "coldSpell": 0}], "public": true};
+const DAILY = {"page": "weekly", "site": "Mumbai MMR", "issued": "22 Sep 2026, 18:38 IST", "validDate": "Tue 22 Sep – Mon 28 Sep 2026", "season": "Southwest monsoon", "weekRegime": {"label": "BREAK / SUBDUED", "note": "5 of 7 days have negligible onshore forcing (mean +2.3 m/s). Handbook Ch.13: the break pattern — longer dry intervals, shallower cloud, weaker rain bands. Local convection can still fire, but the monsoon engine is idling."}, "synoptic": "<p style='margin:0 0 10px'><b>Season:</b> Southwest monsoon. Monsoon mechanisms are the primary framework: monsoon trough position, offshore trough, onshore 850hPa flow and orographic lift against the Ghats. Convective triggers are secondary.</p><p style='margin:0 0 10px'><b>Monsoon trough:</b> axis near <b>20.0°N</b> (minimum 1005.9 hPa along the 80°E transect) — <b>active-leaning</b>.   The trough is in or south of its normal position over the plains. Handbook Ch.13: this is the active-spell configuration - cross-equatorial flow strong, rain widespread and often heavy across the west coast.</p><p style='margin:0 0 10px'><b>Cross-coast gradient:</b> Cross-coast pressure gradient (sea minus inland) is +0.9 hPa — pressure falls inland, which strengthens the westerly moisture transport toward the Konkan (Guide s2.3). Trough detection itself is handled on a finer 2D grid; see the systems section.</p><div class=\"quote\">The two features disagree. Guide s10.3: models often disagree most on timing during these transitions, so lean harder on observations — radar and satellite — than usual.</div><div class=\"quote\"><b>But this is today&#x27;s snapshot, and a system is already on the way.</b> The tracker is following a low (tracking NW, minimum 992 hPa) that closes to about 874 km. A low crossing central India along the trough is the usual mechanism for pulling the trough back south and re-strengthening the westerlies into the Konkan, so read the verdict above as <b>a description of today</b>, not as a forecast for the rest of the week. The systems section below has the track.</div>", "windRows": [{"day": "Tue 22 Sep", "short": "Tue", "dir": "N (6°)", "speed": 3.5, "orographic": -1.0, "forcing": "offshore"}, {"day": "Wed 23 Sep", "short": "Wed", "dir": "N (353°)", "speed": 5.2, "orographic": -0.3, "forcing": "offshore"}, {"day": "Thu 24 Sep", "short": "Thu", "dir": "N (359°)", "speed": 8.1, "orographic": -1.2, "forcing": "offshore"}, {"day": "Fri 25 Sep", "short": "Fri", "dir": "NW (322°)", "speed": 7.9, "orographic": 3.7, "forcing": "negligible"}, {"day": "Sat 26 Sep", "short": "Sat", "dir": "W (278°)", "speed": 5.8, "orographic": 5.5, "forcing": "weak"}, {"day": "Sun 27 Sep", "short": "Sun", "dir": "W (269°)", "speed": 6.0, "orographic": 5.9, "forcing": "weak"}, {"day": "Mon 28 Sep", "short": "Mon", "dir": "W (277°)", "speed": 3.6, "orographic": 3.5, "forcing": "negligible"}], "siteRows": [{"name": "Mumbai - Colaba", "zone": "coastal", "home": false, "cells": [{"short": "Tue", "lo": 10.7, "hi": 16.0, "tip": "Mumbai - Colaba Tue 22 Sep: 11-16 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.1, "hi": 7.9, "tip": "Mumbai - Colaba Wed 23 Sep: 1-8 mm (Light rain)"}, {"short": "Thu", "lo": 0.1, "hi": 4.5, "tip": "Mumbai - Colaba Thu 24 Sep: 0-4 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 3.6, "tip": "Mumbai - Colaba Fri 25 Sep: 0-4 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.2, "tip": "Mumbai - Colaba Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Mumbai - Colaba Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Mumbai - Colaba Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 25.3}, {"name": "Mumbai - Santacruz", "zone": "coastal", "home": false, "cells": [{"short": "Tue", "lo": 12.7, "hi": 19.3, "tip": "Mumbai - Santacruz Tue 22 Sep: 13-19 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.6, "hi": 8.9, "tip": "Mumbai - Santacruz Wed 23 Sep: 2-9 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 3.5, "tip": "Mumbai - Santacruz Thu 24 Sep: 0-4 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 3.6, "tip": "Mumbai - Santacruz Fri 25 Sep: 0-4 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.2, "tip": "Mumbai - Santacruz Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Mumbai - Santacruz Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Mumbai - Santacruz Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 24.4}, {"name": "Mumbai - Borivali", "zone": "coastal", "home": false, "cells": [{"short": "Tue", "lo": 17.4, "hi": 19.5, "tip": "Mumbai - Borivali Tue 22 Sep: 17-20 mm (Moderate rain)"}, {"short": "Wed", "lo": 0.8, "hi": 10.4, "tip": "Mumbai - Borivali Wed 23 Sep: 1-10 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 5.5, "tip": "Mumbai - Borivali Thu 24 Sep: 0-6 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 2.7, "tip": "Mumbai - Borivali Fri 25 Sep: 0-3 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 0.6, "tip": "Mumbai - Borivali Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Mumbai - Borivali Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Mumbai - Borivali Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 33.0}, {"name": "Mumbai - Chembur", "zone": "coastal", "home": false, "cells": [{"short": "Tue", "lo": 12.7, "hi": 19.3, "tip": "Mumbai - Chembur Tue 22 Sep: 13-19 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.6, "hi": 8.9, "tip": "Mumbai - Chembur Wed 23 Sep: 2-9 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 3.5, "tip": "Mumbai - Chembur Thu 24 Sep: 0-4 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 3.6, "tip": "Mumbai - Chembur Fri 25 Sep: 0-4 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.2, "tip": "Mumbai - Chembur Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Mumbai - Chembur Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Mumbai - Chembur Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 24.4}, {"name": "Vasai-Virar", "zone": "coastal", "home": false, "cells": [{"short": "Tue", "lo": 9.0, "hi": 12.2, "tip": "Vasai-Virar Tue 22 Sep: 9-12 mm (Light rain)"}, {"short": "Wed", "lo": 0.9, "hi": 8.2, "tip": "Vasai-Virar Wed 23 Sep: 1-8 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 2.4, "tip": "Vasai-Virar Thu 24 Sep: 0-2 mm (No / trace rain)"}, {"short": "Fri", "lo": 0.2, "hi": 2.7, "tip": "Vasai-Virar Fri 25 Sep: 0-3 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.2, "tip": "Vasai-Virar Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.3, "tip": "Vasai-Virar Sun 27 Sep: 0-0 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Vasai-Virar Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 19.7}, {"name": "Palghar", "zone": "coastal", "home": false, "cells": [{"short": "Tue", "lo": 0.9, "hi": 6.0, "tip": "Palghar Tue 22 Sep: 1-6 mm (Light rain)"}, {"short": "Wed", "lo": 1.8, "hi": 5.1, "tip": "Palghar Wed 23 Sep: 2-5 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 2.7, "tip": "Palghar Thu 24 Sep: 0-3 mm (Light rain)"}, {"short": "Fri", "lo": 0.1, "hi": 3.0, "tip": "Palghar Fri 25 Sep: 0-3 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 0.9, "tip": "Palghar Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.0, "tip": "Palghar Sun 27 Sep: 0-0 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Palghar Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 8.3}, {"name": "Thane", "zone": "transition", "home": false, "cells": [{"short": "Tue", "lo": 7.2, "hi": 21.6, "tip": "Thane Tue 22 Sep: 7-22 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.1, "hi": 9.6, "tip": "Thane Wed 23 Sep: 1-10 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 10.9, "tip": "Thane Thu 24 Sep: 0-11 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 2.7, "tip": "Thane Fri 25 Sep: 0-3 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 0.6, "tip": "Thane Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Thane Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Thane Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 33.8}, {"name": "Bhiwandi", "zone": "transition", "home": false, "cells": [{"short": "Tue", "lo": 7.2, "hi": 21.6, "tip": "Bhiwandi Tue 22 Sep: 7-22 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.1, "hi": 9.6, "tip": "Bhiwandi Wed 23 Sep: 1-10 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 10.9, "tip": "Bhiwandi Thu 24 Sep: 0-11 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 2.7, "tip": "Bhiwandi Fri 25 Sep: 0-3 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 0.6, "tip": "Bhiwandi Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Bhiwandi Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Bhiwandi Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 33.8}, {"name": "Kalyan West", "zone": "transition", "home": true, "cells": [{"short": "Tue", "lo": 11.0, "hi": 23.0, "tip": "Kalyan West Tue 22 Sep: 11-23 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.6, "hi": 9.9, "tip": "Kalyan West Wed 23 Sep: 2-10 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 19.0, "tip": "Kalyan West Thu 24 Sep: 0-19 mm (Moderate rain)"}, {"short": "Fri", "lo": 0.1, "hi": 3.9, "tip": "Kalyan West Fri 25 Sep: 0-4 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.5, "tip": "Kalyan West Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 1.2, "tip": "Kalyan West Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Kalyan West Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 29.7}, {"name": "Dombivli", "zone": "transition", "home": false, "cells": [{"short": "Tue", "lo": 11.0, "hi": 23.0, "tip": "Dombivli Tue 22 Sep: 11-23 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.6, "hi": 9.6, "tip": "Dombivli Wed 23 Sep: 2-10 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 19.0, "tip": "Dombivli Thu 24 Sep: 0-19 mm (Moderate rain)"}, {"short": "Fri", "lo": 0.1, "hi": 3.6, "tip": "Dombivli Fri 25 Sep: 0-4 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 0.6, "tip": "Dombivli Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Dombivli Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Dombivli Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 31.2}, {"name": "Navi Mumbai - Panvel", "zone": "transition", "home": false, "cells": [{"short": "Tue", "lo": 11.5, "hi": 14.7, "tip": "Navi Mumbai - Panvel Tue 22 Sep: 12-15 mm (Light rain)"}, {"short": "Wed", "lo": 2.5, "hi": 5.1, "tip": "Navi Mumbai - Panvel Wed 23 Sep: 2-5 mm (Light rain)"}, {"short": "Thu", "lo": 0.2, "hi": 19.2, "tip": "Navi Mumbai - Panvel Thu 24 Sep: 0-19 mm (Moderate rain)"}, {"short": "Fri", "lo": 0.1, "hi": 6.1, "tip": "Navi Mumbai - Panvel Fri 25 Sep: 0-6 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.2, "tip": "Navi Mumbai - Panvel Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.6, "tip": "Navi Mumbai - Panvel Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Navi Mumbai - Panvel Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 25.0}, {"name": "Alibag", "zone": "coastal", "home": false, "cells": [{"short": "Tue", "lo": 7.2, "hi": 12.4, "tip": "Alibag Tue 22 Sep: 7-12 mm (Light rain)"}, {"short": "Wed", "lo": 2.6, "hi": 9.6, "tip": "Alibag Wed 23 Sep: 3-10 mm (Light rain)"}, {"short": "Thu", "lo": 0.4, "hi": 8.6, "tip": "Alibag Thu 24 Sep: 0-9 mm (Light rain)"}, {"short": "Fri", "lo": 0.1, "hi": 5.4, "tip": "Alibag Fri 25 Sep: 0-5 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.8, "tip": "Alibag Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.9, "tip": "Alibag Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Alibag Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 25.5}, {"name": "Badlapur", "zone": "transition", "home": false, "cells": [{"short": "Tue", "lo": 13.6, "hi": 19.3, "tip": "Badlapur Tue 22 Sep: 14-19 mm (Moderate rain)"}, {"short": "Wed", "lo": 3.7, "hi": 9.9, "tip": "Badlapur Wed 23 Sep: 4-10 mm (Light rain)"}, {"short": "Thu", "lo": 0.2, "hi": 18.6, "tip": "Badlapur Thu 24 Sep: 0-19 mm (Moderate rain)"}, {"short": "Fri", "lo": 0.4, "hi": 6.1, "tip": "Badlapur Fri 25 Sep: 0-6 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.5, "tip": "Badlapur Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 1.2, "tip": "Badlapur Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Badlapur Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 30.4}, {"name": "Karjat", "zone": "transition", "home": false, "cells": [{"short": "Tue", "lo": 10.6, "hi": 17.9, "tip": "Karjat Tue 22 Sep: 11-18 mm (Moderate rain)"}, {"short": "Wed", "lo": 0.4, "hi": 21.0, "tip": "Karjat Wed 23 Sep: 0-21 mm (Moderate rain)"}, {"short": "Thu", "lo": 0.0, "hi": 9.3, "tip": "Karjat Thu 24 Sep: 0-9 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 6.6, "tip": "Karjat Fri 25 Sep: 0-7 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 1.5, "tip": "Karjat Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 1.2, "tip": "Karjat Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.6, "tip": "Karjat Mon 28 Sep: 0-1 mm (No / trace rain)"}], "week": 37.9}, {"name": "Igatpuri", "zone": "ghat", "home": false, "cells": [{"short": "Tue", "lo": 16.9, "hi": 23.7, "tip": "Igatpuri Tue 22 Sep: 17-24 mm (Moderate rain)"}, {"short": "Wed", "lo": 3.7, "hi": 6.3, "tip": "Igatpuri Wed 23 Sep: 4-6 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 9.3, "tip": "Igatpuri Thu 24 Sep: 0-9 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 1.5, "tip": "Igatpuri Fri 25 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sat", "lo": 0.0, "hi": 2.4, "tip": "Igatpuri Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 2.4, "tip": "Igatpuri Sun 27 Sep: 0-2 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 1.5, "tip": "Igatpuri Mon 28 Sep: 0-2 mm (No / trace rain)"}], "week": 28.1}, {"name": "Matheran", "zone": "ghat", "home": false, "cells": [{"short": "Tue", "lo": 12.6, "hi": 18.6, "tip": "Matheran Tue 22 Sep: 13-19 mm (Moderate rain)"}, {"short": "Wed", "lo": 2.1, "hi": 21.0, "tip": "Matheran Wed 23 Sep: 2-21 mm (Moderate rain)"}, {"short": "Thu", "lo": 0.0, "hi": 18.8, "tip": "Matheran Thu 24 Sep: 0-19 mm (Moderate rain)"}, {"short": "Fri", "lo": 0.0, "hi": 6.6, "tip": "Matheran Fri 25 Sep: 0-7 mm (Light rain)"}, {"short": "Sat", "lo": 0.1, "hi": 1.5, "tip": "Matheran Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 1.2, "tip": "Matheran Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.6, "tip": "Matheran Mon 28 Sep: 0-1 mm (No / trace rain)"}], "week": 37.5}, {"name": "Malshej Ghat", "zone": "ghat", "home": false, "cells": [{"short": "Tue", "lo": 9.9, "hi": 15.8, "tip": "Malshej Ghat Tue 22 Sep: 10-16 mm (Moderate rain)"}, {"short": "Wed", "lo": 3.1, "hi": 8.0, "tip": "Malshej Ghat Wed 23 Sep: 3-8 mm (Light rain)"}, {"short": "Thu", "lo": 0.1, "hi": 4.8, "tip": "Malshej Ghat Thu 24 Sep: 0-5 mm (Light rain)"}, {"short": "Fri", "lo": 0.4, "hi": 3.6, "tip": "Malshej Ghat Fri 25 Sep: 0-4 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 2.1, "tip": "Malshej Ghat Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 1.2, "tip": "Malshej Ghat Sun 27 Sep: 0-1 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Malshej Ghat Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 19.9}, {"name": "Lonavala", "zone": "ghat", "home": false, "cells": [{"short": "Tue", "lo": 9.5, "hi": 16.2, "tip": "Lonavala Tue 22 Sep: 10-16 mm (Moderate rain)"}, {"short": "Wed", "lo": 0.9, "hi": 9.2, "tip": "Lonavala Wed 23 Sep: 1-9 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 6.6, "tip": "Lonavala Thu 24 Sep: 0-7 mm (Light rain)"}, {"short": "Fri", "lo": 0.0, "hi": 5.1, "tip": "Lonavala Fri 25 Sep: 0-5 mm (Light rain)"}, {"short": "Sat", "lo": 0.0, "hi": 2.1, "tip": "Lonavala Sat 26 Sep: 0-2 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 1.8, "tip": "Lonavala Sun 27 Sep: 0-2 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Lonavala Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 24.2}, {"name": "Pune", "zone": "leeward", "home": false, "cells": [{"short": "Tue", "lo": 12.0, "hi": 16.7, "tip": "Pune Tue 22 Sep: 12-17 mm (Moderate rain)"}, {"short": "Wed", "lo": 1.5, "hi": 7.2, "tip": "Pune Wed 23 Sep: 2-7 mm (Light rain)"}, {"short": "Thu", "lo": 0.0, "hi": 1.5, "tip": "Pune Thu 24 Sep: 0-2 mm (No / trace rain)"}, {"short": "Fri", "lo": 0.0, "hi": 0.3, "tip": "Pune Fri 25 Sep: 0-0 mm (No / trace rain)"}, {"short": "Sat", "lo": 0.0, "hi": 0.6, "tip": "Pune Sat 26 Sep: 0-1 mm (No / trace rain)"}, {"short": "Sun", "lo": 0.0, "hi": 0.0, "tip": "Pune Sun 27 Sep: 0-0 mm (No / trace rain)"}, {"short": "Mon", "lo": 0.0, "hi": 0.0, "tip": "Pune Mon 28 Sep: 0-0 mm (No / trace rain)"}], "week": 15.1}], "troughRows": [{"day": "Tue 22 Sep", "axis": "20.0°N", "phase": "active-leaning"}, {"day": "Wed 23 Sep", "axis": "21.0°N", "phase": "active-leaning"}, {"day": "Thu 24 Sep", "axis": "20.0°N", "phase": "active-leaning"}, {"day": "Fri 25 Sep", "axis": "22.0°N", "phase": "active-leaning"}, {"day": "Sat 26 Sep", "axis": "22.0°N", "phase": "active-leaning"}, {"day": "Sun 27 Sep", "axis": "26.0°N", "phase": "transitional"}, {"day": "Mon 28 Sep", "axis": "26.0°N", "phase": "transitional"}], "narratives": [{"day": "Tuesday 22 September", "regime": "BREAK-PHASE CONVECTIVE", "text": "With the monsoon engine idling, sunshine returns and local heating takes over as the trigger. Rain becomes isolated, afternoon-weighted and spatially patchy - a Pune-like rhythm imposed on the Konkan. Guidance spans 11-23 mm (moderate rain); 100% chance of measurable rain. Character: continuous / steady. Confidence high on occurrence, low on amount."}, {"day": "Wednesday 23 September", "regime": "BREAK-PHASE CONVECTIVE", "text": "With the monsoon engine idling, sunshine returns and local heating takes over as the trigger. Rain becomes isolated, afternoon-weighted and spatially patchy - a Pune-like rhythm imposed on the Konkan. Guidance spans 2-10 mm (light rain); 84% chance of measurable rain. Character: continuous / steady. Confidence moderate-high on occurrence, low on amount."}, {"day": "Thursday 24 September", "regime": "BREAK-PHASE CONVECTIVE", "text": "With the monsoon engine idling, sunshine returns and local heating takes over as the trigger. Rain becomes isolated, afternoon-weighted and spatially patchy - a Pune-like rhythm imposed on the Konkan. Guidance spans 0-19 mm (moderate rain); 65% chance of measurable rain. Character: continuous / steady. Confidence moderate on occurrence, very low on amount."}, {"day": "Friday 25 September", "regime": "BREAK-PHASE CONVECTIVE", "text": "With the monsoon engine idling, sunshine returns and local heating takes over as the trigger. Rain becomes isolated, afternoon-weighted and spatially patchy - a Pune-like rhythm imposed on the Konkan. Guidance spans 0-4 mm (light rain); 45% chance of measurable rain. Character: continuous / steady. Confidence low on occurrence, very low on amount."}, {"day": "Saturday 26 September", "regime": "MIXED MONSOON", "text": "Rain is plausible from a combination of modest terrain lift and embedded convection, without a single clean driver. Timing confidence is lower than in a clean surge. Guidance spans 0-2 mm (no / trace rain); 19% chance of measurable rain. Character: intermittent spells. Confidence moderate on occurrence, moderate on amount."}, {"day": "Sunday 27 September", "regime": "MIXED MONSOON", "text": "Rain is plausible from a combination of modest terrain lift and embedded convection, without a single clean driver. Timing confidence is lower than in a clean surge. Guidance spans 0-1 mm (no / trace rain); 3% chance of measurable rain. Character: intermittent spells. Confidence moderate-high on occurrence, moderate on amount."}, {"day": "Monday 28 September", "regime": "MONSOON BREAK / LULL", "text": "Neither terrain nor heating is doing much lifting. Humid, cloudy, largely rainless - the frustrating kind of monsoon day where high humidity produces nothing. Guidance spans 0-0 mm (no / trace rain); 0% chance of measurable rain. Character: essentially dry. Confidence moderate on occurrence, very low on amount."}], "thresholds": {"orogWeak": 4.0, "orogModerate": 7.7, "orogStrong": 10.3, "orogVeryStrong": 14.0}, "tideUrl": "https://www.imd.gov.in/pages/tide_tables.php", "imdUrls": {"Mumbai radar": "https://mausam.imd.gov.in/imd_latest/contents/index_radar.php", "Nowcast / warnings": "https://mausam.imd.gov.in/", "Rainfall information": "https://mausam.imd.gov.in/responsive/rainfallinformation.php"}, "windyMapKey": "", "lat": 19.2437, "lon": 73.1305, "alerts": [{"severity": "watch", "icon": "🌀", "title": "Low pressure area over interior Karnataka — 546 km to the SE", "body": "Comes closest on **Sun 27 Sep**, about **546 km** from Kalyan, with a minimum pressure of 1007 hPa. An inland circulation this close can produce broad ascent over Maharashtra directly. Guide Case Study E: when ascent and moisture are both deep, rain becomes widespread and longer-lasting than a coastal orographic event, and Pune can get caught up in it too.", "label": "BE AWARE"}, {"severity": "watch", "icon": "🌀", "title": "Depression-strength circulation over east Madhya Pradesh and Chhattisgarh — 874 km to the ENE", "body": "Comes closest on **Sat 26 Sep**, about **874 km** from Kalyan, with a minimum pressure of 992 hPa. Guide s12.3: a Bay system can affect Mumbai without its centre coming close. As it moves inland it strengthens the cross-country pressure gradient and the Arabian Sea westerlies, deepens the moisture and produces broad ascent over central India — which can weaken the usual Pune rain shadow and give widespread rain rather than a purely coastal orographic event.", "label": "BE AWARE"}, {"severity": "watch", "icon": "🌀", "title": "Low pressure area over Tamil Nadu and south Karnataka — 1,021 km to the SE", "body": "Comes closest on **Sun 27 Sep**, about **1,021 km** from Kalyan, with a minimum pressure of 1006 hPa. The centre stays some distance away, but it is closing — and Guide s12.3 warns against dismissing a system on distance alone: a low tracking west-northwest across the peninsula strengthens the cross-country gradient and the Arabian Sea westerlies behind it, dragging a renewed surge of moisture up the coast. Examine the circulation footprint, not the centre.", "label": "BE AWARE"}, {"severity": "info", "icon": "🌤️", "title": "Dry window opens Saturday 26 Sep", "body": "At least two drier days in a row — the realistic slot for anything that needs to stay dry.", "label": "FYI"}, {"severity": "info", "icon": "☀️", "title": "Onshore wind falls away on Monday 28 Sep", "body": "The wind that carries moisture in off the sea slackens, so the hills lose the lift that normally wrings rain out of it. Expect longer dry gaps, more sun, and muggier air — with the odd sharp local thunderstorm rather than steady rain. On the current guidance this is a **single day** — the pattern goes back to what it was on either side of it. Read it as a one-day change, not the start of a spell. Note that the heavier rainfall guidance this week sits on **Tuesday 22 Sep** (11–23 mm) rather than on this day — the two are answering different questions, and this alert is about the wind and the moisture, not the total.", "label": "FYI"}], "areas": [{"key": "badlapur_belt", "name": "Ambernath–Badlapur–Karjat", "character": "Ulhas valley into the foothills. First to feel Ghat enhancement, and the belt where pre-monsoon storms most often fire.", "weekMm": 34.2, "wettestDay": "Tue 22", "wettestMm": 14.9, "band": "Light rain", "plain": "Scattered light. Wettest Tuesday.", "rank": 1, "home": false}, {"key": "thane_belt", "name": "Thane & Bhiwandi", "character": "Creek belt. Urban heat plus coastal convergence; Bhiwandi matters for warehousing and transport decisions.", "weekMm": 33.8, "wettestDay": "Tue 22", "wettestMm": 19.5, "band": "Moderate rain", "plain": "Mostly light with isolated moderate spells. Wettest Tuesday.", "rank": 2, "home": false}, {"key": "ghats", "name": "Matheran–Lonavala (central Ghats)", "character": "The central crest and the Bhor Ghat gap. Where the orographic engine does its classic work; trekking and hill-station calls hang here.", "weekMm": 30.8, "wettestDay": "Tue 22", "wettestMm": 13.2, "band": "Light rain", "plain": "Scattered light. Wettest Tuesday.", "rank": 3, "home": false}, {"key": "kalyan_belt", "name": "Kalyan–Dombivli", "character": "HOME belt. Guide s11's Thane–Kalyan–Karjat transition — picks up coastal bands AND terrain enhancement, so it often runs between the suburbs and the Ghats rather than tracking either.", "weekMm": 30.5, "wettestDay": "Tue 22", "wettestMm": 17.2, "band": "Moderate rain", "plain": "Mostly light with isolated moderate spells. Wettest Tuesday.", "rank": 4, "home": true}, {"key": "ghats_north", "name": "Igatpuri (northern Ghats)", "character": "Thal Ghat. Squarely in the path of the monsoon westerly and among the wettest places in the state — when the current is aimed slightly north, this is where it lands hardest.", "weekMm": 28.1, "wettestDay": "Tue 22", "wettestMm": 18.0, "band": "Moderate rain", "plain": "Mostly light with isolated moderate spells. Wettest Tuesday.", "rank": 5, "home": false}, {"key": "suburbs", "name": "Mumbai suburbs", "character": "Bandra to Dahisar and the eastern suburbs. Santacruz is the IMD reference gauge most headline Mumbai rainfall figures come from.", "weekMm": 27.3, "wettestDay": "Tue 22", "wettestMm": 15.7, "band": "Moderate rain", "plain": "Mostly light with isolated moderate spells. Wettest Tuesday.", "rank": 6, "home": false}, {"key": "south_mmr", "name": "Alibag & Raigad coast", "character": "Southern edge of the region. Nisarga's 2020 landfall zone — the stretch most exposed in an Arabian Sea cyclone.", "weekMm": 25.5, "wettestDay": "Tue 22", "wettestMm": 12.1, "band": "Light rain", "plain": "Scattered light. Wettest Tuesday.", "rank": 7, "home": false}, {"key": "island_city", "name": "Mumbai island city", "character": "Colaba to Dadar. Most sea-moderated part of the region — least temperature swing, and usually a touch less rain than the suburbs.", "weekMm": 25.3, "wettestDay": "Tue 22", "wettestMm": 14.7, "band": "Light rain", "plain": "Scattered light. Wettest Tuesday.", "rank": 8, "home": false}, {"key": "navi_mumbai", "name": "Navi Mumbai & Panvel", "character": "Harbour side and the approach to the Matheran foothills.", "weekMm": 25.0, "wettestDay": "Tue 22", "wettestMm": 14.1, "band": "Light rain", "plain": "Scattered light. Wettest Tuesday.", "rank": 9, "home": false}, {"key": "ghats_east", "name": "Malshej", "character": "Furthest inland of the crest sites. Needs a deeper moist layer to get properly wet, so it is the first of the three to fall away when the moisture is shallow — a useful read on depth, not just strength.", "weekMm": 19.9, "wettestDay": "Tue 22", "wettestMm": 10.6, "band": "Light rain", "plain": "Scattered light. Wettest Tuesday.", "rank": 10, "home": false}, {"key": "north_mmr", "name": "Vasai–Virar & Palghar", "character": "Northern MMR. Frequently the wettest coastal stretch when the monsoon current is aimed slightly north of the city.", "weekMm": 14.0, "wettestDay": "Tue 22", "wettestMm": 6.2, "band": "Light rain", "plain": "Mostly dry with isolated light spells. Wettest Tuesday.", "rank": 11, "home": false}], "basins": [{"basin": "Arabian Sea", "status": "quiet", "headline": "**Arabian Sea — nothing organised this week.**", "detail": "No closed low forms here in the current run. That is the ordinary state; most weeks have none.", "genesis": "", "depth": 0.0, "label": "", "closestKm": null, "windyPressure": "https://www.windy.com/?ecmwf,pressure,15.000,66.000,5", "windyWind": "https://www.windy.com/?ecmwf,wind,850h,15.000,66.000,5"}, {"basin": "Bay of Bengal", "status": "active", "headline": "**Bay of Bengal — depression-strength circulation, already present.**", "detail": "Deepest about **8.4 hPa** below its surroundings near 18°N 85°E, tracking NW, closest approach to Kalyan about **874 km**. A Bay system does its work on Konkan from a distance: as it tracks west-northwest along the monsoon trough it pulls the trough south and strengthens the westerlies feeding this coast. Expect any rainfall response here **two to four days after** it crosses the east coast, not while it is still over water.", "genesis": "", "depth": 8.4, "label": "depression-strength circulation", "closestKm": 874, "windyPressure": "https://www.windy.com/?ecmwf,pressure,17.000,88.000,5", "windyWind": "https://www.windy.com/?ecmwf,wind,850h,17.000,88.000,5"}], "rainTypes": [{"day": "Tue 22 Sep", "label": "Local thunderstorms", "headline": "Heat-built storms under a northerly — the monsoon pulling back", "thunder": "possible"}, {"day": "Wed 23 Sep", "label": "Local thunderstorms", "headline": "Heat-built storms under a northerly — the monsoon pulling back", "thunder": "possible"}, {"day": "Thu 24 Sep", "label": "Local thunderstorms", "headline": "Heat-built storms under a northerly — the monsoon pulling back", "thunder": "possible"}, {"day": "Fri 25 Sep", "label": "Local thunderstorms", "headline": "Heat-built storms under a northerly — the monsoon pulling back", "thunder": "possible"}, {"day": "Sat 26 Sep", "label": "Southwest monsoon flow", "headline": "Rain from the southwest monsoon wind", "thunder": "none"}, {"day": "Sun 27 Sep", "label": "Low pressure system", "headline": "Rain from a low pressure system", "thunder": "none"}, {"day": "Mon 28 Sep", "label": "Low pressure system", "headline": "Rain from a low pressure system", "thunder": "none"}], "regions": {"lead": {"headline": "Low pressure area over interior Karnataka — 546 km to the SE", "pressure": 1007, "closestKm": 546}, "list": [{"key": "south_konkan", "name": "South Konkan — Ratnagiri, Sindhudurg", "short": "S Konkan", "note": "Further from most west-tracking systems; often left out when one is compact.", "band": "Light rain", "agreement": "loose", "totalMm": 26.5, "peakDay": "Wed 23 Sep", "peakLo": 8, "peakHi": 14, "perModel": {"ECMWF": 14, "GFS": 10, "ICON": 8}, "windowFrom": "Wed 23 Sep", "windowTo": "Wed 23 Sep", "wet": true}, {"key": "north_konkan", "name": "North Konkan — Mumbai, Thane, Palghar", "short": "N Konkan", "note": "The home coast. Takes both coastal bands and Ghat enhancement.", "band": "Light rain", "agreement": "loose", "totalMm": 19.5, "peakDay": "Tue 22 Sep", "peakLo": 7, "peakHi": 11, "perModel": {"ECMWF": 11, "GFS": 7, "ICON": 11}, "windowFrom": "Tue 22 Sep", "windowTo": "Wed 23 Sep", "wet": true}, {"key": "vidarbha", "name": "Vidarbha — Nagpur, Akola", "short": "Vidarbha", "note": "First part of Maharashtra a Bay system reaches.", "band": "Light rain", "agreement": "loose", "totalMm": 18.9, "peakDay": "Thu 24 Sep", "peakLo": 2, "peakHi": 7, "perModel": {"ECMWF": 7, "GFS": 6, "ICON": 2}, "windowFrom": "Thu 24 Sep", "windowTo": "Thu 24 Sep", "wet": true}, {"key": "south_madhya", "name": "South Madhya Maharashtra — Pune, Solapur", "short": "S Mad MH", "note": "Rain-shadow country. Needs the system itself, not just onshore flow.", "band": "Light rain", "agreement": "loose", "totalMm": 17.6, "peakDay": "Tue 22 Sep", "peakLo": 10, "peakHi": 23, "perModel": {"ECMWF": 10, "GFS": 11, "ICON": 23}, "windowFrom": "Tue 22 Sep", "windowTo": "Wed 23 Sep", "wet": true}, {"key": "marathwada", "name": "Marathwada — Chh. Sambhajinagar, Latur", "short": "Marathwada", "note": "Agricultural belt that depends on system rain rather than terrain.", "band": "Light rain", "agreement": "loose", "totalMm": 14.2, "peakDay": "Tue 22 Sep", "peakLo": 6, "peakHi": 10, "perModel": {"ECMWF": 6, "GFS": 10, "ICON": 8}, "windowFrom": "Tue 22 Sep", "windowTo": "Tue 22 Sep", "wet": true}, {"key": "north_madhya", "name": "North Madhya Maharashtra — Nashik, Jalgaon", "short": "N Mad MH", "note": "The corridor a west-tracking low crosses on its way to Gujarat.", "band": "Light rain", "agreement": "close", "totalMm": 6.4, "peakDay": "Tue 22 Sep", "peakLo": 4, "peakHi": 7, "perModel": {"ECMWF": 4, "GFS": 7, "ICON": 5}, "windowFrom": "", "windowTo": "", "wet": false}, {"key": "saurashtra", "name": "Saurashtra — Rajkot, Dwarka", "short": "Saurashtra", "note": "Only gets wet when a system holds together all the way west.", "band": "No / trace rain", "agreement": "close", "totalMm": 0.4, "peakDay": "Tue 22 Sep", "peakLo": 0, "peakHi": 0, "perModel": {"ECMWF": 0, "GFS": 0, "ICON": 0}, "windowFrom": "", "windowTo": "", "wet": false}]}, "systems": {"trough": "Offshore trough running roughly 12–24°N (12° of latitude), about 1.2 hPa lower than the air either side of it. A trough like this squeezes the moist sea air together and nudges it upward, which is what turns a damp wind into real rain clouds. It also keeps the wind blowing steadily onshore instead of slackening.", "cycloneWindow": false, "list": [{"relevance": "moderate", "headline": "Low pressure area over interior Karnataka — 546 km to the SE", "reasoning": "An inland circulation this close can produce broad ascent over Maharashtra directly. Guide Case Study E: when ascent and moisture are both deep, rain becomes widespread and longer-lasting than a coastal orographic event, and Pune can get caught up in it too.", "distanceKm": 546, "pressure": 1006.7, "closestDay": "Sun 27 Sep", "centres": 1, "movedKm": 0, "motion": "slow", "durationH": 24, "points": []}, {"relevance": "moderate", "headline": "Depression-strength circulation over east Madhya Pradesh and Chhattisgarh — 874 km to the ENE", "reasoning": "Guide s12.3: a Bay system can affect Mumbai without its centre coming close. As it moves inland it strengthens the cross-country pressure gradient and the Arabian Sea westerlies, deepens the moisture and produces broad ascent over central India — which can weaken the usual Pune rain shadow and give widespread rain rather than a purely coastal orographic event.", "distanceKm": 874, "pressure": 992.3, "closestDay": "Sat 26 Sep", "centres": 1, "movedKm": 1380, "motion": "moving", "durationH": 144, "points": []}, {"relevance": "moderate", "headline": "Low pressure area over Tamil Nadu and south Karnataka — 1,021 km to the SE", "reasoning": "The centre stays some distance away, but it is closing — and Guide s12.3 warns against dismissing a system on distance alone: a low tracking west-northwest across the peninsula strengthens the cross-country gradient and the Arabian Sea westerlies behind it, dragging a renewed surge of moisture up the coast. Examine the circulation footprint, not the centre.", "distanceKm": 1021, "pressure": 1006.2, "closestDay": "Sun 27 Sep", "centres": 1, "movedKm": 222, "motion": "wandering", "durationH": 30, "points": []}]}, "drivers": {"enso": {"phase": "El Nino", "strength": "strong", "anomaly": 1.5, "text": "A strong El Nino is running in the Pacific, and it works against our monsoon. Here is why. Normally the warmest water sits on the western side of the Pacific, near Indonesia, and that is where the air rises. In an El Nino the warm water shifts east, so the rising air goes with it. Air that climbs in one place has to sink somewhere else, and a good part of that sinking happens over our side of the world. Sinking air squashes clouds before they can grow, which is why dry spells run longer in an El Nino year and the season usually finishes below normal. Read it as a tilt in the odds across the whole monsoon, not a verdict on any one week — El Nino years have still given this coast some of its wettest days.", "when": "2026-06", "lag": 3, "recent": [-0.41, -0.12, 0.09, 0.42, 1.01, 1.5]}, "iod": {"phase": "neutral", "dmi": 0.1, "text": "The Indian Ocean is even-handed at the moment. What matters here is which half of that ocean is warmer. When the western half, over towards Africa, runs warmer than the eastern half near Indonesia, storms gather on our side and the monsoon gets a push. When it tips the other way, the storms are drawn away from us. Right now neither side has the upper hand, so this is neither helping nor hurting. Whatever rain we get this week will be decided by things much closer to home — where the trough sits, and whether a low pressure area forms."}, "mjo": {"phase": 4, "region": "Maritime Continent", "favourability": "favourable", "text": "There is a vast band of thunderstorms that drifts slowly eastward right around the equator, taking a month or two to complete a lap. Where it happens to be sitting decides whether India gets a nudge or not. At the moment it is near 112°E, over the maritime continent — our side of its circuit, and the half that wakes the monsoon up. Put a steady sea wind underneath it and this is when rain organises into spells that last, rather than passing showers. It is drifting westward, roughly 33 km a day.", "lon": 112.3, "track": [111.1, 102.9, 104.9, 110.1, 115.0, 119.9, 119.5, 122.0, 132.3, 127.5, 122.3, 118.5, 114.1, 112.3]}, "miso": {"regime": "rain belt still down near the equator", "lat": 4.2, "text": "The rain is bunched up near 4°N, down by the equator. That is the very start of the cycle — weeks away from reaching us, and it does not always make the journey. It is moving southward at about 87 km a day.", "eta": null, "track": [19.6, 19.2, 17.1, 14.0, 11.2, 7.9, 7.1, 3.5, 3.9, 4.2, 4.0, 3.5, 3.8, 4.2]}, "coherence": "> **Drivers and pattern agree — leaning dry.** strong El Nino (against), MJO phase 4 (for), MISO band far south (against), and the local pattern is *break / subdued*. Both point the same way, which raises confidence in a subdued stretch.", "crosscheck": "**Cross-check against CPC** (4 matched pentads, 11 Aug–26 Aug): In 3 of 4 matched pentads CPC is NEGATIVE where the derived field puts convection — consistent with negative velocity-potential anomaly marking enhanced convection. Either way the forecast uses the rainfall-derived field, whose sign is unambiguous, so nothing here depends on resolving it."}, "thermalRows": [{"place": "Mumbai - Santacruz", "type": "coastal", "warmest": 30.1, "coolest": 24.2, "peakFeels": 37.06650350695034, "heatSpell": 0, "coldSpell": 0}, {"place": "Kalyan West", "type": "coastal", "warmest": 30.9, "coolest": 23.2, "peakFeels": 40.198217473875644, "heatSpell": 0, "coldSpell": 0}, {"place": "Karjat", "type": "plains", "warmest": 30.8, "coolest": 22.5, "peakFeels": 39.52453700324421, "heatSpell": 0, "coldSpell": 0}, {"place": "Pune", "type": "plains", "warmest": 29.9, "coolest": 19.9, "peakFeels": 33.04010986159781, "heatSpell": 0, "coldSpell": 0}], "public": true};
 const WEEKLY = null;      /* null on the standalone single-view pages */
 const LINKS = [{"title": "Pressure - monsoon trough (north India)", "url": "https://www.windy.com/?ecmwf,pressure,24.000,80.000,4", "why": "Handbook Ch.13: trough hugging the Himalayan foothills = break signal; trough back over the plains = active signal. Check this first - it tells you more about the week's character than anything else."}, {"title": "Pressure - offshore trough (Konkan coast)", "url": "https://www.windy.com/?ecmwf,pressure,18.500,72.500,5", "why": "Guide s12.1: an elongated low parallel to the west coast promotes convergence, organises coastal convection and maintains onshore flow."}, {"title": "Wind at 850 hPa - the moisture-transport layer", "url": "https://www.windy.com/?ecmwf,wind,850h,19.244,73.130,7", "why": "Guide s10.1: 850 hPa wind is the useful first approximation of the monsoon low-level jet. Check the angle against the Ghats, not just the speed."}, {"title": "Wind at 925 hPa - very-low-level flow", "url": "https://www.windy.com/?ecmwf,wind,925h,19.244,73.130,7", "why": "Guide s10.1: shows the flow closest to the surface without the friction distortion of the 10 m wind."}, {"title": "Relative humidity at 700 hPa - moisture depth", "url": "https://www.windy.com/?ecmwf,rh,700h,19.244,73.130,7", "why": "Guide s4.4: the single best check on whether cloud can grow deep. Humid at the surface but dry here means shallow cloud and disappointing rain."}, {"title": "Relative humidity at 850 hPa", "url": "https://www.windy.com/?ecmwf,rh,850h,19.244,73.130,7", "why": "The middle rung of the moisture-depth ladder."}, {"title": "CAPE - convective potential", "url": "https://www.windy.com/?ecmwf,cape,19.244,73.130,7", "why": "Handbook Ch.24: how much energy is available IF something triggers it. Never read CAPE as a rainfall amount."}, {"title": "Radar - what is actually happening now", "url": "https://www.windy.com/?radar,19.244,73.130,9", "why": "Guide s16: for the next 0-3 hours this outranks every model. Animate it - a single frame is not a forecast."}, {"title": "Satellite - cloud texture and growth", "url": "https://www.windy.com/?satellite,19.244,73.130,7", "why": "Guide s17: smooth sheets mean layered cloud; bright bubbling towers mean growing convection."}, {"title": "Rain accumulation - checked LAST", "url": "https://www.windy.com/?ecmwf,rainAccu,19.244,73.130,7", "why": "Guide learning rule: identify the mechanism first. The rain layer is the output of everything above, not the starting point."}, {"title": "Point meteogram for this location", "url": "https://www.windy.com/19.244/73.130?19.244,73.130,10", "why": "Handbook Ch.20: where the precise numbers live - dew point against temperature, wind by level, hourly precipitation."}];
 const MLINKS = [];
+/* Sam's notes - the explanations behind the forecast. See samkb.py. */
+const SAM_KB = [{"id": "about_sam", "keys": ["\\bwho are you\\b", "\\bwhat are you\\b", "how do you work", "are you (an )?(ai|bot|human|real)", "\\bsam\\b.*\\b(accurate|trust)"], "t": "Who Sam is and how he answers", "a": "I'm Sam — I read this page's forecast so you don't have to dig through it. Everything I say comes from the data on this page (the models, the radar, the systems tracker) and from notes on how to read it. On the claude.ai copy I think with Claude, if you allow it; elsewhere I answer from built-in rules. Either way I'm not IMD: for official warnings, IMD and the civic authorities are the word that counts."}, {"id": "snapshot", "keys": ["\\b(old|stale|outdated|updated|refresh|latest|current)\\b.*\\b(page|forecast|data)\\b", "when was (this|the page|it) (made|built|updated|issued)"], "t": "The page is a snapshot", "a": "This page is a snapshot, built at the issue time shown at the top. It doesn't update itself, so the older it is, the less the 'right now' parts mean — the radar especially. The day-by-day outlook ages more gently than the present tense does."}, {"id": "radar_vs_models", "keys": ["why (trust|believe|use) (the )?radar", "radar (vs|versus|or) (the )?model", "model(s)? (say|said) .*radar", "radar.*(different|disagree).*model"], "t": "Why radar outranks the models for right now", "a": "For the next hour or two, trust the radar over any model. The radar is an observation — the beam is reporting what's in the air right now. A model is an opinion about the whole day, drawn on a grid about 25 km across, so it smears a shower over a big box and often misses one that has just formed. On 12 Sep the model said nothing for the hour while the radar had rain over Kalyan. The models earn their keep for later today and the coming days; the radar owns the present."}, {"id": "cband", "keys": ["c[- ]?band", "s[- ]?band", "veravali", "which radar", "two radars", "colaba radar", "dwr"], "t": "The two Mumbai radars", "a": "Mumbai has two IMD Doppler weather radars. The C-band at Veravali, in Andheri, is the one I lead with: it's about 30 km from Kalyan against Colaba's 50, its picture is roughly three times sharper, and its colour scale steps in single dBZ rather than big 15-dBZ jumps, so light and moderate rain are told apart. Colaba's S-band uses a longer wavelength. I keep it as a second opinion and as the fallback when the C-band can't be read or its scan is out of date."}, {"id": "dbz", "keys": ["\\bdbz\\b", "reflectivity", "mm ?/ ?h(ou)?r", "rain rate", "colou?r(s)? (on|in) (the )?radar", "what do the colou?rs"], "t": "Reading the radar colours", "a": "The colours are reflectivity, in dBZ — how strongly the rain bounces the beam back. I turn that into a rain rate with the standard Marshall-Palmer formula: about 20 dBZ is 0.6 mm/hr, 30 is 3, 40 is 12 and 50 is nearly 50 mm/hr. Navy and blue are light rain, white is moderate to heavy, yellow and orange are downpours. The formula is an average over many storms, so trust the where and the whether far more than the exact millimetres."}, {"id": "radar_time", "keys": ["(radar|scan).*(old|time|age|when)", "how (old|recent|fresh).*radar", "scanned", "published"], "t": "How old the radar picture is", "a": "IMD's file time is not the scan time. Both Mumbai radars' files appear 10 to 25 minutes after the scan, and the C-band file gets re-uploaded unchanged every few minutes, so a radar that stopped hours ago can look fresh. I read the scan time printed on the C-band image itself. For Colaba I can only see the upload time, so the page says 'published' there, not 'scanned'. Past 45 minutes I stop treating a scan as 'now'."}, {"id": "clutter", "keys": ["clutter", "unconfirmed", "false echo", "hill.*radar", "radar.*hill", "fake rain", "not really raining"], "t": "Clutter: echoes that aren't rain", "a": "Clutter is the radar seeing hills, towers or buildings instead of rain. Near the Veravali dish it shows up as grainy specks over the Borivali national park hills and the Parsik hills near Vashi — they don't move between scans, and rain always does. I read the C-band in roughly 1 km squares and only count a square if the ones around it carry echo too, which removes the specks but keeps any real shower 2 km or more across. When only one radar sees something strong, the page calls it unconfirmed rather than rain."}, {"id": "attenuation", "keys": ["attenuat", "blocked", "weaken(ed)? beam", "behind (the |a )?(storm|core)"], "t": "The C-band's weak spot", "a": "The C-band's weakness is heavy rain itself. Its beam loses power passing through a downpour, so rain behind a heavy core, as seen from Andheri, can look weaker than it is. Colaba's longer-wavelength S-band barely suffers from that, which is why it's kept as the check. When Colaba shows rain the C-band misses, the page says the C-band's beam may be blocked."}, {"id": "radars_disagree", "keys": ["radars? (disagree|differ|don.?t match)", "colaba.*(nothing|empty|blind)", "why (does|is) .*s[- ]?band"], "t": "When the two radars disagree", "a": "Sometimes one radar simply isn't seeing properly. On 22 Sep, Colaba showed one speck in 250 km while the C-band had an organised rain band over the sea. That evening Colaba saw only a third of the C-band's echo and missed most of a storm complex over the Ghats. So I only let one radar confirm or doubt the other when it sees at least half as much rain and their scans are within 15 minutes of each other. Otherwise the page just tells you they disagree."}, {"id": "rain_types", "keys": ["(kind|type|sort)s? of rain", "what (drives|causes|is driving)", "\\bdriver\\b", "where.*rain.*come from"], "t": "The kinds of rain", "a": "Twelve millimetres from the monsoon and twelve from a thunderstorm are different days. Monsoon rain comes in on a westerly wind and falls steadily for hours, hardest on the windward Ghats. Easterly rain comes the other way, mostly as afternoon and evening thunderstorms, and hits the inland belts first. A low pressure system gives widespread, long rain that even reaches Pune. When the monsoon pulls back, a northerly brings heat-built Ghat storms. In winter a western disturbance can bring cloud but rarely rain here. The 'What kind of rain' card names today's driver."}, {"id": "sw_monsoon", "keys": ["south ?west monsoon", "\\bsw (monsoon|wind)", "westerl(y|ies)", "monsoon wind", "onshore"], "t": "Southwest monsoon rain", "a": "The monsoon's own wind blows in off the Arabian Sea from the west or southwest, loaded with moisture. When it meets the Western Ghats it's forced upward, cools, and rains — so the windward face above Kalyan, Igatpuri and Matheran gets the most, the coast gets a lot, and Pune, behind the crest, stays comparatively dry. It's usually steady rain that lasts for hours rather than short bursts."}, {"id": "easterly", "keys": ["easterl(y|ies)", "east wind", "from the east"], "t": "Easterly rain", "a": "An easterly is the monsoon wind running backwards, and the terrain works backwards with it. The east face of the Ghats becomes the windward side and the Konkan — Mumbai, Thane, Kalyan — sits in the lee. So the storms usually build over the inland belts (Karjat, Badlapur, the plateau) in the afternoon and evening, short, heavy, very local and with lightning, while the coast can stay dry until something drifts down to it."}, {"id": "withdrawal", "keys": ["withdraw", "pull(ing)? back", "monsoon (end|over|leav|retreat)", "northerl(y|ies)", "october"], "t": "The monsoon pulling back", "a": "In late September and October the wind a kilometre and a half up turns northerly — off the land instead of in from the sea. That's the monsoon withdrawing. Nothing blows rain in any more, but the air is often still humid and the sun is strong, so rain gets built in place: storms fire over the Ghats in the afternoon and drift out in the evening, heavy where they land and dry in between. When the air finally dries out too, the rain stops and the October heat arrives."}, {"id": "thunderstorm", "keys": ["thunder", "lightning", "storm cell", "cloudburst", "hail", "\\bcape\\b", "instab"], "t": "Thunderstorms", "a": "A thunderstorm needs moist air, energy (CAPE, the fuel for rising air) and something to set it off — daytime heating, the hills, or colliding winds. Lots of energy is a risk, not a promise: plenty of high-energy days produce nothing. When storms do fire they're patchy — one suburb gets twenty minutes of downpour while the next stays dry — and lightning is the real danger. With weak upper winds they're short-lived 'pulse' storms that die on their own outflow within an hour or two."}, {"id": "lightning_safety", "keys": ["lightning safe", "(safe|safety).*(storm|thunder|lightning)", "struck", "what (should|do) i do.*(storm|thunder)"], "t": "Staying safe from lightning", "a": "If you can hear thunder, you're close enough to be struck. Get inside a proper building or a hard-top car and wait about half an hour after the last thunder. Stay off open ground, rooftops and ridges, away from lone trees, water and metal fences. On a trek, get down off the summit and exposed ridges early — Ghat storms build fast in the afternoon."}, {"id": "western_disturbance", "keys": ["western disturbance", "\\bwd\\b", "winter rain"], "t": "Western disturbances", "a": "A western disturbance is a winter storm system moving east across north India. It brings cloud, cooler days and sometimes light rain there, but it almost never reaches this coast. The page can only infer one from the high-level winds, because the pressure grid it reads stops at 28°N and these systems sit north of that."}, {"id": "rain_shadow", "keys": ["rain ?shadow", "\\bpune\\b.*(dry|less|why)", "why.*\\bpune\\b", "leeward", "\\blee\\b"], "t": "The rain shadow", "a": "Air rising up the western face of the Ghats drops its rain there; once it's over the crest it sinks, warms and dries out. That's why Pune, behind the hills, gets far less than Matheran or Lonavala on a monsoon day. Two things break the pattern: a low pressure system lifts air over a whole region, so Pune gets caught up too, and an easterly flips it, making the east face the wet side."}, {"id": "orographic", "keys": ["orograph", "terrain", "\\bghats?\\b.*(more|wetter|why)", "why.*\\bghats?\\b", "upslope", "windward"], "t": "Why the hills get more rain", "a": "When wind blows straight at a mountain range, the air has to climb, and rising air cools and rains. The stronger and more head-on the westerly, the more the Ghats squeeze out. A wind running along the range instead of into it gives almost no lift, however strong it is. That's why the page shows a 'terrain-normal' wind: the part blowing straight at the hills."}, {"id": "kalyan_zone", "keys": ["kalyan.*(zone|belt|different|special)", "transition (belt|zone)"], "t": "Where Kalyan sits", "a": "Kalyan is in the transition belt — between the coast and the Ghats. It gets less than the crest in a westerly but more than the island city on many days, and it's close enough to the hills that Ghat storms drifting out in the evening often reach it. Badlapur and Karjat, a little further in, usually feel the hills' effect first."}, {"id": "lpa", "keys": ["\\blpa\\b", "low pressure", "depression", "cyclon", "well[- ]marked", "\\bsystem\\b"], "t": "Lows, depressions and cyclones", "a": "A low pressure area is a patch where air is rising and pressure is lower than around it. As the winds circling it strengthen, IMD upgrades it: a depression at 17–27 knots, a deep depression at 28–33, a cyclonic storm from 34. A low doesn't need to come close to matter. A Bay of Bengal system crossing central India can pull the monsoon westerlies harder onto this coast from 800 km away. For anything cyclone-related, IMD's bulletins are the authority."}, {"id": "event_grouping", "keys": ["same (low|lpa|system)", "(multiple|several|many|two|different) (lows|lpas|systems)", "one event", "sub[- ]?point", "possibilit"], "t": "Why one low shows as one event", "a": "One low can be detected several times — at different distances, on different days, as its centre wobbles. Listing each detection would make one system look like three. So the page groups detections into a single event and lists the possibilities under it as sub-points. Two centres only count as separate lows when there's a ridge of higher pressure, at least 1 hPa, between them — being far apart isn't enough on its own."}, {"id": "two_lows", "keys": ["gujarat", "two trajector", "separate (low|system)", "\\bcol\\b", "ridge between"], "t": "Telling two lows apart", "a": "The test is whether pressure rises between them. If you can walk from one centre to the other without climbing, it's one stretched system; if there's a ridge in between, they're two. On 20 Sep that's how the Gujarat and Maharashtra lows came out as two separate systems: a 2–3 hPa ridge sat between them. They weren't one low taking two possible paths."}, {"id": "system_motion", "keys": ["stationary", "not moving", "(which way|where) is (it|the low) (moving|going)", "track(ing)?", "\\bmoving\\b"], "t": "How confident a track is", "a": "The pressure grid I track lows on has points about 210 km apart, so a centre that seems to shift less than that may just be rounding. I only call a low 'moving' when it has travelled clearly more than one grid step, fairly directly, over at least 18 hours. Otherwise the page says slow, wandering, or that the motion can't be resolved yet."}, {"id": "monsoon_trough", "keys": ["monsoon trough", "\\btrough\\b", "active (spell|phase|monsoon)", "\\bbreak\\b", "\\bactive\\b"], "t": "Active and break monsoon", "a": "The monsoon trough is a line of low pressure across north India. When it sits in its normal place or further south, the sea winds blow hard onto the west coast — an active spell, with widespread and often heavy rain. When it shifts north to the Himalayan foothills, the engine idles — a break: sunshine, patchy afternoon showers, long dry gaps. An offshore trough along the coast squeezes sea air together and can turn a damp wind into real rain."}, {"id": "upstream", "keys": ["somali", "\\bjet\\b", "dry air", "mid[- ]level", "upstream"], "t": "What feeds the monsoon", "a": "Two things upstream decide how much the coast can get. The Somali jet is the low-level river of wind that carries Arabian Sea moisture to us — when it's weak, heavy rain almost never happens. Dry air a few kilometres up chokes clouds before they grow tall, even when the ground feels muggy. The page reads both each day."}, {"id": "climate_drivers", "keys": ["el ni[nñ]o", "la ni[nñ]a", "\\benso\\b", "\\biod\\b", "indian ocean dipole", "\\bmjo\\b", "\\bmiso\\b", "madden"], "t": "The background climate drivers", "a": "El Niño, the Indian Ocean Dipole and the MJO tilt the odds over weeks to a whole season; they don't decide any single day. A strong El Niño leans against our monsoon, and a positive IOD leans for it. The MJO and MISO are pulses of cloud that travel east and north over a few weeks and can switch an active or break spell on. Read them as a tilt, not a verdict."}, {"id": "probability", "keys": ["(chance|probability|percent|%)", "\\bmembers?\\b", "ensemble"], "t": "What the rain chance means", "a": "The percentage is the share of 31 runs of the GFS ensemble, each started slightly differently, that give at least 2.5 mm at Kalyan West that day — IMD's line for a rainy day. It's about whether it rains measurably at that point, not how much or for how long. At the top of the scale it's trustworthy: near-unanimous runs verified about 98% of the time in three past monsoons."}, {"id": "low_chance", "keys": ["(said|forecast).*(dry|unlikely).*(rain|rained)", "why did it rain", "low chance", "isolated showers possible", "nothing organised"], "t": "Why a low chance can still mean rain", "a": "In the monsoon a low number means 'nothing organised', not 'dry'. Over three seasons, on days the models gave under 20%, it still rained on 24% of them. The reason is a shared blind spot: all the models see the same big-picture flow, so when rain is forced locally — a sea-breeze line, one cell anchored on a hill — they all miss it together, and agreement gets mistaken for certainty. Outside the monsoon, a low number really does mean dry."}, {"id": "no_average", "keys": ["average", "\\bmean\\b", "(models?) (disagree|differ)", "\\becmwf\\b", "\\bgfs\\b", "\\bicon\\b", "which model"], "t": "Why the page never averages the models", "a": "ECMWF, GFS and ICON are compared side by side and never averaged. When they disagree, it usually means the outcome hinges on something small — exactly where a storm fires, or the track of an offshore swirl — and averaging hides that. The honest reading is: trust the part they agree on (does it rain) more than the part they don't (how much). None of them is reliably best here; ECMWF actually had the most false alarms at Kalyan in the backtest."}, {"id": "confidence", "keys": ["confiden", "how sure", "certain", "reliable"], "t": "The three confidences", "a": "The page gives three separate confidences: whether it rains, how much, and when. They often differ — 'high confidence on rain, low on amount' is common on convective days, because the models agree something will fall but not where the heavy cells land. Plan around the one that matters to you."}, {"id": "imd_bands", "keys": ["light rain", "moderate rain", "heavy rain", "very heavy", "how much is", "imd (scale|categor|band)"], "t": "IMD's rain bands", "a": "IMD's daily bands: light rain is 2.5–15.5 mm, moderate 15.6–64.4, heavy 64.5–115.5, very heavy 115.6–204.4, and extremely heavy above that. The page treats the band as the forecast and the millimetres as a guide — a model's exact figure is never as solid as it looks."}, {"id": "character", "keys": ["steady", "continuous", "intermittent", "spells", "burst", "showers field"], "t": "Steady rain or showers", "a": "The same total can fall as hours of drizzle or one violent quarter-hour. I judge the character from how much of the day's rain lands in its busiest hour. Around half in one hour is a shower; a small share means steady layer cloud. The models' own 'showers' label can't be used for this: ECMWF reports zero showers always and GFS and ICON put nearly everything there."}, {"id": "alerts_logic", "keys": ["why.*(alert|warning).*(monday|tuesday|wednesday|thursday|friday|saturday|sunday|day)", "(alert|warning).*wrong day", "surge"], "t": "Why an alert can name a different day from the wettest", "a": "A pattern alert — a monsoon surge, say — is triggered by the winds and moisture changing, not by the rain total. The pattern can switch on a day before the heaviest rain arrives, so the alert names when it starts and says separately which day is wettest. If the two look out of step, that's the reason."}, {"id": "accuracy", "keys": ["accura", "track record", "how good", "hit rate", "(right|wrong) (last|yesterday)", "\\bscore\\b", "miss(ed)?\\b"], "t": "How accurate this forecast is", "a": "Every forecast is checked against what actually fell, misses included — the scorecard on the page shows the last month. Over May–August 2026 it called rain or no-rain right most of the time, and beat 'same as yesterday' mainly by raising fewer false alarms. Its known weak spot is heavy rain: it caught only 2 of 5 heavy days in that test. So lean on it for 'will it rain', and be careful with 'how hard'."}, {"id": "what_fell", "keys": ["how much (did it|has it) rain", "(rain|rainfall) (yesterday|last night)", "what fell", "\\bgauge", "observed"], "t": "The 'what fell' figures", "a": "The 'what fell' table is model analysis, not rain gauges. IMD's gauge network needs a data agreement and the city's gauges have no open feed. The analysis gets the pattern right but runs low on convective days — on 11 Aug 2026 gauges had Borivali at 84 mm in 12 hours while the analysis said 29 mm for the whole day. Read the ranking, not the millimetres; any real gauge beats it."}, {"id": "sources", "keys": ["(data|forecast) (come from|source)", "where do you get", "\\bwindy\\b", "open[- ]?meteo", "\\bmodels?\\b.*\\buse"], "t": "Where the data comes from", "a": "The forecast uses the three big global models — ECMWF, GFS and ICON — plus the 31-member GFS ensemble for the rain chance, and ERA5 reanalysis to check past days. The present tense comes from IMD's two Mumbai radars. Windy shows these same models; it doesn't run one of its own."}, {"id": "heat", "keys": ["feels like", "heat ?index", "heatwave", "humid", "sultry", "muggy"], "t": "Humid heat and heatwaves", "a": "In a humid coastal city, feels-like and heatwave are different things. IMD declares a heatwave on the actual temperature (37°C on the coast, 40°C inland, well above normal), so a 33°C day with sticky air isn't one — but it can feel like 42°C and wear you down. That's why the page warns about oppressive humid heat even when there's no heatwave."}, {"id": "tide", "keys": ["\\btide", "waterlog", "flood", "high tide"], "t": "Rain and high tide", "a": "Mumbai's storm drains empty into the sea, so heavy rain at high tide can't get away and the streets flood far faster. Watch the combination, not either one alone. IMD's tide table is linked on the page. For flooding, follow the civic authorities' updates."}, {"id": "trek", "keys": ["\\btrek", "\\bhike", "hiking", "fort\\b", "waterfall", "picnic"], "t": "Planning a trek", "a": "For a Ghat trek, go early. On storm days the hills fire first, usually from early afternoon, so aim to be off exposed tops and ridges by then. Streams can rise within minutes after a cell upstream, even if it's dry where you are, so don't cross fast water. Check the day's rain type on the page: steady monsoon rain means a wet but predictable day, while thunderstorms mean a dry morning and a dangerous afternoon."}, {"id": "official", "keys": ["\\bimd\\b.*(alert|warning|orange|red|yellow)", "(orange|red|yellow) alert", "official"], "t": "Official warnings", "a": "I'm not an official source. IMD's colour-coded warnings — yellow, orange, red — and the civic authorities' instructions are what to act on for safety. The page's own alerts are a forecaster's read of the pattern, meant to help you plan, not to replace them."}];
 let D = DAILY;                  /* the view currently on screen */
 let VIEW = DAILY.page === 'weekly' ? 'week' : 'today';
 
@@ -1689,9 +1691,29 @@ const SK = (() => {
     const head = (d.headline || '').replace(/\.$/, '');
     let s = `${opener(q, moodOf(d))} **${d.day}**: ${head.toLowerCase()}.`;
     if (d.detail) s += `\n\n${d.detail}`;
+    const drv = driverFor(d);
+    if (drv) s += `\n\n${drv}`;
     if (d.advice) s += `\n\n${d.advice}`;
     if (d.confidence) s += `\n\n_${d.confidence}_`;
     return s + staleNote();
+  }
+
+  /* The kind of rain for a plain-week entry, when the page holds it. */
+  function driverFor(d){
+    const date = parseLabel(d.day);
+    const first = dated()[0];
+    const S = pick('rainSource');
+    if (date && first && sameDay(date, first.date) && S && S.headline)
+      return `What kind of rain: ${S.headline.charAt(0).toLowerCase() + S.headline.slice(1)}.`;
+    const rt = pick('rainTypes') || [];
+    const hit = date && rt.find(r => {
+      const m = (r.day || '').match(/(\d{1,2})\s+([A-Za-z]{3})/);
+      return m && +m[1] === date.getDate()
+        && MONTHS[date.getMonth()].startsWith(m[2].toLowerCase());
+    });
+    if (!hit || !d.facts || d.facts.band === 'No / trace rain') return '';
+    return `What kind of rain: ${hit.label.toLowerCase()}`
+         + (hit.thunder && hit.thunder !== 'none' ? `, thunderstorms ${hit.thunder}` : '') + '.';
   }
 
   function isWeekendDay(p){
@@ -1781,13 +1803,18 @@ const SK = (() => {
 
   function whyAnswer(){
     const regime = pick('regime'), mech = pick('mechanism');
+    // The driver first, in plain words; the regime name is the technical
+    // label for the same thing and reads as jargon on its own.
+    const S = pick('rainSource');
+    const lead = (S && S.headline) ? `**${S.headline}.** ${S.detail}\n\n` : '';
     if (regime || mech){
-      let s = regime ? `**${regime}**` : '';
+      let s = lead + (regime ? `In the forecaster's terms it's a **${regime.toLowerCase()}** day` : '');
       const note = pick('regimeNote');
       if (note) s += ` — ${note}`;
       if (mech) s += `\n\n${mech}`;
       return s;
     }
+    if (lead) return lead.trim();
     const wr = pick('weekRegime');
     if (wr) return `**${wr.label}.** ${wr.note}`;
     return "I don't have the mechanism breakdown loaded.";
@@ -1822,57 +1849,378 @@ const SK = (() => {
     return s;
   }
 
+
+  /* ---- everyday words -------------------------------------------------
+     Readers here write the way they talk - "aaj paus padel ka?", "kal
+     baarish hogi?". The common Marathi and Hindi words are mapped onto the
+     English the routes below understand instead of failing them. "kal" is
+     both yesterday and tomorrow; asked of a forecast, it means tomorrow. */
+  const LOCAL_WORDS = [
+    [/\baaj\b/g, 'today'], [/\bparso\b|\bparva\b/g, 'day after tomorrow'],
+    [/\bkal\b|\budya\b/g, 'tomorrow'],
+    [/\bpaa?us\b|\bbaa?rish\b|\bbarsaat\b|\bpani\b/g, 'rain'],
+    [/\bgarmi\b|\bukad[ae]?\b/g, 'heat'], [/\bthand[ia]?\b/g, 'cold'],
+    [/\btoofan\b|\btufan\b|\bvadal\b/g, 'storm'],
+    [/\bbijli\b|\bvij\b/g, 'lightning'], [/\bhawa\b|\bvara\b/g, 'wind'],
+  ];
+  function localise(q){
+    let t = q;
+    for (const [re, w] of LOCAL_WORDS) t = t.replace(re, w);
+    return t;
+  }
+
+  /* ---- Sam's notes (samkb.py) ----------------------------------------- */
+  const KB = (typeof SAM_KB !== 'undefined' && Array.isArray(SAM_KB) ? SAM_KB : [])
+    .map(e => Object.assign({}, e, { re: e.keys.map(k => new RegExp(k, 'i')) }));
+  function kbMatch(q){
+    let best = null, n = 0;
+    for (const e of KB){
+      const hits = e.re.filter(r => r.test(q)).length;
+      if (hits > n){ best = e; n = hits; }
+    }
+    return best;
+  }
+  function kbById(id){ return KB.find(e => e.id === id) || null; }
+  // Asking what something IS, rather than what the weather will do.
+  const CONCEPT = /^(what|why|how|explain|define|meaning|tell me about|what's|whats|is it true|difference)\b|\bmean(s|ing)?\b|\bdifference\b|\bexplain\b|\bhow (does|do|is|are)\b|\bwhat (is|are|does)\b|\b(the same|same (low|system|one)|different (lows?|systems?))\b/;
+  const EXPLICIT_DATE = /\b(today|tonight|tomorrow|tmrw|yesterday|monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekend|\d{1,2}\s*(st|nd|rd|th)|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\b/;
+
+  /* ---- conversation memory ---------------------------------------------
+     Enough to follow "and tomorrow?", "why?" and "tell me more" the way a
+     person would, without pretending to remember more than the last turn. */
+  const ctx = { route: null, kb: null };
+
+  const BAND = v => v < 0.5 ? 'nothing' : v < 2.5 ? 'light rain'
+                  : v < 7.5 ? 'moderate rain' : v < 20 ? 'heavy rain'
+                  : 'very heavy rain';
+
+  /* ---- live radar ------------------------------------------------------ */
+  function radarNow(){ return pick('radarNow'); }
+  const BELT_ALIAS = [
+    [/kalyan|dombivli|thane|bhiwandi|ulhasnagar|titwala/, 'Kalyan'],
+    [/badlapur|ambernath|karjat|neral|shelu/, 'Badlapur'],
+    [/navi mumbai|vashi|panvel|kharghar|nerul|belapur|airoli/, 'Navi Mumbai'],
+    [/malad|borivali|andheri|goregaon|kandivali|dahisar|jogeshwari|western suburb/, 'Malad'],
+    [/dadar|colaba|island city|south mumbai|churchgate|worli|byculla|parel/, 'Dadar'],
+    [/vasai|virar|palghar|nalasopara|bhayandar|mira road/, 'Vasai'],
+    [/igatpuri|kasara/, 'Igatpuri'],
+    [/matheran|lonavala|khandala|khopoli/, 'Matheran'],
+    [/malshej|murbad|junnar/, 'Malshej'],
+  ];
+  function findBelt(q, belts){
+    for (const [re, key] of BELT_ALIAS){
+      if (re.test(q)){
+        const b = belts.find(x => (x.name || '').includes(key));
+        if (b) return b;
+      }
+    }
+    return null;
+  }
+  function beltLine(b){
+    const here = b.hereMmH >= 0.5
+      ? `**${BAND(b.hereMmH)}** overhead (about ${Math.max(1, Math.round(b.hereMmH))} mm/hr)`
+      : 'nothing overhead';
+    const near = (b.nearMmH >= 2.5 && b.nearKm > 3)
+      ? `, with ${BAND(b.nearMmH)} about ${b.nearKm} km away` : '';
+    const doubt = b.doubt === 'clutter'
+      ? ' — unconfirmed: the other radar sees nothing there, so it may be clutter off the hills'
+      : b.doubt === 'blocked'
+      ? ' — the other radar has rain there that this one may be missing' : '';
+    return `${here}${near}${doubt}`;
+  }
+  /* Minutes between the scan and the reader's clock, not the build's. */
+  function scanAgeNow(){
+    const R = radarNow();
+    const m = (issued() || '').match(/(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/);
+    if (!R || !R.at || !m) return null;
+    const mon = MONTHS.findIndex(x => x.startsWith(m[2].toLowerCase()));
+    const hm = R.at.split(':').map(Number);
+    if (mon < 0 || hm.length < 2) return null;
+    const t = new Date(+m[3], mon, +m[1], hm[0], hm[1]);
+    return Math.round((Date.now() - t.getTime()) / 60000);
+  }
+  function fmtAge(min){
+    if (min < 90) return `${min} minutes`;
+    if (min < 36 * 60) return `${Math.round(min / 60)} hours`;
+    return `${Math.round(min / 1440)} days`;
+  }
+  function radarAnswer(q){
+    const R = radarNow();
+    if (!R || !R.belts || !R.belts.length) return nowAnswer();
+    const name = (R.site || 'radar').replace(/ DWR Mumbai.*$/, '').trim();
+    const age = scanAgeNow();
+    let s = '';
+    if (age != null && age > 60){
+      s += `One thing first — the newest radar on this page is from ${R.at}, `
+         + `about ${fmtAge(age)} ago, so it's history rather than now. IMD's `
+         + `live radar (linked on the page) is the thing to open.\n\n`;
+    }
+    const belt = findBelt(q, R.belts);
+    if (belt){
+      const mood = belt.doubt === 'clutter' ? 'unsure'
+                 : belt.hereMmH >= 7.5 ? 'bad' : belt.hereMmH < 0.5 ? 'good' : 'neutral';
+      s += `${opener(q, mood)} on the ${name} radar (${R.when}), `
+         + `${belt.name.replace(/ belt$/, '')} has ${beltLine(belt)}.`;
+    } else {
+      const wet = R.belts.filter(b => b.hereMmH >= 0.5 && b.doubt !== 'clutter');
+      s += wet.length
+        ? `On the ${name} radar (${R.when}), rain is falling over `
+          + wet.map(b => b.name.replace(/ belt$/, '')).join(', ') + '.'
+        : `On the ${name} radar (${R.when}), nothing is reaching the ground anywhere in the MMR.`;
+      const home = R.belts.find(b => /Kalyan/.test(b.name || ''));
+      if (home) s += `\n\nOver Kalyan: ${beltLine(home)}.`;
+      const heavy = R.belts.filter(b => b.nearMmH >= 7.5 && b.nearKm > 3 && b !== home);
+      if (heavy.length){
+        s += `\n\nHeavier cells nearby: ` + heavy.slice(0, 3).map(b =>
+          `${BAND(b.nearMmH)} ~${b.nearKm} km from ${b.name.replace(/ belt$/, '')}`).join('; ') + '.';
+      }
+    }
+    if (R.note) s += `\n\n_${R.note}_`;
+    if (R.checkNote) s += `\n\n_${R.checkNote}_`;
+    return s + `\n\nRadar is right about where and whether far more than exactly how much.`;
+  }
+
+  /* ---- what kind of rain ---------------------------------------------- */
+  function parseShort(label){
+    // "Tue 22 Sep" - the weekly labels use short month names.
+    const m = (label || '').match(/(\d{1,2})\s+([A-Za-z]{3})/);
+    if (!m) return null;
+    const mon = MONTHS.findIndex(x => x.startsWith(m[2].toLowerCase()));
+    if (mon < 0) return null;
+    const y = ((issued() || '').match(/(\d{4})/) || [0, new Date().getFullYear()])[1];
+    return new Date(+y, mon, +m[1]);
+  }
+  function thunderWords(t){
+    return t === 'likely' ? 'thunderstorms likely'
+         : t === 'possible' ? 'thunderstorms possible' : '';
+  }
+  function rainTypeAnswer(q){
+    const S = pick('rainSource');
+    const rt = pick('rainTypes') || [];
+    const want = targetDate(q);
+    const first = dated()[0];
+    const isFirst = !want || (first && sameDay(want, first.date));
+    if (isFirst && S && S.headline){
+      let s = `**${S.headline}.** ${S.detail}`;
+      const tw = thunderWords(S.thunder);
+      if (tw) s += `\n\n**${tw[0].toUpperCase() + tw.slice(1)}.**`;
+      if (S.terrain) s += `\n\n${S.terrain}`;
+      return s;
+    }
+    if (want && rt.length){
+      const hit = rt.find(r => { const d = parseShort(r.day); return d && sameDay(d, want); });
+      if (hit){
+        const tw = thunderWords(hit.thunder);
+        return `**${hit.day}: ${hit.label}.** ${hit.headline}.` + (tw ? ` ${tw[0].toUpperCase() + tw.slice(1)}.` : '');
+      }
+    }
+    if (rt.length){
+      return "Here's what drives the rain, day by day:\n\n"
+        + rt.map(r => `**${r.day}** — ${r.label}` + (thunderWords(r.thunder) ? ` (${thunderWords(r.thunder)})` : '')).join('\n')
+        + "\n\nA change of driver matters more than a change of total — monsoon rain and easterly storms land on opposite sides of the Ghats.";
+    }
+    if (S && S.headline) return `Today: **${S.headline}.** ${S.detail}\n\n_I only hold today's rain type on this page; the MMR week view has every day._`;
+    const k = kbById('rain_types');
+    return k ? k.a : "I don't have the rain-type read on this page.";
+  }
+
+  /* ---- timing, accuracy, models, regions, background ------------------- */
+  function arrivalsAnswer(q){
+    const A = pick('arrivals');
+    if (!A || !A.available || !A.list) return nowAnswer();
+    const R = radarNow();
+    const hit = findBelt(q, A.list) || A.list.find(x => /Kalyan/.test(x.name || ''));
+    let s = `Rain areas are drifting from about ${Math.round(A.fromDeg)}° at roughly `
+          + `${A.speedKmh} km/h (the three models ${A.agreement === 'tight' ? 'agree closely' : 'differ a bit'} on that).`;
+    if (hit) s += `\n\n**${hit.name}**: ${hit.sentence}`;
+    const soon = A.list.filter(x => x !== hit && (x.now || (x.eta && x.eta > 0)));
+    if (soon.length) s += `\n\nElsewhere: ` + soon.slice(0, 4).map(x =>
+      `${x.name.replace(/ belt$/, '')} ${x.now ? 'now' : 'in ~' + x.eta + ' h'}`).join(', ') + '.';
+    s += `\n\nThat's distance divided by the steering wind, so it assumes the rain keeps going — cells grow and die on the way.`;
+    if (R) s += ` For what's falling right now, ask me about the radar.`;
+    return s;
+  }
+  function trackAnswer(){
+    const T = pick('track');
+    const k = kbById('accuracy');
+    if (!T || !T.available) return k ? k.a : "No scorecard on this page.";
+    return T.summary + (k ? `\n\n${k.a}` : '');
+  }
+  function modelsAnswer(){
+    const M = pick('models') || [];
+    if (!M.length){ const k = kbById('no_average'); return k ? k.a : "No model breakdown on this page."; }
+    let s = `For today at Kalyan West: ` + M.map(m => `${m.name} ${m.mm} mm (${m.band.toLowerCase()})`).join(', ') + '.';
+    const sw = pick('spreadWarning');
+    if (sw) s += `\n\n${sw}`;
+    s += `\n\nI never average them — when they disagree it usually means the outcome hinges on something small, like exactly where a storm fires. Trust what they agree on more than what they don't.`;
+    return s;
+  }
+  function confidenceAnswer(){
+    const c = pick('confidence');
+    if (!c) { const k = kbById('confidence'); return k ? k.a : "No confidence breakdown on this page."; }
+    return `Today: **${c.occurrence}** confidence it rains, **${c.amount}** on how much, **${c.timing}** on when.\n\n${c.rationale || ''}`;
+  }
+  function regionHit(q){
+    const R = pick('regions');
+    if (!R || !R.list) return null;
+    const words = q.split(/[^a-z]+/).filter(w => w.length >= 4);
+    return R.list.find(r => words.some(w => (r.name || '').toLowerCase().includes(w))) || null;
+  }
+  function regionAnswer(r){
+    const R = pick('regions');
+    let s = `**${r.name}**: ${r.wet ? `${r.band.toLowerCase()}, about ${Math.round(r.totalMm)} mm over the week` : 'mostly dry this week'}`;
+    if (r.wet && r.peakDay) s += `, wettest on ${r.peakDay} (${r.peakLo}–${r.peakHi} mm)`;
+    s += '.';
+    if (r.perModel) s += ` Models for that day: ` + Object.entries(r.perModel).map(([k, v]) => `${k} ${v}`).join(', ') + ' mm.';
+    if (r.note) s += `\n\n${r.note}`;
+    if (R && R.lead && R.lead.headline) s += `\n\nThe system driving it: ${R.lead.headline}.`;
+    return s;
+  }
+  function driversAnswer(){
+    const Dv = pick('drivers');
+    const k = kbById('climate_drivers');
+    if (!Dv) return k ? k.a : "The climate drivers are on the MMR week view.";
+    // First two real sentences; skip lead-ins like "Here is why."
+    const first = t => ((t || '').match(/[^.]+(\.|$)/g) || [])
+      .filter(x => x.trim().length > 24).slice(0, 2).join('').trim();
+    const parts = [];
+    for (const key of ['enso', 'iod', 'mjo', 'miso']){
+      const x = Dv[key];
+      if (x && x.text) parts.push(`**${key.toUpperCase()}**: ${first(x.text)}`);
+    }
+    return (parts.length ? parts.join('\n\n') : (k ? k.a : ''))
+         + "\n\nThey tilt the odds over weeks, not any single day.";
+  }
+  function upstreamAnswer(){
+    const U = pick('upstream');
+    const k = kbById('upstream');
+    if (!U || !U.available) return k ? k.a : "No upstream read on this page.";
+    return (U.reading || `The moisture-carrying jet is ${U.jet}: ${U.jetNote}. Mid-levels: ${U.dryNote}.`)
+         + (k ? `\n\n${k.a}` : '');
+  }
+  function tideAnswer(){
+    const k = kbById('tide');
+    const url = pick('tideUrl');
+    return (k ? k.a : '') + (url ? `\n\nIMD tide table: ${url}` : '');
+  }
+  function moreAnswer(){
+    switch (ctx.route){
+      case 'day':   return whyAnswer();
+      case 'radar': {
+        const R = radarNow();
+        if (!R || !R.belts) return helpAnswer();
+        return `Every area on the last scan (${R.when}):\n\n`
+          + R.belts.map(b => `**${b.name.replace(/ belt$/, '')}** — ${beltLine(b)}`).join('\n');
+      }
+      case 'type':  { const k = kbById('rain_types'); return k ? k.a : helpAnswer(); }
+      case 'alerts': return systemAnswer();
+      case 'kb':    {
+        const k = kbById(ctx.kb);
+        return k ? `That's the heart of it. If it helps, ask me how it plays out today — "what kind of rain is it today?" or "is it raining now?"` : helpAnswer();
+      }
+      default:      return alertAnswer();
+    }
+  }
+
   function helpAnswer(){
-    return "I only know this week's forecast — nothing live, nothing beyond "
-         + "seven days. Within that, ask me things like:\n"
-         + "• how's the weekend looking\n"
-         + "• will it rain on Sunday\n"
-         + "• what about Thane, the Ghats, Navi Mumbai\n"
-         + "• anything I should watch out for\n"
-         + "• is it going to be hot\n"
-         + "• any low pressure system around\n"
-         + "• why is it raining\n"
-         + "• which part of the MMR gets the most";
+    return "Ask me the way you'd ask a friend who follows the weather — in "
+         + "English, Hindi or Marathi. For example:\n"
+         + "• is it raining in Thane right now\n"
+         + "• will it rain tomorrow / on Sunday / this weekend\n"
+         + "• what kind of rain is it — monsoon, storms, a low?\n"
+         + "• when will the rain reach Kalyan\n"
+         + "• anything to watch out for\n"
+         + "• what's clutter / what does dBZ mean / why is Pune drier\n"
+         + "• how accurate have you been";
   }
 
   /* ---- routing ---- */
-  function answer(raw){
-    const q = (raw || '').toLowerCase().trim();
+  function route(raw){
+    const q = localise((raw || '').toLowerCase().trim());
     if (!q) return helpAnswer();
 
-    if (/^(hi|hello|hey|namaste|yo|good morning|good evening)\b/.test(q))
-      return "Hello. What would you like to know? " + helpAnswer();
+    if (/^(hi|hello|hey|namaste|namaskar|yo|good (morning|afternoon|evening))\b/.test(q))
+      return "Hello! Ask me anything about the weather here — right now, "
+           + "later today, or the week ahead.";
 
-    if (/thank|thanks|cheers|great|nice work/.test(q))
-      return "Any time. Shout if you want the weekend or a particular "
-           + "suburb checked.";
+    if (/^(thank|thanks|thx|cheers|great|nice|ok|okay|cool)\b/.test(q))
+      return "Any time. Shout if you want a particular day or suburb checked.";
 
-    if (/help|what can you|how do i use/.test(q)) return helpAnswer();
-    if (/weekend|saturday|sunday/.test(q) && !/only (sat|sun)/.test(q)){
-      if (/weekend/.test(q)) return weekendAnswer();
+    if (/^(why|how come|but why)\??$/.test(q)){ ctx.route = 'why'; return whyAnswer(); }
+    if (/^(more|tell me more|details?|go on|and\??|explain( more)?|elaborate)\??$/.test(q))
+      return moreAnswer();
+    if (/\bhelp\b|what can (you|i)|how do i use/.test(q)) return helpAnswer();
+
+    // Asking what something IS -> Sam's notes, unless it's clearly about a day.
+    const kb = kbMatch(q);
+    if (kb && CONCEPT.test(q) && !EXPLICIT_DATE.test(q) && !/\b(now|currently)\b/.test(q)){
+      ctx.route = 'kb'; ctx.kb = kb.id; return kb.a;
     }
-    if (/warn|alert|danger|risk|flood/.test(q)) return alertAnswer();
-    if (/heat|hot|temperature|cold|cool|humid/.test(q)) return heatAnswer();
-    if (/low pressure|lpa|depression|cyclone|system|trough|iod/.test(q))
-      return systemAnswer();
-    if (/^why|why is|why are|reason|because|mechanism|cause/.test(q))
-      return whyAnswer();
-    if (/right now|currently|at the moment|next few hours|nowcast/.test(q))
-      return nowAnswer();
-    if (/wettest|driest|compare|which (place|area|part)|most rain/.test(q))
-      return compareAnswer();
+    // Practical questions about a day ("safe to trek on Thursday?"): the
+    // advice, then that day's actual forecast, rather than advice alone.
+    if (kb && /\bsafe|safety|dangerous|\btrek|\bhike|\bpicnic|\bfort\b|waterfall/.test(q)){
+      ctx.route = 'kb'; ctx.kb = kb.id;
+      const d = findDay(q);
+      if (d && !d._miss){
+        const drv = driverFor(d);
+        return `${kb.a}\n\n**For ${d.day}:** ${(d.headline || '').replace(/\.$/, '').toLowerCase()}.`
+             + (d.detail ? ` ${d.detail}` : '') + (drv ? ` ${drv}` : '');
+      }
+      return kb.a;
+    }
+
+    // What is falling now - the radar, never the model.
+    if (/\bis it (raining|pouring|drizzling)\b|\braining (now|here|right now|at the moment)\b|\b(right now|currently|at the moment|abhi)\b|\bradar\b|\bnow\b.*\brain|\brain\b.*\bnow\b/.test(q)){
+      ctx.route = 'radar'; return radarAnswer(q);
+    }
+    if (/(kind|type|sort) of rain|what.*(driv|caus)|\bthunder|\blightning|\bstorm|easterl|northerl|westerl|monsoon (wind|flow)|withdraw|pulling back/.test(q)){
+      ctx.route = 'type'; return rainTypeAnswer(q);
+    }
+    if (/when will (it|the rain)|\breach\b|\barriv|how long (until|till|before)|coming (towards|to|here)|\beta\b/.test(q)){
+      ctx.route = 'arrive'; return arrivalsAnswer(q);
+    }
+    if (/accura|track record|how good (are|is|were)|hit rate|scorecard|how reliable|(right|wrong) (last|yesterday)/.test(q)){
+      ctx.route = 'track'; return trackAnswer();
+    }
+    if (/confiden|how sure|how certain/.test(q)){ ctx.route = 'conf'; return confidenceAnswer(); }
+    if (/\b(ecmwf|gfs|icon)\b|\bmodels?\b/.test(q)){ ctx.route = 'models'; return modelsAnswer(); }
+    if (/el ni|la ni|\benso\b|\biod\b|dipole|\bmjo\b|\bmiso\b/.test(q)){ ctx.route = 'drivers'; return driversAnswer(); }
+    if (/somali|\bjet\b|dry air/.test(q)){ ctx.route = 'upstream'; return upstreamAnswer(); }
+    if (/\btide|waterlog/.test(q)){ ctx.route = 'tide'; return tideAnswer(); }
+
+    if (/weekend/.test(q)){ ctx.route = 'day'; return weekendAnswer(); }
+    if (/warn|alert|danger|risk|flood/.test(q)){ ctx.route = 'alerts'; return alertAnswer(); }
+    if (/heat|hot|temperature|cold|cool|humid|feels like/.test(q)){ ctx.route = 'heat'; return heatAnswer(); }
+    if (/low pressure|\blpa\b|depression|cyclone|\bsystem|trough/.test(q)){ ctx.route = 'systems'; return systemAnswer(); }
+    if (/^why|why is|why are|reason|because|mechanism|cause/.test(q)){ ctx.route = 'why'; return whyAnswer(); }
+    if (/next few hours|nowcast|this evening|tonight/.test(q) && !findDay(q)){ ctx.route = 'radar'; return nowAnswer(); }
+    if (/wettest|driest|compare|which (place|area|part)|most rain/.test(q)){ ctx.route = 'areas'; return compareAnswer(); }
+
+    // Beyond the MMR: Pune, Nashik, Konkan, Marathwada...
+    const region = regionHit(q);
+    const area = findArea(q);
+    if (region && !area){ ctx.route = 'region'; return regionAnswer(region); }
+    // Outside the MMR, with no regional outlook on this view: say so rather
+    // than answer for Kalyan as though that were the question.
+    if (!region && !area && !pick('regions')
+        && /\b(pune|nashik|konkan|ratnagiri|sindhudurg|goa|aurangabad|marathwada|vidarbha|nagpur|satara|kolhapur|solapur|gujarat|karnataka)\b/.test(q)){
+      const d0 = week()[0];
+      return "That's outside what this page carries — the regional outlook for "
+           + "the rest of Maharashtra is on the MMR week view."
+           + (d0 ? `\n\nFor Kalyan West today: ${d0.headline}` : '');
+    }
 
     const day = findDay(q);
-    const area = findArea(q);
     if (day && day._miss) return missAnswer(day);
     if (day && area){
+      ctx.route = 'day';
       return `${dayAnswer(day, q)}\n\n_That's the Kalyan-anchored day forecast. `
            + `For ${area.name} specifically I only hold the weekly figure: `
            + `${area.accumulation || (area.weekMm ? '~'+area.weekMm.toFixed(0)+' mm' : 'n/a')}, `
            + `wettest ${area.wettestDay || 'n/a'}._`;
     }
-    if (day) return dayAnswer(day, q);
-    if (area) return areaAnswer(area);
+    if (day){ ctx.route = 'day'; return dayAnswer(day, q); }
+    if (area){ ctx.route = 'areas'; return areaAnswer(area); }
 
     // A place was clearly meant but no area data is loaded anywhere.
     if (!areas().length && /ghat|lonavala|matheran|thane|vasai|virar|palghar|alibag|panvel|navi|badlapur|karjat|borivali|andheri|bandra|colaba|suburb|dombivli|bhiwandi|pune/.test(q)){
@@ -1882,18 +2230,252 @@ const SK = (() => {
            + (d0 ? `For Kalyan: ${d0.headline}` : '');
     }
 
+    // A concept named without a question word ("clutter?", "rain shadow").
+    if (kb){ ctx.route = 'kb'; ctx.kb = kb.id; return kb.a; }
+
     if (/rain|wet|shower|spell|umbrella/.test(q)){
       const days = week();
+      ctx.route = 'day';
       if (days.length) return `Here's the week:\n\n`
         + days.map(d => `**${d.short || d.day}** — ${d.headline}`).join('\n');
     }
 
-    return "Sorry — I can't match that to anything I hold. I'd rather say so "
-         + "than guess at it.\n\n" + helpAnswer();
+    return "I couldn't match that to anything on this page, and I'd rather "
+         + "say so than guess. Try asking it another way — or one of these:\n\n"
+         + helpAnswer();
+  }
+
+  /* Follow-up chips that fit where the conversation is. */
+  function suggest(){
+    switch (ctx.route){
+      case 'day':    return ["Why?", "What kind of rain?", "Is it raining now?", "Tomorrow?"];
+      case 'radar':  return ["Tell me more", "When will it reach Kalyan?", "What's clutter?", "Today's forecast?"];
+      case 'type':   return ["Thunderstorm safety?", "Why is Pune drier?", "Tomorrow?", "Any warnings?"];
+      case 'arrive': return ["Is it raining now?", "How heavy?", "Today's forecast?", "Any warnings?"];
+      case 'kb':     return ["Is it raining now?", "What kind of rain today?", "Tomorrow?", "How accurate are you?"];
+      case 'alerts': return ["Any low pressure system?", "Weekend?", "Is it raining now?", "What kind of rain?"];
+      default:       return ["Is it raining now?", "Today?", "What kind of rain?", "Any warnings?", "How's the weekend?"];
+    }
   }
 
   // Every answer goes through deCite, so no route can leak a citation.
-  return { answer: (q) => deCite(answer(q)), help: helpAnswer };
+  return { answer: (q) => deCite(route(q)), help: helpAnswer, suggest };
+})();
+
+/* ==========================================================================
+   Sam with Claude - on the claude.ai page only.
+
+   The published Artifact may ask Claude through the `sample` capability, on
+   the VIEWER's own Claude account, with their permission (asked once, on the
+   first question). There Sam stops being a set of rules: Claude reads a
+   digest of everything on this page plus Sam's notes, and answers whatever
+   was asked, in whatever language, following the conversation.
+
+   Everywhere else - GitHub Pages, the local file, a viewer who says no, a
+   rate limit - `claude.use` is absent or fails and the rule-based SK above
+   answers instead. Nothing depends on this path existing.
+
+   The digest is assembled from NAMED fields, never by dumping the payload:
+   the payload also carries a map key and a 140 KB radar picture, and neither
+   belongs in a prompt.
+   ========================================================================== */
+const SamAI = (() => {
+  let sample = null;
+  let off = false;
+  let busy = null;                 // AbortController of the call in flight
+  const turns = [];                // the visible chat, oldest first
+  const BUDGET = 60000;            // bytes; the platform's cap is 64 KiB
+
+  function start(){
+    if (!(window.claude && typeof window.claude.use === 'function')){ off = true; return; }
+    window.claude.use('sample').then(s => {
+      if (s){ sample = s; skodaMode(true); } else { off = true; }
+    }).catch(() => { off = true; });
+  }
+  const ready = () => !!sample && !off;
+
+  const clean = v => String(v == null ? '' : v)
+    .replace(/<[^>]+>/g, ' ').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+  const bytes = s => new TextEncoder().encode(s).length;
+
+  function views(){
+    const dly = (DAILY && DAILY.page !== 'weekly') ? DAILY : null;
+    const wk = WEEKLY || ((DAILY && DAILY.page === 'weekly') ? DAILY : null);
+    return [dly || {}, wk || {}];
+  }
+
+  /* Sections in priority order; the tail is dropped first if space runs out. */
+  function sections(){
+    const [d, w] = views();
+    const S = [];
+    const add = (title, lines) => {
+      const body = (Array.isArray(lines) ? lines : [lines]).map(clean).filter(Boolean).join('\n');
+      if (body) S.push(`## ${title}\n${body}`);
+    };
+    add('Page', [
+      d.issued ? `Built ${d.issued} for ${d.validDate}. Season: ${d.season}.` : '',
+      w.issued ? `MMR week view built ${w.issued}, covering ${w.validDate}.` : '',
+      'Home: Kalyan West, in the transition belt between the Mumbai coast and the Western Ghats.',
+    ]);
+    add('Right now (the page\'s top line)', d.nowLine);
+    const R = d.radarNow;
+    if (R && R.belts){
+      add('Radar - what is falling now (observation)', [
+        `${R.site}, ${R.when}${R.ageMin != null ? `, ${R.ageMin} min old when the page was built` : ''}.`,
+        R.note, R.checkNote,
+        ...R.belts.map(b => `${b.name}: ${b.hereMmH >= 0.5 ? `${b.hereMmH} mm/hr overhead` : 'nothing overhead'}`
+          + (b.nearMmH >= 2.5 && b.nearKm > 3 ? `; ${b.nearMmH} mm/hr about ${b.nearKm} km away` : '')
+          + (b.secondMmH != null && R.secondName ? `; ${R.secondName} check ${b.secondMmH} mm/hr` : '')
+          + (b.doubt ? `; ${b.doubt === 'clutter' ? 'UNCONFIRMED - other radar sees nothing, possibly clutter' : 'other radar has rain here, this beam may be blocked'}` : '')),
+        R.peakDbz ? `Strongest return in range: ${Math.round(R.peakDbz)} dBZ (~${R.peakMmH} mm/hr).` : '',
+      ]);
+    }
+    const rs = d.rainSource;
+    if (rs && rs.headline) add('What kind of rain today', [
+      `${rs.label}: ${rs.headline}. ${rs.detail}`,
+      rs.terrain, rs.thunder && rs.thunder !== 'none' ? `Thunderstorms ${rs.thunder}.` : '',
+      rs.windFrom != null ? `850 hPa wind from ${rs.windFrom} deg at ${rs.windMs} m/s.` : '',
+      (rs.contributors || []).length ? `Also in play: ${rs.contributors.join('; ')}.` : '',
+    ]);
+    if (d.validDate) {
+      const ig = d.ingredients || {}, c = d.confidence || {};
+      add(`Today at Kalyan West (${d.validDate})`, [
+        `Chance of measurable rain (2.5 mm+): ${d.probability}% from ${d.members} GFS-ensemble members. Models: ${d.rainLo}-${d.rainHi} mm (${d.categoryLo} to ${d.categoryHi}); median ${d.rainMedian} mm.`,
+        (d.models || []).map(m => `${m.name} ${m.mm} mm (${m.band})`).join(', '),
+        d.spreadWarning,
+        `Character: ${d.character} - ${d.characterNote}. About ${d.wetHours} wet hours, peak ${d.peakRate} mm/hr.`,
+        (d.windows || []).map(x => `${x.label} ${x.start}-${x.end}h: ${x.mm} mm, peak ${x.peak} mm/hr, risk ${x.risk}`).join('; '),
+        `Confidence: ${c.occurrence} on whether it rains, ${c.amount} on amount, ${c.timing} on timing. ${c.rationale || ''}`,
+        `Regime: ${d.regime} - ${d.regimeNote} ${d.mechanism}`,
+        `Ingredients: dew point ${ig.dewPoint}C; RH 925/850/700 hPa ${ig.rh925}/${ig.rh850}/${ig.rh700}%; precipitable water ${ig.pwat} mm (${ig.depthClass} moisture); 850 hPa wind ${ig.wind850Dir} ${ig.wind850Speed} m/s, terrain lift ${ig.forcingClass}; CAPE peak ${ig.capePeak} J/kg (${ig.capeClass}); shear ${ig.shear} m/s. ${ig.stormMode || ''}`,
+        d.gradientVerdict,
+      ]);
+    }
+    const nc = d.nowcast, A = d.arrivals, B = d.belts;
+    add('Next few hours (models, not observation)', [
+      nc && nc.verdict,
+      nc && nc.hours ? nc.hours.map(h => `${h.t} ${h.mm} mm`).join(', ') : '',
+      B && B.headline,
+      B && B.list ? B.list.map(b => `${b.name}: ${b.sentence}`).join('\n') : '',
+      A && A.available ? `Rain areas moving from ${A.fromDeg} deg at ${A.speedKmh} km/h (models ${A.agreement}).` : '',
+      A && A.list ? A.list.map(x => `${x.name}: ${x.now ? 'now' : x.eta ? `in ~${x.eta} h` : 'nothing arriving'} - ${x.sentence}`).join('\n') : '',
+    ]);
+    const al = d.alerts || w.alerts || [];
+    add('Major weather shifts (alerts)', al.map(a =>
+      `${a.label}: ${a.title}. ${a.body}` + ((a.points || []).length ? ' Possibilities: ' + a.points.join(' | ') : '')));
+    add('Day by day (Kalyan West)', (d.plainWeek || []).map(p =>
+      `${p.day}: ${p.headline} ${p.detail} ${p.advice} (${p.confidence})`));
+    add('Kind of rain, day by day', (w.rainTypes || []).map(r =>
+      `${r.day}: ${r.label} - ${r.headline}${r.thunder && r.thunder !== 'none' ? `; thunder ${r.thunder}` : ''}`));
+    if (d.weekend) add('Weekend', `${d.weekend.verdict} ${d.weekend.plans}`);
+    const ar = (w.areas && w.areas.length ? w.areas : d.areas) || [];
+    add('MMR areas this week', ar.map(a =>
+      `${a.name}: ${a.accumulation || (a.weekMm != null ? `~${a.weekMm} mm` : '')}, wettest ${a.wettestDay || '-'}. ${a.plain || ''} (${a.character || ''})`));
+    const rg = w.regions;
+    if (rg && rg.list) add('Maharashtra and beyond (regional outlook)', [
+      rg.lead ? `Driven by: ${rg.lead.headline} (min ${rg.lead.pressure} hPa, closest ${rg.lead.closestKm} km).` : '',
+      ...rg.list.map(r => `${r.name}: ${r.wet ? `${r.band}, ~${r.totalMm} mm this week, peak ${r.peakDay} (${r.peakLo}-${r.peakHi} mm)` : 'mostly dry'}. ${r.note || ''}`),
+    ]);
+    const sy = d.systems || w.systems;
+    if (sy) add('Low pressure systems and troughs', [
+      sy.trough,
+      ...(sy.list || []).map(x => `${x.headline} (${x.relevance}): ${x.reasoning}` + ((x.points || []).length ? ' Possibilities: ' + x.points.join(' | ') : '')),
+      sy.cycloneWindow ? 'This month is in an Arabian Sea cyclone window.' : '',
+    ]);
+    add('Cyclone basins', (w.basins || []).map(b => `${b.headline} ${b.detail}`));
+    if (w.weekRegime) add('Week pattern', `${w.weekRegime.label}: ${w.weekRegime.note}`);
+    const th = d.thermal;
+    add('Heat and cold', [th && th.headline,
+      ...((w.thermalRows || d.thermalRows || []).map(r => `${r.place}: warmest ${r.warmest}C` + (r.peakFeels != null ? `, feels like up to ${r.peakFeels}C` : '')))]);
+    const up = d.upstream;
+    if (up && up.available) add('Upstream (moisture supply)', up.reading || `Jet ${up.jet}: ${up.jetNote}. ${up.dryNote}`);
+    const dv = w.drivers;
+    if (dv) add('Background climate drivers', ['enso', 'iod', 'mjo', 'miso'].map(k =>
+      dv[k] && dv[k].text ? `${k.toUpperCase()}: ${dv[k].text.slice(0, 420)}` : ''));
+    if (d.track && d.track.available) add('Scorecard (forecast vs what happened)', d.track.summary);
+    add('Coming days (models)', (d.outlook || []).map(o => `${o.day}: ${o.lo}-${o.hi} mm, chance ${o.chance}, ${o.regime}`));
+    add('Terrain gradient today', (d.gradient || []).map(g => `${g.name} (${g.zone}): ${g.lo}-${g.hi} mm, wind ${g.wind}, terrain ${g.terrain}`));
+    return S;
+  }
+
+  function notes(){
+    return (typeof SAM_KB !== 'undefined' ? SAM_KB : [])
+      .map(e => `### ${e.t}\n${e.a}`).join('\n\n');
+  }
+
+  function brief(budget){
+    const now = new Date().toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short',
+      hour: '2-digit', minute: '2-digit' });
+    const head = [
+      "You are Sam, the forecast assistant on a rain-forecast web page for Kalyan West and the Mumbai Metropolitan Region (MMR), Maharashtra, India. A reader is chatting with you on the page.",
+      "",
+      "How to answer:",
+      "- Use ONLY the PAGE DATA and SAM'S NOTES below. They are all you know about the weather. If the answer is not there, say so plainly and offer what you do have. Never invent a number, time, place or warning.",
+      "- Keep observation and forecast apart. The radar is what was falling at its scan time; the models are opinions about later. For the next hour or two the radar wins. Compare the scan time with the reader's current time: past about 45 minutes it is history, so say so.",
+      "- The page is a snapshot built at the time shown under Page. If the reader's time is well after that, say the 'now' parts may be out of date.",
+      "- Talk like a knowledgeable local friend: warm, direct, plain English. Put the answer in the first sentence, then the one or two reasons that matter. Usually 2 to 5 sentences; a short list only for several places or days. Explain any term you must use (dBZ, CAPE, LPA) in a few words. No citations such as 'Guide' or 'Handbook'.",
+      "- Say 'about' with millimetres: whether it rains and the IMD band are firmer than the exact figure.",
+      "- For safety (lightning, flooding, cyclones) give practical advice and point to IMD's official warnings. You are not an official source.",
+      "- If the reader writes in Hindi, Marathi or Hinglish, reply in the same language and style.",
+      "- Plain text. You may use **bold** for the key phrase and '• ' for bullets. No headings, tables or links.",
+      "",
+      `Reader's current time: ${now} IST.`,
+      "",
+      "=== SAM'S NOTES (how to read the weather here) ===",
+      notes(),
+      "",
+      "=== PAGE DATA ===",
+    ].join('\n');
+    let out = head;
+    for (const sec of sections()){
+      if (bytes(out) + bytes(sec) + 2 > budget) break;
+      out += '\n\n' + sec;
+    }
+    return out;
+  }
+
+  /* Ask; resolves to 'ok' | 'stopped' | 'partial' | 'limited' | 'fallback'. */
+  async function ask(q, bubble){
+    const ctl = new AbortController();
+    busy = ctl;
+    let hist = turns.slice(-6).map(t => ({ role: t.role, content: t.content.slice(0, 1500) }));
+    const used = hist.reduce((n, t) => n + bytes(t.content), 0) + bytes(q);
+    const input = [{ role: 'user', content: brief(BUDGET - used - 500) }, ...hist,
+                   { role: 'user', content: q }];
+    try {
+      const res = await sample(input, {
+        cache: false, signal: ctl.signal,
+        onText: ({ text }) => skRender(bubble, text),
+      });
+      turns.push({ role: 'user', content: q }, { role: 'assistant', content: res.text });
+      if (res.truncated) skRender(bubble, res.text + '\n\n_(Cut short — ask me for less at once.)_');
+      return 'ok';
+    } catch (e){
+      const code = e && e.code;
+      if (code === 'cancelled'){
+        if (e.text) skRender(bubble, e.text + ' …'); else skRender(bubble, '_(Stopped.)_');
+        return 'stopped';
+      }
+      if (['not_granted', 'sampling_disabled', 'not_declared',
+           'capability_disabled', 'capability_removed'].includes(code)){
+        off = true; skodaMode(false); return 'fallback';
+      }
+      if (code !== 'refused' && e && e.text){
+        skRender(bubble, e.text + '\n\n_(Interrupted — ask again if you need the rest.)_');
+        return 'partial';
+      }
+      return code === 'rate_limited' ? 'limited' : 'fallback';
+    } finally {
+      busy = null;
+    }
+  }
+
+  return { start, ready, ask,
+           stop: () => { if (busy) busy.abort(); },
+           isBusy: () => !!busy,
+           // What Claude would be sent - for checking the digest by hand.
+           preview: () => brief(BUDGET) };
 })();
 
 /* ---------- live Windy map (tap to load) --------------------------------
@@ -2487,21 +3069,48 @@ function skodaHtml(){
       <div class="sk-av">🌂</div>
       <div>
         <div class="sk-name">Sam</div>
-        <div class="sk-role">Answers from this week's forecast — nothing else</div>
+        <div class="sk-role" id="skRole">${esc(skRoleText())}</div>
       </div>
     </div>
-    <div class="sk-log" id="skLog"></div>
+    <div class="sk-log" id="skLog" aria-live="polite"></div>
     <form class="sk-form" id="skForm">
-      <input class="sk-in" id="skIn" placeholder="Ask about this week's weather…"
-             autocomplete="off" aria-label="Ask Sam about the forecast">
-      <button class="sk-send" type="submit">Ask</button>
+      <input class="sk-in" id="skIn" placeholder="Ask anything — in English, Hindi or Marathi…"
+             autocomplete="off" aria-label="Ask Sam about the weather">
+      <button class="sk-send" id="skSend" type="submit">Ask</button>
     </form>
-    <div class="sk-chips" id="skChips">
-      ${["How's the weekend?","Any warnings?","What about the Ghats?",
-         "Why is it raining?","Wettest place this week?"]
-        .map(c => `<button class="sk-chip" type="button">${c}</button>`).join('')}
-    </div>
+    <div class="sk-chips" id="skChips">${skChipsHtml(SK.suggest())}</div>
   </div>`;
+}
+
+let SK_AI = false;
+function skRoleText(){
+  return SK_AI
+    ? "Thinks with Claude, from everything on this page · your first question asks permission"
+    : "Answers from this page's forecast and radar — nothing made up";
+}
+/* Called when the Claude path becomes available, or is refused. */
+function skodaMode(ai){
+  SK_AI = !!ai;
+  const r = document.getElementById('skRole');
+  if (r) r.textContent = skRoleText();
+}
+function skChipsHtml(list){
+  return (list || []).map(c => `<button class="sk-chip" type="button">${esc(c)}</button>`).join('');
+}
+function skChipsUpdate(){
+  const el = document.getElementById('skChips');
+  if (el) el.innerHTML = skChipsHtml(SK.suggest());
+}
+function skBusy(on){
+  const b = document.getElementById('skSend');
+  if (b) b.textContent = on ? 'Stop' : 'Ask';
+}
+/* The log outlives a tab switch: the view re-renders, the conversation
+   should not vanish with it. */
+let SK_LOG = '';
+function skSave(){
+  const log = document.getElementById('skLog');
+  if (log) SK_LOG = log.innerHTML;
 }
 
 /* Handlers are bound in JS rather than written as onclick/onsubmit attributes.
@@ -2525,28 +3134,54 @@ function skodaBind(){
   }
 }
 
-function skPush(text, who){
-  const log = document.getElementById('skLog');
-  if (!log) return;
-  const el = document.createElement('div');
-  el.className = 'sk-msg ' + (who === 'q' ? 'sk-q' : 'sk-a');
-  // Minimal markdown: bold and italics only, escaped first.
+/* Minimal markdown: bold and italics only, escaped first, so nothing in an
+   answer - Claude's included - can inject markup. */
+function skRender(el, text){
+  if (!el) return;
   el.innerHTML = esc(text)
     .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
-    .replace(/_(.+?)_/g, '<i>$1</i>');
+    .replace(/(^|[\s(])_(.+?)_(?=[\s).,!?]|$)/g, '$1<i>$2</i>');
+  const log = document.getElementById('skLog');
+  if (log) log.scrollTop = log.scrollHeight;
+  skSave();
+}
+
+function skPush(text, who){
+  const log = document.getElementById('skLog');
+  if (!log) return null;
+  const el = document.createElement('div');
+  el.className = 'sk-msg ' + (who === 'q' ? 'sk-q' : 'sk-a');
   log.appendChild(el);
-  log.scrollTop = log.scrollHeight;
+  skRender(el, text);
+  return el;
 }
 
 function skAsk(ev){
   if (ev) ev.preventDefault();
+  // While Claude is answering, the button is Stop.
+  if (SamAI.isBusy()){ SamAI.stop(); return false; }
   const input = document.getElementById('skIn');
   if (!input) return false;
   const q = input.value.trim();
   if (!q) return false;
   skPush(q, 'q');
   input.value = '';
-  setTimeout(() => skPush(SK.answer(q), 'a'), 160);
+  // The rule-based answer also moves the conversation's context along, so
+  // the follow-up chips fit whichever Sam answered.
+  const quick = SK.answer(q);
+  if (SamAI.ready()){
+    const bubble = skPush('Thinking…', 'a');
+    skBusy(true);
+    SamAI.ask(q, bubble).then(r => {
+      skBusy(false);
+      if (r === 'fallback') skRender(bubble, quick);
+      if (r === 'limited') skRender(bubble,
+        "_Claude is busy for you right now, so here's my quick answer from the page:_\n\n" + quick);
+      skChipsUpdate();
+    });
+  } else {
+    setTimeout(() => { skPush(quick, 'a'); skChipsUpdate(); }, 160);
+  }
   return false;
 }
 
@@ -3399,19 +4034,28 @@ function scheduleFlash(){
 function skodaGreet(){
   const log = document.getElementById('skLog');
   if (!log || log.childElementCount) return;
+  if (SK_LOG){                        // back from the other tab
+    log.innerHTML = SK_LOG;
+    log.scrollTop = log.scrollHeight;
+    return;
+  }
   const days = (DAILY && DAILY.plainWeek) || (WEEKLY && WEEKLY.plainWeek) || [];
   const hour = new Date().getHours();
   const greet = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
-  let opener = `${greet}. Ask me anything about this week's forecast.`;
+  let opener = `${greet}! I'm Sam. Ask me anything about the weather here.`;
   if (days.length){
     const wet = days.filter(d => !/^(dry|mostly dry)/i.test(d.headline || '')).length;
-    opener = `${greet}. I've got the next ${days.length} days in front of me`
+    const R = (DAILY && DAILY.radarNow) || null;
+    opener = `${greet}! I'm Sam. I've got the radar`
+           + (R && R.at ? ` (last scan ${R.at})` : '')
+           + ` and the next ${days.length} days in front of me`
            + (wet ? ` — ${wet} of them with rain in` : '')
-           + ". What do you want to know?";
+           + ". Ask me whatever you like, in English, Hindi or Marathi.";
   }
   skPush(opener, 'a');
 }
 
+SamAI.start();
 render();
 </script>
 </body>
