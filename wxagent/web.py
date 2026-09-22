@@ -19,6 +19,7 @@ from datetime import date, datetime
 from typing import Any, Sequence
 
 from . import config as C
+from . import samkb
 from .diagnostics import (
     DayDiagnosis, compass, imd_category, orographic_reading, season_for,
     window_indices,
@@ -244,7 +245,8 @@ def render(payload: dict, windy_links: list, model_links: list, *,
                     .replace("__DATA__", data) \
                     .replace("__WEEKLY__", week) \
                     .replace("__LINKS__", links) \
-                    .replace("__MLINKS__", mlinks)
+                    .replace("__MLINKS__", mlinks) \
+                    .replace("__SAMKB__", json.dumps(samkb.KB, ensure_ascii=False))
 
 
 def render_artifact(payload: dict, weekly: dict, windy_links: list,
@@ -1133,6 +1135,8 @@ const DAILY = __DATA__;
 const WEEKLY = __WEEKLY__;      /* null on the standalone single-view pages */
 const LINKS = __LINKS__;
 const MLINKS = __MLINKS__;
+/* Sam's notes - the explanations behind the forecast. See samkb.py. */
+const SAM_KB = __SAMKB__;
 let D = DAILY;                  /* the view currently on screen */
 let VIEW = DAILY.page === 'weekly' ? 'week' : 'today';
 
@@ -1992,9 +1996,29 @@ const SK = (() => {
     const head = (d.headline || '').replace(/\.$/, '');
     let s = `${opener(q, moodOf(d))} **${d.day}**: ${head.toLowerCase()}.`;
     if (d.detail) s += `\n\n${d.detail}`;
+    const drv = driverFor(d);
+    if (drv) s += `\n\n${drv}`;
     if (d.advice) s += `\n\n${d.advice}`;
     if (d.confidence) s += `\n\n_${d.confidence}_`;
     return s + staleNote();
+  }
+
+  /* The kind of rain for a plain-week entry, when the page holds it. */
+  function driverFor(d){
+    const date = parseLabel(d.day);
+    const first = dated()[0];
+    const S = pick('rainSource');
+    if (date && first && sameDay(date, first.date) && S && S.headline)
+      return `What kind of rain: ${S.headline.charAt(0).toLowerCase() + S.headline.slice(1)}.`;
+    const rt = pick('rainTypes') || [];
+    const hit = date && rt.find(r => {
+      const m = (r.day || '').match(/(\d{1,2})\s+([A-Za-z]{3})/);
+      return m && +m[1] === date.getDate()
+        && MONTHS[date.getMonth()].startsWith(m[2].toLowerCase());
+    });
+    if (!hit || !d.facts || d.facts.band === 'No / trace rain') return '';
+    return `What kind of rain: ${hit.label.toLowerCase()}`
+         + (hit.thunder && hit.thunder !== 'none' ? `, thunderstorms ${hit.thunder}` : '') + '.';
   }
 
   function isWeekendDay(p){
@@ -2084,13 +2108,18 @@ const SK = (() => {
 
   function whyAnswer(){
     const regime = pick('regime'), mech = pick('mechanism');
+    // The driver first, in plain words; the regime name is the technical
+    // label for the same thing and reads as jargon on its own.
+    const S = pick('rainSource');
+    const lead = (S && S.headline) ? `**${S.headline}.** ${S.detail}\n\n` : '';
     if (regime || mech){
-      let s = regime ? `**${regime}**` : '';
+      let s = lead + (regime ? `In the forecaster's terms it's a **${regime.toLowerCase()}** day` : '');
       const note = pick('regimeNote');
       if (note) s += ` — ${note}`;
       if (mech) s += `\n\n${mech}`;
       return s;
     }
+    if (lead) return lead.trim();
     const wr = pick('weekRegime');
     if (wr) return `**${wr.label}.** ${wr.note}`;
     return "I don't have the mechanism breakdown loaded.";
@@ -2125,57 +2154,378 @@ const SK = (() => {
     return s;
   }
 
+
+  /* ---- everyday words -------------------------------------------------
+     Readers here write the way they talk - "aaj paus padel ka?", "kal
+     baarish hogi?". The common Marathi and Hindi words are mapped onto the
+     English the routes below understand instead of failing them. "kal" is
+     both yesterday and tomorrow; asked of a forecast, it means tomorrow. */
+  const LOCAL_WORDS = [
+    [/\baaj\b/g, 'today'], [/\bparso\b|\bparva\b/g, 'day after tomorrow'],
+    [/\bkal\b|\budya\b/g, 'tomorrow'],
+    [/\bpaa?us\b|\bbaa?rish\b|\bbarsaat\b|\bpani\b/g, 'rain'],
+    [/\bgarmi\b|\bukad[ae]?\b/g, 'heat'], [/\bthand[ia]?\b/g, 'cold'],
+    [/\btoofan\b|\btufan\b|\bvadal\b/g, 'storm'],
+    [/\bbijli\b|\bvij\b/g, 'lightning'], [/\bhawa\b|\bvara\b/g, 'wind'],
+  ];
+  function localise(q){
+    let t = q;
+    for (const [re, w] of LOCAL_WORDS) t = t.replace(re, w);
+    return t;
+  }
+
+  /* ---- Sam's notes (samkb.py) ----------------------------------------- */
+  const KB = (typeof SAM_KB !== 'undefined' && Array.isArray(SAM_KB) ? SAM_KB : [])
+    .map(e => Object.assign({}, e, { re: e.keys.map(k => new RegExp(k, 'i')) }));
+  function kbMatch(q){
+    let best = null, n = 0;
+    for (const e of KB){
+      const hits = e.re.filter(r => r.test(q)).length;
+      if (hits > n){ best = e; n = hits; }
+    }
+    return best;
+  }
+  function kbById(id){ return KB.find(e => e.id === id) || null; }
+  // Asking what something IS, rather than what the weather will do.
+  const CONCEPT = /^(what|why|how|explain|define|meaning|tell me about|what's|whats|is it true|difference)\b|\bmean(s|ing)?\b|\bdifference\b|\bexplain\b|\bhow (does|do|is|are)\b|\bwhat (is|are|does)\b|\b(the same|same (low|system|one)|different (lows?|systems?))\b/;
+  const EXPLICIT_DATE = /\b(today|tonight|tomorrow|tmrw|yesterday|monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekend|\d{1,2}\s*(st|nd|rd|th)|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\b/;
+
+  /* ---- conversation memory ---------------------------------------------
+     Enough to follow "and tomorrow?", "why?" and "tell me more" the way a
+     person would, without pretending to remember more than the last turn. */
+  const ctx = { route: null, kb: null };
+
+  const BAND = v => v < 0.5 ? 'nothing' : v < 2.5 ? 'light rain'
+                  : v < 7.5 ? 'moderate rain' : v < 20 ? 'heavy rain'
+                  : 'very heavy rain';
+
+  /* ---- live radar ------------------------------------------------------ */
+  function radarNow(){ return pick('radarNow'); }
+  const BELT_ALIAS = [
+    [/kalyan|dombivli|thane|bhiwandi|ulhasnagar|titwala/, 'Kalyan'],
+    [/badlapur|ambernath|karjat|neral|shelu/, 'Badlapur'],
+    [/navi mumbai|vashi|panvel|kharghar|nerul|belapur|airoli/, 'Navi Mumbai'],
+    [/malad|borivali|andheri|goregaon|kandivali|dahisar|jogeshwari|western suburb/, 'Malad'],
+    [/dadar|colaba|island city|south mumbai|churchgate|worli|byculla|parel/, 'Dadar'],
+    [/vasai|virar|palghar|nalasopara|bhayandar|mira road/, 'Vasai'],
+    [/igatpuri|kasara/, 'Igatpuri'],
+    [/matheran|lonavala|khandala|khopoli/, 'Matheran'],
+    [/malshej|murbad|junnar/, 'Malshej'],
+  ];
+  function findBelt(q, belts){
+    for (const [re, key] of BELT_ALIAS){
+      if (re.test(q)){
+        const b = belts.find(x => (x.name || '').includes(key));
+        if (b) return b;
+      }
+    }
+    return null;
+  }
+  function beltLine(b){
+    const here = b.hereMmH >= 0.5
+      ? `**${BAND(b.hereMmH)}** overhead (about ${Math.max(1, Math.round(b.hereMmH))} mm/hr)`
+      : 'nothing overhead';
+    const near = (b.nearMmH >= 2.5 && b.nearKm > 3)
+      ? `, with ${BAND(b.nearMmH)} about ${b.nearKm} km away` : '';
+    const doubt = b.doubt === 'clutter'
+      ? ' — unconfirmed: the other radar sees nothing there, so it may be clutter off the hills'
+      : b.doubt === 'blocked'
+      ? ' — the other radar has rain there that this one may be missing' : '';
+    return `${here}${near}${doubt}`;
+  }
+  /* Minutes between the scan and the reader's clock, not the build's. */
+  function scanAgeNow(){
+    const R = radarNow();
+    const m = (issued() || '').match(/(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/);
+    if (!R || !R.at || !m) return null;
+    const mon = MONTHS.findIndex(x => x.startsWith(m[2].toLowerCase()));
+    const hm = R.at.split(':').map(Number);
+    if (mon < 0 || hm.length < 2) return null;
+    const t = new Date(+m[3], mon, +m[1], hm[0], hm[1]);
+    return Math.round((Date.now() - t.getTime()) / 60000);
+  }
+  function fmtAge(min){
+    if (min < 90) return `${min} minutes`;
+    if (min < 36 * 60) return `${Math.round(min / 60)} hours`;
+    return `${Math.round(min / 1440)} days`;
+  }
+  function radarAnswer(q){
+    const R = radarNow();
+    if (!R || !R.belts || !R.belts.length) return nowAnswer();
+    const name = (R.site || 'radar').replace(/ DWR Mumbai.*$/, '').trim();
+    const age = scanAgeNow();
+    let s = '';
+    if (age != null && age > 60){
+      s += `One thing first — the newest radar on this page is from ${R.at}, `
+         + `about ${fmtAge(age)} ago, so it's history rather than now. IMD's `
+         + `live radar (linked on the page) is the thing to open.\n\n`;
+    }
+    const belt = findBelt(q, R.belts);
+    if (belt){
+      const mood = belt.doubt === 'clutter' ? 'unsure'
+                 : belt.hereMmH >= 7.5 ? 'bad' : belt.hereMmH < 0.5 ? 'good' : 'neutral';
+      s += `${opener(q, mood)} on the ${name} radar (${R.when}), `
+         + `${belt.name.replace(/ belt$/, '')} has ${beltLine(belt)}.`;
+    } else {
+      const wet = R.belts.filter(b => b.hereMmH >= 0.5 && b.doubt !== 'clutter');
+      s += wet.length
+        ? `On the ${name} radar (${R.when}), rain is falling over `
+          + wet.map(b => b.name.replace(/ belt$/, '')).join(', ') + '.'
+        : `On the ${name} radar (${R.when}), nothing is reaching the ground anywhere in the MMR.`;
+      const home = R.belts.find(b => /Kalyan/.test(b.name || ''));
+      if (home) s += `\n\nOver Kalyan: ${beltLine(home)}.`;
+      const heavy = R.belts.filter(b => b.nearMmH >= 7.5 && b.nearKm > 3 && b !== home);
+      if (heavy.length){
+        s += `\n\nHeavier cells nearby: ` + heavy.slice(0, 3).map(b =>
+          `${BAND(b.nearMmH)} ~${b.nearKm} km from ${b.name.replace(/ belt$/, '')}`).join('; ') + '.';
+      }
+    }
+    if (R.note) s += `\n\n_${R.note}_`;
+    if (R.checkNote) s += `\n\n_${R.checkNote}_`;
+    return s + `\n\nRadar is right about where and whether far more than exactly how much.`;
+  }
+
+  /* ---- what kind of rain ---------------------------------------------- */
+  function parseShort(label){
+    // "Tue 22 Sep" - the weekly labels use short month names.
+    const m = (label || '').match(/(\d{1,2})\s+([A-Za-z]{3})/);
+    if (!m) return null;
+    const mon = MONTHS.findIndex(x => x.startsWith(m[2].toLowerCase()));
+    if (mon < 0) return null;
+    const y = ((issued() || '').match(/(\d{4})/) || [0, new Date().getFullYear()])[1];
+    return new Date(+y, mon, +m[1]);
+  }
+  function thunderWords(t){
+    return t === 'likely' ? 'thunderstorms likely'
+         : t === 'possible' ? 'thunderstorms possible' : '';
+  }
+  function rainTypeAnswer(q){
+    const S = pick('rainSource');
+    const rt = pick('rainTypes') || [];
+    const want = targetDate(q);
+    const first = dated()[0];
+    const isFirst = !want || (first && sameDay(want, first.date));
+    if (isFirst && S && S.headline){
+      let s = `**${S.headline}.** ${S.detail}`;
+      const tw = thunderWords(S.thunder);
+      if (tw) s += `\n\n**${tw[0].toUpperCase() + tw.slice(1)}.**`;
+      if (S.terrain) s += `\n\n${S.terrain}`;
+      return s;
+    }
+    if (want && rt.length){
+      const hit = rt.find(r => { const d = parseShort(r.day); return d && sameDay(d, want); });
+      if (hit){
+        const tw = thunderWords(hit.thunder);
+        return `**${hit.day}: ${hit.label}.** ${hit.headline}.` + (tw ? ` ${tw[0].toUpperCase() + tw.slice(1)}.` : '');
+      }
+    }
+    if (rt.length){
+      return "Here's what drives the rain, day by day:\n\n"
+        + rt.map(r => `**${r.day}** — ${r.label}` + (thunderWords(r.thunder) ? ` (${thunderWords(r.thunder)})` : '')).join('\n')
+        + "\n\nA change of driver matters more than a change of total — monsoon rain and easterly storms land on opposite sides of the Ghats.";
+    }
+    if (S && S.headline) return `Today: **${S.headline}.** ${S.detail}\n\n_I only hold today's rain type on this page; the MMR week view has every day._`;
+    const k = kbById('rain_types');
+    return k ? k.a : "I don't have the rain-type read on this page.";
+  }
+
+  /* ---- timing, accuracy, models, regions, background ------------------- */
+  function arrivalsAnswer(q){
+    const A = pick('arrivals');
+    if (!A || !A.available || !A.list) return nowAnswer();
+    const R = radarNow();
+    const hit = findBelt(q, A.list) || A.list.find(x => /Kalyan/.test(x.name || ''));
+    let s = `Rain areas are drifting from about ${Math.round(A.fromDeg)}° at roughly `
+          + `${A.speedKmh} km/h (the three models ${A.agreement === 'tight' ? 'agree closely' : 'differ a bit'} on that).`;
+    if (hit) s += `\n\n**${hit.name}**: ${hit.sentence}`;
+    const soon = A.list.filter(x => x !== hit && (x.now || (x.eta && x.eta > 0)));
+    if (soon.length) s += `\n\nElsewhere: ` + soon.slice(0, 4).map(x =>
+      `${x.name.replace(/ belt$/, '')} ${x.now ? 'now' : 'in ~' + x.eta + ' h'}`).join(', ') + '.';
+    s += `\n\nThat's distance divided by the steering wind, so it assumes the rain keeps going — cells grow and die on the way.`;
+    if (R) s += ` For what's falling right now, ask me about the radar.`;
+    return s;
+  }
+  function trackAnswer(){
+    const T = pick('track');
+    const k = kbById('accuracy');
+    if (!T || !T.available) return k ? k.a : "No scorecard on this page.";
+    return T.summary + (k ? `\n\n${k.a}` : '');
+  }
+  function modelsAnswer(){
+    const M = pick('models') || [];
+    if (!M.length){ const k = kbById('no_average'); return k ? k.a : "No model breakdown on this page."; }
+    let s = `For today at Kalyan West: ` + M.map(m => `${m.name} ${m.mm} mm (${m.band.toLowerCase()})`).join(', ') + '.';
+    const sw = pick('spreadWarning');
+    if (sw) s += `\n\n${sw}`;
+    s += `\n\nI never average them — when they disagree it usually means the outcome hinges on something small, like exactly where a storm fires. Trust what they agree on more than what they don't.`;
+    return s;
+  }
+  function confidenceAnswer(){
+    const c = pick('confidence');
+    if (!c) { const k = kbById('confidence'); return k ? k.a : "No confidence breakdown on this page."; }
+    return `Today: **${c.occurrence}** confidence it rains, **${c.amount}** on how much, **${c.timing}** on when.\n\n${c.rationale || ''}`;
+  }
+  function regionHit(q){
+    const R = pick('regions');
+    if (!R || !R.list) return null;
+    const words = q.split(/[^a-z]+/).filter(w => w.length >= 4);
+    return R.list.find(r => words.some(w => (r.name || '').toLowerCase().includes(w))) || null;
+  }
+  function regionAnswer(r){
+    const R = pick('regions');
+    let s = `**${r.name}**: ${r.wet ? `${r.band.toLowerCase()}, about ${Math.round(r.totalMm)} mm over the week` : 'mostly dry this week'}`;
+    if (r.wet && r.peakDay) s += `, wettest on ${r.peakDay} (${r.peakLo}–${r.peakHi} mm)`;
+    s += '.';
+    if (r.perModel) s += ` Models for that day: ` + Object.entries(r.perModel).map(([k, v]) => `${k} ${v}`).join(', ') + ' mm.';
+    if (r.note) s += `\n\n${r.note}`;
+    if (R && R.lead && R.lead.headline) s += `\n\nThe system driving it: ${R.lead.headline}.`;
+    return s;
+  }
+  function driversAnswer(){
+    const Dv = pick('drivers');
+    const k = kbById('climate_drivers');
+    if (!Dv) return k ? k.a : "The climate drivers are on the MMR week view.";
+    // First two real sentences; skip lead-ins like "Here is why."
+    const first = t => ((t || '').match(/[^.]+(\.|$)/g) || [])
+      .filter(x => x.trim().length > 24).slice(0, 2).join('').trim();
+    const parts = [];
+    for (const key of ['enso', 'iod', 'mjo', 'miso']){
+      const x = Dv[key];
+      if (x && x.text) parts.push(`**${key.toUpperCase()}**: ${first(x.text)}`);
+    }
+    return (parts.length ? parts.join('\n\n') : (k ? k.a : ''))
+         + "\n\nThey tilt the odds over weeks, not any single day.";
+  }
+  function upstreamAnswer(){
+    const U = pick('upstream');
+    const k = kbById('upstream');
+    if (!U || !U.available) return k ? k.a : "No upstream read on this page.";
+    return (U.reading || `The moisture-carrying jet is ${U.jet}: ${U.jetNote}. Mid-levels: ${U.dryNote}.`)
+         + (k ? `\n\n${k.a}` : '');
+  }
+  function tideAnswer(){
+    const k = kbById('tide');
+    const url = pick('tideUrl');
+    return (k ? k.a : '') + (url ? `\n\nIMD tide table: ${url}` : '');
+  }
+  function moreAnswer(){
+    switch (ctx.route){
+      case 'day':   return whyAnswer();
+      case 'radar': {
+        const R = radarNow();
+        if (!R || !R.belts) return helpAnswer();
+        return `Every area on the last scan (${R.when}):\n\n`
+          + R.belts.map(b => `**${b.name.replace(/ belt$/, '')}** — ${beltLine(b)}`).join('\n');
+      }
+      case 'type':  { const k = kbById('rain_types'); return k ? k.a : helpAnswer(); }
+      case 'alerts': return systemAnswer();
+      case 'kb':    {
+        const k = kbById(ctx.kb);
+        return k ? `That's the heart of it. If it helps, ask me how it plays out today — "what kind of rain is it today?" or "is it raining now?"` : helpAnswer();
+      }
+      default:      return alertAnswer();
+    }
+  }
+
   function helpAnswer(){
-    return "I only know this week's forecast — nothing live, nothing beyond "
-         + "seven days. Within that, ask me things like:\n"
-         + "• how's the weekend looking\n"
-         + "• will it rain on Sunday\n"
-         + "• what about Thane, the Ghats, Navi Mumbai\n"
-         + "• anything I should watch out for\n"
-         + "• is it going to be hot\n"
-         + "• any low pressure system around\n"
-         + "• why is it raining\n"
-         + "• which part of the MMR gets the most";
+    return "Ask me the way you'd ask a friend who follows the weather — in "
+         + "English, Hindi or Marathi. For example:\n"
+         + "• is it raining in Thane right now\n"
+         + "• will it rain tomorrow / on Sunday / this weekend\n"
+         + "• what kind of rain is it — monsoon, storms, a low?\n"
+         + "• when will the rain reach Kalyan\n"
+         + "• anything to watch out for\n"
+         + "• what's clutter / what does dBZ mean / why is Pune drier\n"
+         + "• how accurate have you been";
   }
 
   /* ---- routing ---- */
-  function answer(raw){
-    const q = (raw || '').toLowerCase().trim();
+  function route(raw){
+    const q = localise((raw || '').toLowerCase().trim());
     if (!q) return helpAnswer();
 
-    if (/^(hi|hello|hey|namaste|yo|good morning|good evening)\b/.test(q))
-      return "Hello. What would you like to know? " + helpAnswer();
+    if (/^(hi|hello|hey|namaste|namaskar|yo|good (morning|afternoon|evening))\b/.test(q))
+      return "Hello! Ask me anything about the weather here — right now, "
+           + "later today, or the week ahead.";
 
-    if (/thank|thanks|cheers|great|nice work/.test(q))
-      return "Any time. Shout if you want the weekend or a particular "
-           + "suburb checked.";
+    if (/^(thank|thanks|thx|cheers|great|nice|ok|okay|cool)\b/.test(q))
+      return "Any time. Shout if you want a particular day or suburb checked.";
 
-    if (/help|what can you|how do i use/.test(q)) return helpAnswer();
-    if (/weekend|saturday|sunday/.test(q) && !/only (sat|sun)/.test(q)){
-      if (/weekend/.test(q)) return weekendAnswer();
+    if (/^(why|how come|but why)\??$/.test(q)){ ctx.route = 'why'; return whyAnswer(); }
+    if (/^(more|tell me more|details?|go on|and\??|explain( more)?|elaborate)\??$/.test(q))
+      return moreAnswer();
+    if (/\bhelp\b|what can (you|i)|how do i use/.test(q)) return helpAnswer();
+
+    // Asking what something IS -> Sam's notes, unless it's clearly about a day.
+    const kb = kbMatch(q);
+    if (kb && CONCEPT.test(q) && !EXPLICIT_DATE.test(q) && !/\b(now|currently)\b/.test(q)){
+      ctx.route = 'kb'; ctx.kb = kb.id; return kb.a;
     }
-    if (/warn|alert|danger|risk|flood/.test(q)) return alertAnswer();
-    if (/heat|hot|temperature|cold|cool|humid/.test(q)) return heatAnswer();
-    if (/low pressure|lpa|depression|cyclone|system|trough|iod/.test(q))
-      return systemAnswer();
-    if (/^why|why is|why are|reason|because|mechanism|cause/.test(q))
-      return whyAnswer();
-    if (/right now|currently|at the moment|next few hours|nowcast/.test(q))
-      return nowAnswer();
-    if (/wettest|driest|compare|which (place|area|part)|most rain/.test(q))
-      return compareAnswer();
+    // Practical questions about a day ("safe to trek on Thursday?"): the
+    // advice, then that day's actual forecast, rather than advice alone.
+    if (kb && /\bsafe|safety|dangerous|\btrek|\bhike|\bpicnic|\bfort\b|waterfall/.test(q)){
+      ctx.route = 'kb'; ctx.kb = kb.id;
+      const d = findDay(q);
+      if (d && !d._miss){
+        const drv = driverFor(d);
+        return `${kb.a}\n\n**For ${d.day}:** ${(d.headline || '').replace(/\.$/, '').toLowerCase()}.`
+             + (d.detail ? ` ${d.detail}` : '') + (drv ? ` ${drv}` : '');
+      }
+      return kb.a;
+    }
+
+    // What is falling now - the radar, never the model.
+    if (/\bis it (raining|pouring|drizzling)\b|\braining (now|here|right now|at the moment)\b|\b(right now|currently|at the moment|abhi)\b|\bradar\b|\bnow\b.*\brain|\brain\b.*\bnow\b/.test(q)){
+      ctx.route = 'radar'; return radarAnswer(q);
+    }
+    if (/(kind|type|sort) of rain|what.*(driv|caus)|\bthunder|\blightning|\bstorm|easterl|northerl|westerl|monsoon (wind|flow)|withdraw|pulling back/.test(q)){
+      ctx.route = 'type'; return rainTypeAnswer(q);
+    }
+    if (/when will (it|the rain)|\breach\b|\barriv|how long (until|till|before)|coming (towards|to|here)|\beta\b/.test(q)){
+      ctx.route = 'arrive'; return arrivalsAnswer(q);
+    }
+    if (/accura|track record|how good (are|is|were)|hit rate|scorecard|how reliable|(right|wrong) (last|yesterday)/.test(q)){
+      ctx.route = 'track'; return trackAnswer();
+    }
+    if (/confiden|how sure|how certain/.test(q)){ ctx.route = 'conf'; return confidenceAnswer(); }
+    if (/\b(ecmwf|gfs|icon)\b|\bmodels?\b/.test(q)){ ctx.route = 'models'; return modelsAnswer(); }
+    if (/el ni|la ni|\benso\b|\biod\b|dipole|\bmjo\b|\bmiso\b/.test(q)){ ctx.route = 'drivers'; return driversAnswer(); }
+    if (/somali|\bjet\b|dry air/.test(q)){ ctx.route = 'upstream'; return upstreamAnswer(); }
+    if (/\btide|waterlog/.test(q)){ ctx.route = 'tide'; return tideAnswer(); }
+
+    if (/weekend/.test(q)){ ctx.route = 'day'; return weekendAnswer(); }
+    if (/warn|alert|danger|risk|flood/.test(q)){ ctx.route = 'alerts'; return alertAnswer(); }
+    if (/heat|hot|temperature|cold|cool|humid|feels like/.test(q)){ ctx.route = 'heat'; return heatAnswer(); }
+    if (/low pressure|\blpa\b|depression|cyclone|\bsystem|trough/.test(q)){ ctx.route = 'systems'; return systemAnswer(); }
+    if (/^why|why is|why are|reason|because|mechanism|cause/.test(q)){ ctx.route = 'why'; return whyAnswer(); }
+    if (/next few hours|nowcast|this evening|tonight/.test(q) && !findDay(q)){ ctx.route = 'radar'; return nowAnswer(); }
+    if (/wettest|driest|compare|which (place|area|part)|most rain/.test(q)){ ctx.route = 'areas'; return compareAnswer(); }
+
+    // Beyond the MMR: Pune, Nashik, Konkan, Marathwada...
+    const region = regionHit(q);
+    const area = findArea(q);
+    if (region && !area){ ctx.route = 'region'; return regionAnswer(region); }
+    // Outside the MMR, with no regional outlook on this view: say so rather
+    // than answer for Kalyan as though that were the question.
+    if (!region && !area && !pick('regions')
+        && /\b(pune|nashik|konkan|ratnagiri|sindhudurg|goa|aurangabad|marathwada|vidarbha|nagpur|satara|kolhapur|solapur|gujarat|karnataka)\b/.test(q)){
+      const d0 = week()[0];
+      return "That's outside what this page carries — the regional outlook for "
+           + "the rest of Maharashtra is on the MMR week view."
+           + (d0 ? `\n\nFor Kalyan West today: ${d0.headline}` : '');
+    }
 
     const day = findDay(q);
-    const area = findArea(q);
     if (day && day._miss) return missAnswer(day);
     if (day && area){
+      ctx.route = 'day';
       return `${dayAnswer(day, q)}\n\n_That's the Kalyan-anchored day forecast. `
            + `For ${area.name} specifically I only hold the weekly figure: `
            + `${area.accumulation || (area.weekMm ? '~'+area.weekMm.toFixed(0)+' mm' : 'n/a')}, `
            + `wettest ${area.wettestDay || 'n/a'}._`;
     }
-    if (day) return dayAnswer(day, q);
-    if (area) return areaAnswer(area);
+    if (day){ ctx.route = 'day'; return dayAnswer(day, q); }
+    if (area){ ctx.route = 'areas'; return areaAnswer(area); }
 
     // A place was clearly meant but no area data is loaded anywhere.
     if (!areas().length && /ghat|lonavala|matheran|thane|vasai|virar|palghar|alibag|panvel|navi|badlapur|karjat|borivali|andheri|bandra|colaba|suburb|dombivli|bhiwandi|pune/.test(q)){
@@ -2185,18 +2535,252 @@ const SK = (() => {
            + (d0 ? `For Kalyan: ${d0.headline}` : '');
     }
 
+    // A concept named without a question word ("clutter?", "rain shadow").
+    if (kb){ ctx.route = 'kb'; ctx.kb = kb.id; return kb.a; }
+
     if (/rain|wet|shower|spell|umbrella/.test(q)){
       const days = week();
+      ctx.route = 'day';
       if (days.length) return `Here's the week:\n\n`
         + days.map(d => `**${d.short || d.day}** — ${d.headline}`).join('\n');
     }
 
-    return "Sorry — I can't match that to anything I hold. I'd rather say so "
-         + "than guess at it.\n\n" + helpAnswer();
+    return "I couldn't match that to anything on this page, and I'd rather "
+         + "say so than guess. Try asking it another way — or one of these:\n\n"
+         + helpAnswer();
+  }
+
+  /* Follow-up chips that fit where the conversation is. */
+  function suggest(){
+    switch (ctx.route){
+      case 'day':    return ["Why?", "What kind of rain?", "Is it raining now?", "Tomorrow?"];
+      case 'radar':  return ["Tell me more", "When will it reach Kalyan?", "What's clutter?", "Today's forecast?"];
+      case 'type':   return ["Thunderstorm safety?", "Why is Pune drier?", "Tomorrow?", "Any warnings?"];
+      case 'arrive': return ["Is it raining now?", "How heavy?", "Today's forecast?", "Any warnings?"];
+      case 'kb':     return ["Is it raining now?", "What kind of rain today?", "Tomorrow?", "How accurate are you?"];
+      case 'alerts': return ["Any low pressure system?", "Weekend?", "Is it raining now?", "What kind of rain?"];
+      default:       return ["Is it raining now?", "Today?", "What kind of rain?", "Any warnings?", "How's the weekend?"];
+    }
   }
 
   // Every answer goes through deCite, so no route can leak a citation.
-  return { answer: (q) => deCite(answer(q)), help: helpAnswer };
+  return { answer: (q) => deCite(route(q)), help: helpAnswer, suggest };
+})();
+
+/* ==========================================================================
+   Sam with Claude - on the claude.ai page only.
+
+   The published Artifact may ask Claude through the `sample` capability, on
+   the VIEWER's own Claude account, with their permission (asked once, on the
+   first question). There Sam stops being a set of rules: Claude reads a
+   digest of everything on this page plus Sam's notes, and answers whatever
+   was asked, in whatever language, following the conversation.
+
+   Everywhere else - GitHub Pages, the local file, a viewer who says no, a
+   rate limit - `claude.use` is absent or fails and the rule-based SK above
+   answers instead. Nothing depends on this path existing.
+
+   The digest is assembled from NAMED fields, never by dumping the payload:
+   the payload also carries a map key and a 140 KB radar picture, and neither
+   belongs in a prompt.
+   ========================================================================== */
+const SamAI = (() => {
+  let sample = null;
+  let off = false;
+  let busy = null;                 // AbortController of the call in flight
+  const turns = [];                // the visible chat, oldest first
+  const BUDGET = 60000;            // bytes; the platform's cap is 64 KiB
+
+  function start(){
+    if (!(window.claude && typeof window.claude.use === 'function')){ off = true; return; }
+    window.claude.use('sample').then(s => {
+      if (s){ sample = s; skodaMode(true); } else { off = true; }
+    }).catch(() => { off = true; });
+  }
+  const ready = () => !!sample && !off;
+
+  const clean = v => String(v == null ? '' : v)
+    .replace(/<[^>]+>/g, ' ').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+  const bytes = s => new TextEncoder().encode(s).length;
+
+  function views(){
+    const dly = (DAILY && DAILY.page !== 'weekly') ? DAILY : null;
+    const wk = WEEKLY || ((DAILY && DAILY.page === 'weekly') ? DAILY : null);
+    return [dly || {}, wk || {}];
+  }
+
+  /* Sections in priority order; the tail is dropped first if space runs out. */
+  function sections(){
+    const [d, w] = views();
+    const S = [];
+    const add = (title, lines) => {
+      const body = (Array.isArray(lines) ? lines : [lines]).map(clean).filter(Boolean).join('\n');
+      if (body) S.push(`## ${title}\n${body}`);
+    };
+    add('Page', [
+      d.issued ? `Built ${d.issued} for ${d.validDate}. Season: ${d.season}.` : '',
+      w.issued ? `MMR week view built ${w.issued}, covering ${w.validDate}.` : '',
+      'Home: Kalyan West, in the transition belt between the Mumbai coast and the Western Ghats.',
+    ]);
+    add('Right now (the page\'s top line)', d.nowLine);
+    const R = d.radarNow;
+    if (R && R.belts){
+      add('Radar - what is falling now (observation)', [
+        `${R.site}, ${R.when}${R.ageMin != null ? `, ${R.ageMin} min old when the page was built` : ''}.`,
+        R.note, R.checkNote,
+        ...R.belts.map(b => `${b.name}: ${b.hereMmH >= 0.5 ? `${b.hereMmH} mm/hr overhead` : 'nothing overhead'}`
+          + (b.nearMmH >= 2.5 && b.nearKm > 3 ? `; ${b.nearMmH} mm/hr about ${b.nearKm} km away` : '')
+          + (b.secondMmH != null && R.secondName ? `; ${R.secondName} check ${b.secondMmH} mm/hr` : '')
+          + (b.doubt ? `; ${b.doubt === 'clutter' ? 'UNCONFIRMED - other radar sees nothing, possibly clutter' : 'other radar has rain here, this beam may be blocked'}` : '')),
+        R.peakDbz ? `Strongest return in range: ${Math.round(R.peakDbz)} dBZ (~${R.peakMmH} mm/hr).` : '',
+      ]);
+    }
+    const rs = d.rainSource;
+    if (rs && rs.headline) add('What kind of rain today', [
+      `${rs.label}: ${rs.headline}. ${rs.detail}`,
+      rs.terrain, rs.thunder && rs.thunder !== 'none' ? `Thunderstorms ${rs.thunder}.` : '',
+      rs.windFrom != null ? `850 hPa wind from ${rs.windFrom} deg at ${rs.windMs} m/s.` : '',
+      (rs.contributors || []).length ? `Also in play: ${rs.contributors.join('; ')}.` : '',
+    ]);
+    if (d.validDate) {
+      const ig = d.ingredients || {}, c = d.confidence || {};
+      add(`Today at Kalyan West (${d.validDate})`, [
+        `Chance of measurable rain (2.5 mm+): ${d.probability}% from ${d.members} GFS-ensemble members. Models: ${d.rainLo}-${d.rainHi} mm (${d.categoryLo} to ${d.categoryHi}); median ${d.rainMedian} mm.`,
+        (d.models || []).map(m => `${m.name} ${m.mm} mm (${m.band})`).join(', '),
+        d.spreadWarning,
+        `Character: ${d.character} - ${d.characterNote}. About ${d.wetHours} wet hours, peak ${d.peakRate} mm/hr.`,
+        (d.windows || []).map(x => `${x.label} ${x.start}-${x.end}h: ${x.mm} mm, peak ${x.peak} mm/hr, risk ${x.risk}`).join('; '),
+        `Confidence: ${c.occurrence} on whether it rains, ${c.amount} on amount, ${c.timing} on timing. ${c.rationale || ''}`,
+        `Regime: ${d.regime} - ${d.regimeNote} ${d.mechanism}`,
+        `Ingredients: dew point ${ig.dewPoint}C; RH 925/850/700 hPa ${ig.rh925}/${ig.rh850}/${ig.rh700}%; precipitable water ${ig.pwat} mm (${ig.depthClass} moisture); 850 hPa wind ${ig.wind850Dir} ${ig.wind850Speed} m/s, terrain lift ${ig.forcingClass}; CAPE peak ${ig.capePeak} J/kg (${ig.capeClass}); shear ${ig.shear} m/s. ${ig.stormMode || ''}`,
+        d.gradientVerdict,
+      ]);
+    }
+    const nc = d.nowcast, A = d.arrivals, B = d.belts;
+    add('Next few hours (models, not observation)', [
+      nc && nc.verdict,
+      nc && nc.hours ? nc.hours.map(h => `${h.t} ${h.mm} mm`).join(', ') : '',
+      B && B.headline,
+      B && B.list ? B.list.map(b => `${b.name}: ${b.sentence}`).join('\n') : '',
+      A && A.available ? `Rain areas moving from ${A.fromDeg} deg at ${A.speedKmh} km/h (models ${A.agreement}).` : '',
+      A && A.list ? A.list.map(x => `${x.name}: ${x.now ? 'now' : x.eta ? `in ~${x.eta} h` : 'nothing arriving'} - ${x.sentence}`).join('\n') : '',
+    ]);
+    const al = d.alerts || w.alerts || [];
+    add('Major weather shifts (alerts)', al.map(a =>
+      `${a.label}: ${a.title}. ${a.body}` + ((a.points || []).length ? ' Possibilities: ' + a.points.join(' | ') : '')));
+    add('Day by day (Kalyan West)', (d.plainWeek || []).map(p =>
+      `${p.day}: ${p.headline} ${p.detail} ${p.advice} (${p.confidence})`));
+    add('Kind of rain, day by day', (w.rainTypes || []).map(r =>
+      `${r.day}: ${r.label} - ${r.headline}${r.thunder && r.thunder !== 'none' ? `; thunder ${r.thunder}` : ''}`));
+    if (d.weekend) add('Weekend', `${d.weekend.verdict} ${d.weekend.plans}`);
+    const ar = (w.areas && w.areas.length ? w.areas : d.areas) || [];
+    add('MMR areas this week', ar.map(a =>
+      `${a.name}: ${a.accumulation || (a.weekMm != null ? `~${a.weekMm} mm` : '')}, wettest ${a.wettestDay || '-'}. ${a.plain || ''} (${a.character || ''})`));
+    const rg = w.regions;
+    if (rg && rg.list) add('Maharashtra and beyond (regional outlook)', [
+      rg.lead ? `Driven by: ${rg.lead.headline} (min ${rg.lead.pressure} hPa, closest ${rg.lead.closestKm} km).` : '',
+      ...rg.list.map(r => `${r.name}: ${r.wet ? `${r.band}, ~${r.totalMm} mm this week, peak ${r.peakDay} (${r.peakLo}-${r.peakHi} mm)` : 'mostly dry'}. ${r.note || ''}`),
+    ]);
+    const sy = d.systems || w.systems;
+    if (sy) add('Low pressure systems and troughs', [
+      sy.trough,
+      ...(sy.list || []).map(x => `${x.headline} (${x.relevance}): ${x.reasoning}` + ((x.points || []).length ? ' Possibilities: ' + x.points.join(' | ') : '')),
+      sy.cycloneWindow ? 'This month is in an Arabian Sea cyclone window.' : '',
+    ]);
+    add('Cyclone basins', (w.basins || []).map(b => `${b.headline} ${b.detail}`));
+    if (w.weekRegime) add('Week pattern', `${w.weekRegime.label}: ${w.weekRegime.note}`);
+    const th = d.thermal;
+    add('Heat and cold', [th && th.headline,
+      ...((w.thermalRows || d.thermalRows || []).map(r => `${r.place}: warmest ${r.warmest}C` + (r.peakFeels != null ? `, feels like up to ${r.peakFeels}C` : '')))]);
+    const up = d.upstream;
+    if (up && up.available) add('Upstream (moisture supply)', up.reading || `Jet ${up.jet}: ${up.jetNote}. ${up.dryNote}`);
+    const dv = w.drivers;
+    if (dv) add('Background climate drivers', ['enso', 'iod', 'mjo', 'miso'].map(k =>
+      dv[k] && dv[k].text ? `${k.toUpperCase()}: ${dv[k].text.slice(0, 420)}` : ''));
+    if (d.track && d.track.available) add('Scorecard (forecast vs what happened)', d.track.summary);
+    add('Coming days (models)', (d.outlook || []).map(o => `${o.day}: ${o.lo}-${o.hi} mm, chance ${o.chance}, ${o.regime}`));
+    add('Terrain gradient today', (d.gradient || []).map(g => `${g.name} (${g.zone}): ${g.lo}-${g.hi} mm, wind ${g.wind}, terrain ${g.terrain}`));
+    return S;
+  }
+
+  function notes(){
+    return (typeof SAM_KB !== 'undefined' ? SAM_KB : [])
+      .map(e => `### ${e.t}\n${e.a}`).join('\n\n');
+  }
+
+  function brief(budget){
+    const now = new Date().toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata', weekday: 'short', day: 'numeric', month: 'short',
+      hour: '2-digit', minute: '2-digit' });
+    const head = [
+      "You are Sam, the forecast assistant on a rain-forecast web page for Kalyan West and the Mumbai Metropolitan Region (MMR), Maharashtra, India. A reader is chatting with you on the page.",
+      "",
+      "How to answer:",
+      "- Use ONLY the PAGE DATA and SAM'S NOTES below. They are all you know about the weather. If the answer is not there, say so plainly and offer what you do have. Never invent a number, time, place or warning.",
+      "- Keep observation and forecast apart. The radar is what was falling at its scan time; the models are opinions about later. For the next hour or two the radar wins. Compare the scan time with the reader's current time: past about 45 minutes it is history, so say so.",
+      "- The page is a snapshot built at the time shown under Page. If the reader's time is well after that, say the 'now' parts may be out of date.",
+      "- Talk like a knowledgeable local friend: warm, direct, plain English. Put the answer in the first sentence, then the one or two reasons that matter. Usually 2 to 5 sentences; a short list only for several places or days. Explain any term you must use (dBZ, CAPE, LPA) in a few words. No citations such as 'Guide' or 'Handbook'.",
+      "- Say 'about' with millimetres: whether it rains and the IMD band are firmer than the exact figure.",
+      "- For safety (lightning, flooding, cyclones) give practical advice and point to IMD's official warnings. You are not an official source.",
+      "- If the reader writes in Hindi, Marathi or Hinglish, reply in the same language and style.",
+      "- Plain text. You may use **bold** for the key phrase and '• ' for bullets. No headings, tables or links.",
+      "",
+      `Reader's current time: ${now} IST.`,
+      "",
+      "=== SAM'S NOTES (how to read the weather here) ===",
+      notes(),
+      "",
+      "=== PAGE DATA ===",
+    ].join('\n');
+    let out = head;
+    for (const sec of sections()){
+      if (bytes(out) + bytes(sec) + 2 > budget) break;
+      out += '\n\n' + sec;
+    }
+    return out;
+  }
+
+  /* Ask; resolves to 'ok' | 'stopped' | 'partial' | 'limited' | 'fallback'. */
+  async function ask(q, bubble){
+    const ctl = new AbortController();
+    busy = ctl;
+    let hist = turns.slice(-6).map(t => ({ role: t.role, content: t.content.slice(0, 1500) }));
+    const used = hist.reduce((n, t) => n + bytes(t.content), 0) + bytes(q);
+    const input = [{ role: 'user', content: brief(BUDGET - used - 500) }, ...hist,
+                   { role: 'user', content: q }];
+    try {
+      const res = await sample(input, {
+        cache: false, signal: ctl.signal,
+        onText: ({ text }) => skRender(bubble, text),
+      });
+      turns.push({ role: 'user', content: q }, { role: 'assistant', content: res.text });
+      if (res.truncated) skRender(bubble, res.text + '\n\n_(Cut short — ask me for less at once.)_');
+      return 'ok';
+    } catch (e){
+      const code = e && e.code;
+      if (code === 'cancelled'){
+        if (e.text) skRender(bubble, e.text + ' …'); else skRender(bubble, '_(Stopped.)_');
+        return 'stopped';
+      }
+      if (['not_granted', 'sampling_disabled', 'not_declared',
+           'capability_disabled', 'capability_removed'].includes(code)){
+        off = true; skodaMode(false); return 'fallback';
+      }
+      if (code !== 'refused' && e && e.text){
+        skRender(bubble, e.text + '\n\n_(Interrupted — ask again if you need the rest.)_');
+        return 'partial';
+      }
+      return code === 'rate_limited' ? 'limited' : 'fallback';
+    } finally {
+      busy = null;
+    }
+  }
+
+  return { start, ready, ask,
+           stop: () => { if (busy) busy.abort(); },
+           isBusy: () => !!busy,
+           // What Claude would be sent - for checking the digest by hand.
+           preview: () => brief(BUDGET) };
 })();
 
 /* ---------- live Windy map (tap to load) --------------------------------
@@ -2790,21 +3374,48 @@ function skodaHtml(){
       <div class="sk-av">🌂</div>
       <div>
         <div class="sk-name">Sam</div>
-        <div class="sk-role">Answers from this week's forecast — nothing else</div>
+        <div class="sk-role" id="skRole">${esc(skRoleText())}</div>
       </div>
     </div>
-    <div class="sk-log" id="skLog"></div>
+    <div class="sk-log" id="skLog" aria-live="polite"></div>
     <form class="sk-form" id="skForm">
-      <input class="sk-in" id="skIn" placeholder="Ask about this week's weather…"
-             autocomplete="off" aria-label="Ask Sam about the forecast">
-      <button class="sk-send" type="submit">Ask</button>
+      <input class="sk-in" id="skIn" placeholder="Ask anything — in English, Hindi or Marathi…"
+             autocomplete="off" aria-label="Ask Sam about the weather">
+      <button class="sk-send" id="skSend" type="submit">Ask</button>
     </form>
-    <div class="sk-chips" id="skChips">
-      ${["How's the weekend?","Any warnings?","What about the Ghats?",
-         "Why is it raining?","Wettest place this week?"]
-        .map(c => `<button class="sk-chip" type="button">${c}</button>`).join('')}
-    </div>
+    <div class="sk-chips" id="skChips">${skChipsHtml(SK.suggest())}</div>
   </div>`;
+}
+
+let SK_AI = false;
+function skRoleText(){
+  return SK_AI
+    ? "Thinks with Claude, from everything on this page · your first question asks permission"
+    : "Answers from this page's forecast and radar — nothing made up";
+}
+/* Called when the Claude path becomes available, or is refused. */
+function skodaMode(ai){
+  SK_AI = !!ai;
+  const r = document.getElementById('skRole');
+  if (r) r.textContent = skRoleText();
+}
+function skChipsHtml(list){
+  return (list || []).map(c => `<button class="sk-chip" type="button">${esc(c)}</button>`).join('');
+}
+function skChipsUpdate(){
+  const el = document.getElementById('skChips');
+  if (el) el.innerHTML = skChipsHtml(SK.suggest());
+}
+function skBusy(on){
+  const b = document.getElementById('skSend');
+  if (b) b.textContent = on ? 'Stop' : 'Ask';
+}
+/* The log outlives a tab switch: the view re-renders, the conversation
+   should not vanish with it. */
+let SK_LOG = '';
+function skSave(){
+  const log = document.getElementById('skLog');
+  if (log) SK_LOG = log.innerHTML;
 }
 
 /* Handlers are bound in JS rather than written as onclick/onsubmit attributes.
@@ -2828,28 +3439,54 @@ function skodaBind(){
   }
 }
 
-function skPush(text, who){
-  const log = document.getElementById('skLog');
-  if (!log) return;
-  const el = document.createElement('div');
-  el.className = 'sk-msg ' + (who === 'q' ? 'sk-q' : 'sk-a');
-  // Minimal markdown: bold and italics only, escaped first.
+/* Minimal markdown: bold and italics only, escaped first, so nothing in an
+   answer - Claude's included - can inject markup. */
+function skRender(el, text){
+  if (!el) return;
   el.innerHTML = esc(text)
     .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
-    .replace(/_(.+?)_/g, '<i>$1</i>');
+    .replace(/(^|[\s(])_(.+?)_(?=[\s).,!?]|$)/g, '$1<i>$2</i>');
+  const log = document.getElementById('skLog');
+  if (log) log.scrollTop = log.scrollHeight;
+  skSave();
+}
+
+function skPush(text, who){
+  const log = document.getElementById('skLog');
+  if (!log) return null;
+  const el = document.createElement('div');
+  el.className = 'sk-msg ' + (who === 'q' ? 'sk-q' : 'sk-a');
   log.appendChild(el);
-  log.scrollTop = log.scrollHeight;
+  skRender(el, text);
+  return el;
 }
 
 function skAsk(ev){
   if (ev) ev.preventDefault();
+  // While Claude is answering, the button is Stop.
+  if (SamAI.isBusy()){ SamAI.stop(); return false; }
   const input = document.getElementById('skIn');
   if (!input) return false;
   const q = input.value.trim();
   if (!q) return false;
   skPush(q, 'q');
   input.value = '';
-  setTimeout(() => skPush(SK.answer(q), 'a'), 160);
+  // The rule-based answer also moves the conversation's context along, so
+  // the follow-up chips fit whichever Sam answered.
+  const quick = SK.answer(q);
+  if (SamAI.ready()){
+    const bubble = skPush('Thinking…', 'a');
+    skBusy(true);
+    SamAI.ask(q, bubble).then(r => {
+      skBusy(false);
+      if (r === 'fallback') skRender(bubble, quick);
+      if (r === 'limited') skRender(bubble,
+        "_Claude is busy for you right now, so here's my quick answer from the page:_\n\n" + quick);
+      skChipsUpdate();
+    });
+  } else {
+    setTimeout(() => { skPush(quick, 'a'); skChipsUpdate(); }, 160);
+  }
   return false;
 }
 
@@ -3702,19 +4339,28 @@ function scheduleFlash(){
 function skodaGreet(){
   const log = document.getElementById('skLog');
   if (!log || log.childElementCount) return;
+  if (SK_LOG){                        // back from the other tab
+    log.innerHTML = SK_LOG;
+    log.scrollTop = log.scrollHeight;
+    return;
+  }
   const days = (DAILY && DAILY.plainWeek) || (WEEKLY && WEEKLY.plainWeek) || [];
   const hour = new Date().getHours();
   const greet = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
-  let opener = `${greet}. Ask me anything about this week's forecast.`;
+  let opener = `${greet}! I'm Sam. Ask me anything about the weather here.`;
   if (days.length){
     const wet = days.filter(d => !/^(dry|mostly dry)/i.test(d.headline || '')).length;
-    opener = `${greet}. I've got the next ${days.length} days in front of me`
+    const R = (DAILY && DAILY.radarNow) || null;
+    opener = `${greet}! I'm Sam. I've got the radar`
+           + (R && R.at ? ` (last scan ${R.at})` : '')
+           + ` and the next ${days.length} days in front of me`
            + (wet ? ` — ${wet} of them with rain in` : '')
-           + ". What do you want to know?";
+           + ". Ask me whatever you like, in English, Hindi or Marathi.";
   }
   skPush(opener, 'a');
 }
 
+SamAI.start();
 render();
 </script>
 </body>

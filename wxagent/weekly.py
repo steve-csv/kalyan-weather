@@ -553,18 +553,18 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
     lead_event = None
     if sys_pic and sys_pic.events:
         lead_event = min(sys_pic.events, key=lambda e: e.closest.distance_km)
-    drivers = []
+    rain_types = []
     for d in day_list:
         idx = window_indices(pf.times, d, 0, 24)
         if not idx:
             continue
-        drivers.append((d.strftime("%a %d %b"),
+        rain_types.append((d.strftime("%a %d %b"),
                         rsmod.classify(ms_home, idx, season=season,
                                        zone=C.HOME.zone,
                                        nearest_system=lead_event, day=d)))
-    if drivers:
+    if rain_types:
         out += report.h(2, "What kind of rain, day by day")
-        out += rsmod.week_summary(drivers) + "\n"
+        out += rsmod.week_summary(rain_types) + "\n"
 
     out += report.h(2, "Across the MMR — area by area")
     out += plain.render_areas(areas, home_key=C.HOME_AREA) + "\n"
@@ -699,6 +699,12 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
          "closestKm": b.closest_km,
          "windyPressure": b.windy_pressure, "windyWind": b.windy_wind}
         for b in basins
+    ]
+    # Per-day rain type, for Sam: "what kind of rain on Thursday?"
+    weekly_payload["rainTypes"] = [
+        {"day": lbl, "label": s.label, "headline": s.headline,
+         "thunder": s.thunder_risk}
+        for lbl, s in rain_types
     ]
     weekly_payload["regions"] = {
         "lead": ({"headline": region_lead.headline,
