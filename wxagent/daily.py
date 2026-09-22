@@ -47,14 +47,19 @@ GRADIENT_KEYS = ("santacruz", "thane", "kalyan_west", "badlapur",
                  "igatpuri", "matheran", "malshej", "lonavala", "pune")
 
 
-def _radar_belt(scan, belt) -> dict:
+def _radar_belt(scan, other, belt) -> dict:
     """One belt of the radar card. Uses the same reading as the markdown
     table, so the nearby echo's rate and distance come from the same point
-    rather than the heaviest rate paired with the closest distance."""
-    here, near = radarmod.belt_reading(scan, belt)
-    return {"name": belt.name, "hereMmH": round(here, 1),
+    rather than the heaviest rate paired with the closest distance, and the
+    same cross-check against the other radar."""
+    chk = radarmod.belt_check(scan, other, belt)
+    near = chk["near"]
+    return {"name": belt.name, "hereMmH": round(chk["here"], 1),
             "nearMmH": round(near[0], 1) if near else 0.0,
-            "nearKm": round(near[1]) if near else None}
+            "nearKm": round(near[1]) if near else None,
+            "secondMmH": (round(chk["second"], 1)
+                          if chk["second"] is not None else None),
+            "doubt": chk["doubt"]}
 
 
 def _synoptic_html(markdown: str) -> str:
@@ -342,11 +347,15 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     # Fetched here rather than beside its section below, because the top line
     # of the page needs it: the radar is the only thing on this page that
     # knows whether it is raining on someone RIGHT NOW.
+    # Both Mumbai radars: the C-band at Veravali leads, Colaba's S-band is the
+    # second opinion and the fallback - see radar.fetch_best.
     if not quiet:
-        print("  reading the IMD radar...")
-    scan_img = radarmod.fetch("maxz", quiet=quiet)
+        print("  reading the IMD radars (C-band Veravali, S-band Colaba)...")
+    scan_img, radar_other = radarmod.fetch_best(
+        quiet=quiet, marks=[(C.HOME.lat, C.HOME.lon, "Kalyan West")])
     home_belt = next((b for b in beltmod.BELTS if b.key == "thane_kalyan"), None)
-    radar_now = radarmod.now_clause(scan_img, home_belt, beltmod.BELTS)
+    radar_now = radarmod.now_clause(scan_img, home_belt, beltmod.BELTS,
+                                    other=radar_other)
 
     # ---- nowcast line first: the one line worth reading on a phone ------
     home_area = plain.summarise_areas(
@@ -404,7 +413,8 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     # Observation first, model second: the radar goes above the modelled belt
     # table rather than below it.
     if scan_img is not None:
-        extra += radarmod.render_now(scan_img, beltmod.BELTS) + "\n"
+        extra += radarmod.render_now(scan_img, beltmod.BELTS,
+                                     other=radar_other) + "\n"
 
     extra += beltmod.render(belt_status)
     extra += arrmod.render(steer, arrivals_list)
@@ -467,15 +477,34 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     }
     # Radar: observation, so the card renders above the modelled belts.
     if scan_img is not None:
+        # The C-band picture is shown whether or not it is the radar being
+        # read - with its own time, so an older frame is labelled as one.
+        cband = next((r for r in (scan_img, radar_other)
+                      if r is not None and r.short_name == "C-band"), None)
         payload["radarNow"] = {
+            "site": scan_img.site,
+            "when": radarmod.when_phrase(scan_img),
+            "timeExact": scan_img.time_exact,
             "at": (scan_img.scanned_at.strftime("%H:%M")
                    if scan_img.scanned_at else None),
             "ageMin": (round(scan_img.age_minutes)
                        if scan_img.age_minutes is not None else None),
+            "note": scan_img.note,
             "peakDbz": scan_img.scene_max_dbz,
             "peakMmH": (round(radarmod.dbz_to_mm_h(scan_img.scene_max_dbz), 1)
                         if scan_img.scene_max_dbz else 0),
-            "belts": [_radar_belt(scan_img, b) for b in beltmod.BELTS],
+            "secondName": (radar_other.short_name
+                           if radarmod.fresh(radar_other)
+                           and scan_img.check_ok else None),
+            "checkNote": scan_img.check_note,
+            "belts": [_radar_belt(scan_img, radar_other, b)
+                      for b in beltmod.BELTS],
+            "image": cband.image if cband else None,
+            "imageWhen": radarmod.when_phrase(cband) if cband else None,
+            "imageAgeMin": (round(cband.age_minutes)
+                            if cband and cband.age_minutes is not None
+                            else None),
+            "legend": [[v, c] for v, c in cband.legend] if cband else [],
         }
     payload["nowLine"] = now_line
     payload["alerts"] = [
