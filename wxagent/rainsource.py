@@ -225,23 +225,56 @@ def _driver(ms, idx: Sequence[int], *, season: str = "monsoon",
         if km is not None and km <= SYSTEM_OWNS_KM and felt:
             src.key, src.label = "system", LABELS["system"]
             src.system_km, src.system_name = km, nearest_system.headline
-            src.headline = "Rain from a low pressure system"
-            src.detail = (
-                f"The rain here is being driven by a low pressure area about "
-                f"**{km:,.0f} km** away, not by the ordinary onshore wind. "
-                "System rain behaves differently from monsoon rain in two ways "
-                "worth planning around. It is **widespread and long-lasting** "
-                "rather than a few hours of showers, because the whole column "
-                "is being lifted over a large area instead of only where the "
-                "hills force it up. And it **weakens the rain shadow** — the "
-                "dry side behind the Ghats, which stays dry through most of "
-                "the monsoon, gets caught up in this kind of rain too, so "
-                "Pune and Nashik can be as wet as the coast.")
+            # WHICH SIDE of the low we sit on decides where the rain lands.
+            # A low to the south or east reaches us as an easterly, and an
+            # easterly does not merely weaken the rain shadow - it REVERSES
+            # it: the Ghats' east face becomes the windward side and the
+            # Konkan sits in the lee. On 29 Sep 2026 the models put the
+            # wettest ground of the week on the Pune side, 10-14 mm, while
+            # the Mumbai coast took 3 mm for the whole week.
+            from_east = _in(from_deg, EASTERLY_FROM)
+            src.headline = ("Rain from a low pressure system, arriving on an "
+                            "easterly" if from_east else
+                            "Rain from a low pressure system")
+            if from_east:
+                src.detail = (
+                    f"The rain here is being driven by a low pressure area "
+                    f"about **{km:,.0f} km** away, and its circulation reaches "
+                    f"us from the **{compass(from_deg)}** — we are on the far "
+                    "side of it, so the moisture arrives from inland rather "
+                    "than off the sea.\n\n"
+                    "That makes this behave like **easterly rain, not monsoon "
+                    "rain**. It builds through the **afternoon and evening** "
+                    "rather than falling all day, it comes in heavy local "
+                    "bursts — one suburb soaked while the next stays dry — "
+                    "and it lands on the wrong side of the hills.")
+            else:
+                src.detail = (
+                    f"The rain here is being driven by a low pressure area "
+                    f"about **{km:,.0f} km** away, not by the ordinary onshore "
+                    "wind. System rain behaves differently from monsoon rain "
+                    "in two ways worth planning around. It is **widespread and "
+                    "long-lasting** rather than a few hours of showers, "
+                    "because the whole column is being lifted over a large "
+                    "area instead of only where the hills force it up. And it "
+                    "**weakens the rain shadow** — the dry side behind the "
+                    "Ghats, which stays dry through most of the monsoon, gets "
+                    "caught up in this kind of rain too, so Pune and Nashik "
+                    "can be as wet as the coast.")
             src.terrain_note = (
+                "**The terrain works backwards on this one.** With the wind "
+                "from the east, the Ghats' east face is the windward side and "
+                "the Konkan — Mumbai, Thane, Kalyan — sits in the lee. So the "
+                "inland belts around Karjat, Badlapur, Malshej and the "
+                "plateau behind the crest usually go first and hardest, the "
+                "rain shadow can out-rain the coast outright, and the coast "
+                "gets whatever drifts west of the hills later."
+                if from_east else
                 "Because the lifting comes from the system rather than the "
                 "hills, the usual crest-versus-lee gap narrows.")
             if src.is_thundery:
                 src.contributors.append(
+                    "lightning with these storms" if from_east else
                     "thunderstorms embedded in the system's rainbands")
             return src
 

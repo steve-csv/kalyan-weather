@@ -296,8 +296,11 @@ KB: list[dict] = [
              "at 28–33, a cyclonic storm from 34. A low doesn't need to come "
              "close to matter. A Bay of Bengal system crossing central India "
              "can pull the monsoon westerlies harder onto this coast from "
-             "800 km away. For anything cyclone-related, IMD's bulletins are "
-             "the authority.",
+             "800 km away. Which SIDE of it you are on matters as much as "
+             "the distance: a low to our south or east reaches us as an "
+             "easterly, and then the rain lands inland and on the Pune side "
+             "first, not on the coast. For anything cyclone-related, IMD's "
+             "bulletins are the authority.",
     },
     {
         "id": "event_grouping",
