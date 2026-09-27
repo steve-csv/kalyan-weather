@@ -54,6 +54,12 @@ wxagent/
   upstream.py     Somali jet, mid-level dry-air intrusion
   belts.py        named-belt rain arrivals in plain language
   nowcast.py      IMD radar products, the five-question scan
+  radar.py        decodes both Mumbai radars to dBZ per ~1 km square;
+                  radar_glyphs.py holds the digit templates that read the
+                  C-band's printed scan time
+  rainsource.py   what KIND of rain: monsoon, easterly, system, storms
+  regions.py      Maharashtra and neighbours, in forecasters' regions
+  samkb.py        Sam's written notes, shipped into the page
   plain.py        the forecaster-register wording layer
   recent.py       rolling forecast-vs-actual record
   backtest.py     deep multi-season scoring with bootstrap intervals
@@ -101,11 +107,31 @@ dry mid-levels and upslope flow line up, `burst_risk()` says the hourly rates
 will understate the experience. The models are not wrong about the total;
 they are useless about the afternoon.
 
-**Radar pixels are not available.** RainViewer's tile CDN serves a static
-placeholder image to this network — identical bytes for every tile, timestamp
-and city. IMD's GIF is reachable but publishes no georeferencing, so mapping
-pixels to places would be guesswork presented as an alert. Nothing here reads
-a radar pixel; the belts come from the model field and say so.
+**Radar pixels ARE read now — and this entry used to say they could not be.**
+It claimed IMD's GIF "publishes no georeferencing". It publishes it PRINTED IN
+THE IMAGE, and the page told readers it was dry during rain for five days on
+the strength of that mistake. `radar.py` now decodes both Mumbai radars; the
+belts still carry the model field alongside, labelled as such. RainViewer is
+still useless here: its tile CDN serves a static placeholder to this network,
+identical bytes for every tile, timestamp and city.
+
+**A radar's file time is not its scan time.** Both Mumbai radars upload 10–25
+minutes after the scan, and the C-band file is re-uploaded byte-identical
+every few minutes — so a radar that stalled hours ago looks live. The C-band's
+printed stamp is read off the image (`radar_glyphs.py`); Colaba's is an upload
+time and the page says "published", never "scanned".
+
+**One radar cannot referee another unless it is seeing.** Clutter is
+site-specific, so the other radar is the natural check — but on 22 Sep 2026
+Colaba showed one speck in 250 km while the C-band had an organised sea band,
+and that evening it saw 31% of the C-band's echo. It may only confirm or doubt
+a reading when it sees at least half as much echo and the scans are within 15
+minutes.
+
+**Name the driver only when there is rain to drive.** The rain-type branches
+answer "what kind of rain" even on a dry day: on 27 Sep 2026 a low 546 km away
+had the card describing widespread system rain on a 0.3 mm day with 22%
+humidity at 3 km. `classify()` checks the day's total first.
 
 **Two publishers race.** The laptop task and the GitHub Actions run both push
 `docs/`. On a refused push, `publish()` moves to the remote tip and re-commits

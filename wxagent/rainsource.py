@@ -117,6 +117,7 @@ LABELS = {
     "western_disturbance": "Western disturbance",
     "northerly": "Dry northerly flow",
     "weak": "No single driver",
+    "dry": "Little or no rain",
 }
 
 
@@ -162,7 +163,7 @@ def _burstiness(ms, idx: Sequence[int]) -> tuple[float, float | None]:
     return total, max(hourly) / total
 
 
-def classify(ms, idx: Sequence[int], *, season: str = "monsoon",
+def _driver(ms, idx: Sequence[int], *, season: str = "monsoon",
              zone: str = "transition", nearest_system=None,
              day=None) -> RainSource:
     """Name the driver behind a day's rain.
@@ -443,6 +444,70 @@ def classify(ms, idx: Sequence[int], *, season: str = "monsoon",
     return src
 
 
+def classify(ms, idx: Sequence[int], *, season: str = "monsoon",
+             zone: str = "transition", nearest_system=None,
+             day=None) -> RainSource:
+    """Name the driver behind a day's rain - or say there is no rain to name.
+
+    The branches above answer "what KIND of rain", and they answer it even on
+    a day with none. On 27 Sep 2026 a low 546 km away, felt here as a 4.9 m/s
+    south-westerly, had the card describing widespread system rain that
+    "weakens the rain shadow" - on a day the models gave 0.2-0.6 mm, a 0%
+    chance of measurable rain, and air at 3 km that was 22% humid.
+
+    So the day's total is checked first. On a dry day the card says so, and
+    the driver is kept as a footnote for the shower that might still fire.
+    """
+    src = _driver(ms, idx, season=season, zone=zone,
+                  nearest_system=nearest_system, day=day)
+    total, _ = _burstiness(ms, idx)
+    if total >= WET_DAY_MM:
+        return src
+
+    moist = moisture_profile(ms, idx)
+    lift = lift_profile(ms, idx)
+    cape = stability_profile(ms, idx).cape_peak or 0.0
+
+    why: list[str] = []
+    if moist.rh_700 is not None and moist.rh_700 < 40:
+        why.append(f"the air a few kilometres up is dry ({moist.rh_700:.0f}% "
+                   "humidity), and dry air aloft chokes clouds before they "
+                   "can grow tall")
+    if moist.pwat is not None and moist.pwat < 45:
+        why.append(f"there is not much water in the column to work with "
+                   f"({moist.pwat:.0f} mm)")
+    if (lift.wind_850_speed or 0.0) < MIN_DRIVER_MS:
+        why.append("the wind that would carry sea air onto this coast has "
+                   "gone slack")
+
+    out = RainSource(
+        key="dry", label=LABELS["dry"], thunder_risk="none",
+        wind_from=src.wind_from, wind_ms=src.wind_ms,
+        system_km=src.system_km, system_name=src.system_name,
+        contributors=list(src.contributors),
+    )
+    out.headline = "Little or no rain to come"
+    out.detail = (
+        f"The models give about **{total:.1f} mm** here today — a trace at "
+        "most, nothing to plan around"
+        + (": " + "; ".join(why[:2]) if why else "") + ".")
+    # Name the driver anyway, quietly: on a day like this it decides what the
+    # stray shower would be, not what the day will be.
+    if src.key not in ("weak", "dry", "northerly", "western_disturbance") and src.headline:
+        hint = src.headline[0].lower() + src.headline[1:]
+        out.detail += (
+            f"\n\nIf anything does fall it would be {hint}"
+            + (f", with that system about {src.system_km:,.0f} km away"
+               if src.system_km else "")
+            + " — but there is little sign of it in today's guidance.")
+    if cape >= CAPE_POSSIBLE:
+        out.detail += (
+            f"\n\nThe air does hold some energy ({cape:.0f} J/kg), so an "
+            "isolated shower is not impossible — but nothing in the models "
+            "is lining up to set one off.")
+    return out
+
+
 # --------------------------------------------------------------------------
 # Rendering
 # --------------------------------------------------------------------------
@@ -508,7 +573,8 @@ def week_summary(sources: Sequence[tuple[str, RainSource]]) -> str:
     out = "**What drives the rain each day**\n\n"
     out += "| Day | Driver | Character |\n|---|---|---|\n"
     for label, s in sources:
-        thundery = ("thundery" if s.thunder_risk == "likely"
+        thundery = ("nothing to speak of" if s.key == "dry"
+                    else "thundery" if s.thunder_risk == "likely"
                     else "some thunder" if s.thunder_risk == "possible"
                     else "steady" if s.key in ("sw_monsoon", "system")
                     else "light/scattered")
