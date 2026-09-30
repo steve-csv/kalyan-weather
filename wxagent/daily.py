@@ -396,7 +396,7 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     primary_ms = pf.models.get(PRIMARY_MODEL) or next(iter(pf.models.values()))
     rsrc = rsmod.classify(primary_ms, today_idx, season=season,
                           zone=C.HOME.zone, nearest_system=lead_event,
-                          day=today)
+                          day=today, median_mm=dd.rain.median)
     extra = rsmod.render(rsrc, day_label="today")
 
     # Extra sections specific to the daily product.

@@ -553,6 +553,14 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
     lead_event = None
     if sys_pic and sys_pic.events:
         lead_event = min(sys_pic.events, key=lambda e: e.closest.distance_km)
+
+    def _median_mm(idx) -> float | None:
+        """Median day total across the models - what decides whether there is
+        any rain to name a driver for. One model alone is not the forecast."""
+        totals = sorted(sum(m.at("precipitation", i) or 0.0 for i in idx)
+                        for m in pf.models.values())
+        return totals[len(totals) // 2] if totals else None
+
     rain_types = []
     for d in day_list:
         idx = window_indices(pf.times, d, 0, 24)
@@ -561,7 +569,8 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
         rain_types.append((d.strftime("%a %d %b"),
                         rsmod.classify(ms_home, idx, season=season,
                                        zone=C.HOME.zone,
-                                       nearest_system=lead_event, day=d)))
+                                       nearest_system=lead_event, day=d,
+                                       median_mm=_median_mm(idx))))
     if rain_types:
         out += report.h(2, "What kind of rain, day by day")
         out += rsmod.week_summary(rain_types) + "\n"

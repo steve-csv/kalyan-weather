@@ -479,7 +479,7 @@ def _driver(ms, idx: Sequence[int], *, season: str = "monsoon",
 
 def classify(ms, idx: Sequence[int], *, season: str = "monsoon",
              zone: str = "transition", nearest_system=None,
-             day=None) -> RainSource:
+             day=None, median_mm: float | None = None) -> RainSource:
     """Name the driver behind a day's rain - or say there is no rain to name.
 
     The branches above answer "what KIND of rain", and they answer it even on
@@ -493,7 +493,12 @@ def classify(ms, idx: Sequence[int], *, season: str = "monsoon",
     """
     src = _driver(ms, idx, season=season, zone=zone,
                   nearest_system=nearest_system, day=day)
-    total, _ = _burstiness(ms, idx)
+    primary, _ = _burstiness(ms, idx)
+    # The MEDIAN of the models decides, not the one model this reads.
+    # On 30 Sep 2026 ECMWF alone had 3.3 mm while the median was 0.5 and
+    # the ensemble gave a 10% chance, and the card described easterly
+    # system rain for the day.
+    total = primary if median_mm is None else median_mm
     if total >= WET_DAY_MM:
         return src
 
