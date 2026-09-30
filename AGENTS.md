@@ -95,6 +95,16 @@ analysis inflates the score exactly where a reader is most likely to look.
 held 1–12 Aug and 21 Aug and nothing in between. Any fixed short window can
 land inside a hole. `recent.py` scores over 35 days and lists 14.
 
+**ERA5 is also revised, so a past season's score is not fixed.** Re-running the
+deep backtest on 30 Sep 2026 changed seasons whose windows had not moved: 2025
+gained two rain days, and both 2024 and 2025 lost dry-to-wet transitions, which
+lifted persistence by 0.09–0.14 HSS with not one forecast changing — the same
+order as the gap the report is trying to measure. 16% of days sit within a
+millimetre of the 2.5 mm wet/dry line, so sub-millimetre revisions reclassify
+them, and persistence lives or dies on exactly those transitions. The report
+stamps the date the archive was read and says to compare rows only within one
+run. Never quote a figure from an older copy against a newer one.
+
 **`minutely_15` is not real here.** ECMWF has no native 15-minute output for
 this location, so Open-Meteo spreads the hourly value across four steps —
 measured at Lonavala, 12 of 13 hours had all four steps byte-identical. It

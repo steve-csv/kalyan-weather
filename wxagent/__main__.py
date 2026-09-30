@@ -432,6 +432,16 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     from .sources import QuotaExhausted
 
+    # A Windows console defaults to cp1252, which has no '>=' glyph. The deep
+    # backtest wrote its report to disk correctly and then died printing it,
+    # so a completed run looked like a failed one. Reported output is not
+    # worth crashing a finished run over.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError):
+            pass
+
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)

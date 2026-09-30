@@ -99,11 +99,17 @@ DAYPART_PLAIN = {
 
 # Calibration correction, measured rather than assumed.
 #
-# The three-season backtest (2024-26, 316 days, Kalyan West) checked whether
+# The three-season backtest (2024-26, 360 days, Kalyan West) checked whether
 # the ensemble's probabilities mean what they say. At the top of the scale they
-# do: when the members are near-unanimous the forecast verifies ~98% of the
+# do: when the members are near-unanimous the forecast verifies 99% of the
 # time, so confident wording is earned. At the bottom they do not. In the
-# 0-20% band the ensemble averaged 4% - and it rained on 24% of those days.
+# 0-20% band the ensemble averaged 4% - and it rained on 22% of those days.
+#
+# Re-measured on 30 Sep 2026 over the full 2026 season (was 24% on 316 days).
+# Every band below 80% under-reads: the ensemble's 51% days rained 80% of the
+# time and its 72% days rained 94% of the time, so the bias is not confined to
+# the bottom of the scale. Only the low band is corrected in the wording so
+# far, because that is the one where the error changes what a reader does.
 #
 # The cause is not a coding error, it is a shared blind spot: ECMWF, GFS and
 # ICON are all resolving the same grid-scale flow, so when rain is forced
@@ -113,7 +119,7 @@ DAYPART_PLAIN = {
 # So in the monsoon a low number licenses "nothing organised", never "dry".
 # Outside the monsoon the same low number really does mean dry, and hedging
 # there would be its own kind of dishonesty.
-LOW_PROB_MONSOON_RAIN_RATE = 0.24
+LOW_PROB_MONSOON_RAIN_RATE = 0.22
 
 
 # Phrases that already name their own subject. The dry headline prefixes
@@ -230,6 +236,22 @@ def describe_from_facts(day: date, f: dict) -> PlainDay:
         timing_text = f"Heaviest {when}."
         if f.get("onlyWindow"):
             timing_text += " Dry the rest of the day."
+
+    if rain_hi < C.MEASURABLE_RAIN_MM:
+        # The headline already says "Mostly dry". These two sentences are built
+        # from the hourly profile, which on a sub-2.5 mm day is describing
+        # 0.1-0.3 mm/h - so on 30 Sep 2026 a 10%-chance, ~1 mm day read
+        # "Mostly dry - isolated showers possible. Continuous spells through
+        # much of the day. Heaviest through the afternoon. Dry the rest of the
+        # day." followed by "No rain gear needed."
+        #
+        # Where a shower is likeliest is still real information, so the window
+        # survives in a form that cannot be read as a wet day. The character
+        # claim does not: "continuous spells" off 1 mm is invented weather, the
+        # same defect the rain-type card had on 27 Sep.
+        character_text = ""
+        timing_text = (f"Any passing shower most likely {when}."
+                       if f.get("heaviestWindow") else "")
 
     extras: list[str] = []
     peak = f.get("peakRate") or 0.0
@@ -885,10 +907,29 @@ def detect_shifts(diagnoses: Sequence, *,
     wet = [d.rain.hi >= C.MEASURABLE_RAIN_MM for d in diagnoses]
     for i in range(1, len(wet)):
         if wet[i] and not any(wet[max(0, i - 3):i]):
+            # This fires on the upper bound of the range, which is the right
+            # trigger - the backtest says low ensemble probabilities under-read
+            # rain, so a possible return is worth flagging. But the headline
+            # must not outrun it: on 30 Sep 2026 this announced "Rain returns
+            # Tuesday 06 Oct - first meaningful rain after a dry run" while
+            # Tuesday's own line read "Light rain - unlikely, low confidence".
+            # The alert now carries the same doubt the day carries.
+            d = diagnoses[i]
+            ep = getattr(d, "ensemble", None)
+            pct = (round(ep.p_measurable * 100)
+                   if ep is not None and ep.p_measurable is not None else None)
+            firm = pct is not None and pct >= 40
+            body = (f"First meaningful rain after a dry run, on a {pct}% chance "
+                    f"of it clearing {C.MEASURABLE_RAIN_MM:g} mm — the models "
+                    "differ about whether it arrives at all, so treat the date "
+                    "as the earliest candidate rather than a fixture."
+                    if not firm else
+                    "First meaningful rain after a dry run.")
             alerts.append(ShiftAlert(
-                "watch", diagnoses[i].day,
-                f"Rain returns {diagnoses[i].day:%A %d %b}",
-                "First meaningful rain after a dry run.", "🌦️"))
+                "watch", d.day,
+                (f"Rain returns {d.day:%A %d %b}" if firm
+                 else f"Rain may return {d.day:%A %d %b}"),
+                body, "🌦️"))
             break
     for i in range(1, len(wet)):
         if not wet[i] and all(wet[max(0, i - 3):i]) and i + 1 < len(wet) and not wet[i + 1]:

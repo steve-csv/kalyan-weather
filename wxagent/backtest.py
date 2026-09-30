@@ -84,6 +84,11 @@ LAG_MEMBERS = (0, 1, 2)
 BLOCK_DAYS = 5
 N_BOOTSTRAP = 2000
 
+# Fewest days of the rarer outcome a subset needs before a Heidke score is
+# printed for it. Below this the score is dominated by whether one or two days
+# fall on the right side and says nothing about the forecast.
+REGIME_MIN_CONTRAST = 5
+
 
 # --------------------------------------------------------------------------
 # Data acquisition
@@ -1066,8 +1071,8 @@ def bootstrap_hss(segments: Sequence[Sequence[DayRecord]], lead: int,
 # ---- report ---------------------------------------------------------------
 
 def render_deep(r: DeepResult,
-                zones: list[tuple[str, str, Contingency, float]] | None = None
-                ) -> str:
+                zones: list[tuple[str, str, Contingency, float]] | None = None,
+                *, truth_as_of: date | None = None) -> str:
     recs, segs = r.records, r.segments
     span = ", ".join(f"{s:%b %Y}–{e:%b %Y}" for s, e in r.periods)
     wet = sum(1 for x in recs if x.observed_mm >= 2.5)
@@ -1078,7 +1083,9 @@ def render_deep(r: DeepResult,
             f"**Days scored** {len(recs)} across {len(segs)} unbroken runs  \n"
             f"**Observed rain days** {wet} — base rate **{base:.0%}**  \n"
             f"**Leads** {', '.join(str(L) + 'd' for L in DEEP_LEADS)}  \n"
-            f"**Truth** ERA5 reanalysis\n\n")
+            f"**Truth** ERA5 reanalysis"
+            + (f", as the archive held it on {truth_as_of:%d %b %Y}"
+               if truth_as_of else "") + "\n\n")
 
     out += ("> **What makes this a backtest and not hindsight.** Every forecast "
             "below is the run *as it was actually issued* 1–9 days before its "
@@ -1100,7 +1107,20 @@ def render_deep(r: DeepResult,
             "precipitation is at its least reliable. It also smooths extremes, "
             "so the heavy-rain rows below are scored against a truth that "
             "under-reads the biggest days. Read absolute scores as indicative; "
-            "the *relative* comparisons carry the real information.\n\n---\n\n")
+            "the *relative* comparisons carry the real information.\n\n")
+
+    near = sum(1 for x in recs if abs(x.observed_mm - 2.5) <= 1.0)
+    out += ("> **And the truth moves.** ERA5 is revised, and this scoring "
+            f"hangs everything on one line: did the day clear 2.5 mm. "
+            f"{near} of {len(recs)} days ({near / max(len(recs), 1):.0%}) sit "
+            "within a millimetre of it, so a sub-millimetre revision reclassifies "
+            "them. Re-running this report genuinely rewrites past seasons: "
+            "between 17 Aug and 30 Sep 2026 the 2025 season gained two rain "
+            "days and lost several dry-to-wet transitions, which lifted that "
+            "season's persistence baseline by 0.09 HSS without a single "
+            "forecast changing. **Only compare figures from one run of this "
+            "report with each other**, never a row here against a row in an "
+            "older copy.\n\n---\n\n")
 
     # ---- headline: does it beat persistence, and is the gap real? ---------
     out += "## 1. Does it beat persistence — and is the gap real?\n\n"
@@ -1115,6 +1135,7 @@ def render_deep(r: DeepResult,
     out += ("| Threshold | Events | Agent HSS (90% CI) | Persistence HSS (90% CI) "
             "| Difference (90% CI) | P(agent ahead) |\n"
             "|---|---|---|---|---|---|\n")
+    proven: list[tuple[str, float, float, float, float]] = []
     for thr, name in IMD_BANDS:
         ev = sum(1 for x in recs if x.observed_mm >= thr)
         if ev < 5:
@@ -1128,6 +1149,8 @@ def render_deep(r: DeepResult,
             out += f"| {name} ≥{thr} mm | {ev} | — | — | — | — |\n"
             continue
         (al, ah), (pl, ph), (dl, dh), beat = bs
+        if dl > 0:
+            proven.append((f"{name.lower()} ≥{thr} mm", thr, ha - hp, dl, dh))
         out += (f"| {name} ≥{thr} mm | {ev} | {ha:.2f} "
                 f"({al:.2f}–{ah:.2f}) | {hp:.2f} "
                 f"({pl:.2f}–{ph:.2f}) | **{ha - hp:+.2f}** "
@@ -1297,16 +1320,39 @@ def render_deep(r: DeepResult,
                 "was the forecast?'\n\n")
         out += ("| Actual regime | Days | Rain days | POD | FAR | CSI | HSS |\n"
                 "|---|---|---|---|---|---|---|\n")
+        thin: list[tuple[str, int]] = []
         for name, c in sorted(reg.items(), key=lambda kv: -reg_n[kv[0]]):
             nd, ne = reg_n[name], reg_ev[name]
-            if ne == 0 or ne == nd:
+            dry = nd - ne
+            if ne == 0 or dry == 0:
                 out += (f"| {name} | {nd} | {ne} | — | — | — | — |\n")
                 continue
+            # HSS rewards telling rain days from dry ones, so a regime with
+            # almost no dry days has nothing for it to measure. An active
+            # surge with 97 rain days in 98 scored HSS 0.00 beside POD 100%
+            # — read as 'no skill' when it means 'no dry day to discriminate'.
+            # POD / FAR / CSI need no dry days and stay.
+            hss = _f(heidke(c), '.2f')
+            if min(ne, dry) < REGIME_MIN_CONTRAST:
+                thin.append((name, dry))
+                hss = "—"
             out += (f"| {name} | {nd} | {ne} | {_pc(c.pod)} | {_pc(c.far)} | "
-                    f"{_pc(c.csi)} | {_f(heidke(c), '.2f')} |\n")
-        out += ("\nRows scored `—` had either no rain days or nothing but rain "
-                "days: with no contrast there is no skill to measure, and "
-                "printing a perfect CSI there would be meaningless.\n\n")
+                    f"{_pc(c.csi)} | {hss} |\n")
+        out += ("\nRows scored `—` throughout had either no rain days or "
+                "nothing but rain days: with no contrast there is no skill to "
+                "measure, and printing a perfect CSI there would be "
+                "meaningless.\n\n")
+        if thin:
+            says = ", ".join(f"**{n}** ({d} dry day{'s' if d != 1 else ''})"
+                             for n, d in thin)
+            out += (f"> **Why some HSS cells are blank.** {says} had too few "
+                    "dry days for a skill score to mean anything: HSS measures "
+                    "telling rain from no-rain, and it collapses towards zero "
+                    "when one side barely exists. That is a property of the "
+                    "score, not a failure of the forecast, so the cell is left "
+                    "empty rather than printed as a damning number. The "
+                    "detection rates beside it are unaffected — they do not "
+                    "depend on dry days.\n\n")
 
     # ---- zones ------------------------------------------------------------
     if zones:
@@ -1390,6 +1436,20 @@ def render_deep(r: DeepResult,
                     f"so on {len(recs)} days the lead is not statistically "
                     f"established ({beat:.0%} of resamples favour the agent). "
                     "More seasons are needed, not a better story.\n")
+            if proven:
+                # Worth saying in the same breath: the aggregate threshold is
+                # the one where persistence is hardest to beat, because at this
+                # base rate most days rain and yesterday already knew it. An
+                # edge that survives at a wetter threshold is the real finding
+                # and burying it would understate the record as surely as
+                # overstating it elsewhere would inflate it.
+                first = proven[0]
+                out += (f"  However, at **{first[0]}** the same comparison "
+                        f"*does* clear zero — gap {first[2]:+.2f}, interval "
+                        f"{first[3]:+.2f} to {first[4]:+.2f}. The edge is real "
+                        "on the wetter days, where knowing the flow actually "
+                        "buys something, and washes out across the mass of "
+                        "days that rain regardless.\n")
         else:
             out += (f"- *(Now proven at ≥2.5 mm: gap {dl:+.2f} to {dh:+.2f}, "
                     "clear of zero.)*\n")
@@ -1400,8 +1460,10 @@ def render_deep(r: DeepResult,
     if losing:
         out += (f"- *That the skill replicates.* In "
                 f"{', '.join(str(y) for y in sorted(losing))} the agent scored "
-                "**below** persistence. A method that wins in two seasons out "
-                f"of {len(yrs)} has not yet shown a durable edge.\n")
+                f"**below** persistence. A method that wins in "
+                f"{len(yrs) - len(losing)} season"
+                f"{'s' if len(yrs) - len(losing) != 1 else ''} out of "
+                f"{len(yrs)} has not yet shown a durable edge.\n")
 
     out += ("\nNone of that makes the agent useless — it makes it a good "
             "1–3 day occurrence forecast with an honest confidence scale and a "
@@ -1535,7 +1597,9 @@ def _main_deep(args) -> int:
                 [[n, z, c.__dict__, b] for n, z, c, b in zones]),
                 encoding="utf-8")
 
-    report = render_deep(result, zones)
+    as_of = (date.fromtimestamp(cache.stat().st_mtime)
+             if cache.exists() else None)
+    report = render_deep(result, zones, truth_as_of=as_of)
     path = C.FORECAST_DIR / f"backtest_deep_{site.key}_{tag}.md"
     path.write_text(report, encoding="utf-8")
     print(f"\n{report}")
