@@ -29,6 +29,7 @@ from datetime import date, datetime, timedelta
 from typing import Sequence
 
 from . import config as C
+from .diagnostics import season_for
 
 # --------------------------------------------------------------------------
 # Plain-language vocabulary
@@ -121,6 +122,17 @@ DAYPART_PLAIN = {
 # there would be its own kind of dishonesty.
 LOW_PROB_MONSOON_RAIN_RATE = 0.22
 
+# Temperature movement worth telling someone about.
+#
+# 3C day-to-day is the point where it stops being "about the same" and starts
+# being a different kind of afternoon. The anomaly run is deliberately more
+# demanding - a single warm day against a ten-year mean is noise, and these
+# normals are ERA5's rather than IMD's, so only a sustained offset is worth
+# reporting as one.
+SWING_ALERT_C = 3.0
+ANOMALY_RUN_C = 2.0
+ANOMALY_RUN_DAYS = 3
+
 
 # Phrases that already name their own subject. The dry headline prefixes
 # "rain " to the others ("rain not expected"); doing that to these would give
@@ -204,6 +216,11 @@ def day_facts(dd, conf, windows: Sequence) -> dict:
         "onlyWindow": bool(heaviest and len(wet) == 1),
         "confOccurrence": conf.occurrence,
         "confAmount": conf.amount,
+        # Stored rather than re-derived from the month, because `render`
+        # rebuilds this wording in a separate process where the run's
+        # diagnosed season is long gone - and because the calendar is wrong
+        # about it for a fortnight either side of withdrawal.
+        "monsoon": season_for(dd.day) == "monsoon",
     }
 
 
@@ -219,7 +236,12 @@ def describe_from_facts(day: date, f: dict) -> PlainDay:
     pct = f.get("pct")
     rain_hi = f.get("rainHi") or 0.0
 
-    monsoon = C.SEASONS[day.month] == "monsoon"
+    # Facts saved before the monsoon was diagnosed rather than assumed carry no
+    # "monsoon" key; those fall back to the calendar, which is what produced
+    # them in the first place.
+    monsoon = f.get("monsoon")
+    if monsoon is None:
+        monsoon = C.SEASONS[day.month] == "monsoon"
 
     phrase = _rain_probability_words(pct, monsoon=monsoon)
     if rain_hi < C.MEASURABLE_RAIN_MM:
@@ -945,7 +967,8 @@ def detect_shifts(diagnoses: Sequence, *,
         if len(thermal_outlook.heat_spell) >= 2:
             alerts.append(ShiftAlert(
                 "critical", thermal_outlook.heat_spell[0],
-                f"Heatwave criteria met from {thermal_outlook.heat_spell[0]:%A %d %b}",
+                "Unofficial heatwave alert from "
+                f"{thermal_outlook.heat_spell[0]:%A %d %b}",
                 f"{len(thermal_outlook.heat_spell)} consecutive days meet IMD's "
                 "temperature criteria. Heat is a genuine health hazard for the "
                 "elderly, outdoor workers and anyone without reliable shade or "
@@ -961,13 +984,63 @@ def detect_shifts(diagnoses: Sequence, *,
                 "🌡️"))
 
         if len(thermal_outlook.cold_spell) >= 2:
+            cd = next((d for d in thermal_outlook.days
+                       if d.day == thermal_outlook.cold_spell[0]), None)
+            dep = (f" Nights run {cd.departure_min:+.1f}°C against the "
+                   "ten-year normal for this week."
+                   if cd is not None and cd.departure_min is not None else "")
             alerts.append(ShiftAlert(
                 "watch", thermal_outlook.cold_spell[0],
-                f"Unusually cold nights from {thermal_outlook.cold_spell[0]:%A %d %b}",
-                "Cold by local standards — Handbook Ch.18 notes a formal cold "
-                "wave essentially never applies here, but a sharp cold snap "
-                "does happen after a western disturbance passes.",
+                "Unofficial cold-wave alert from "
+                f"{thermal_outlook.cold_spell[0]:%A %d %b}",
+                f"{len(thermal_outlook.cold_spell)} consecutive nights meet "
+                "IMD's cold criteria for a coastal station." + dep +
+                " Handbook Ch.18: a formal cold wave essentially never applies "
+                "on this coast, so IMD would almost certainly declare nothing "
+                "— this is an unofficial call on the numbers, and the cold is "
+                "real whatever it is called. Sharp snaps follow a western "
+                "disturbance passing to the north.",
                 "🥶"))
+
+        # ---- temperature swings and sustained anomalies -------------------
+        # Day-to-day movement is what people actually notice - a 4C fall
+        # overnight is felt, while a steady 34C week is not - and nothing on
+        # this page used to mention it unless it crossed a heatwave threshold.
+        days = [d for d in thermal_outlook.days if d.tmax is not None]
+        swings = [(b.day, b.tmax - a.tmax)
+                  for a, b in zip(days, days[1:])]
+        big = max(swings, key=lambda s: abs(s[1])) if swings else None
+        if big is not None and abs(big[1]) >= SWING_ALERT_C:
+            way = "jumps" if big[1] > 0 else "drops"
+            alerts.append(ShiftAlert(
+                "info", big[0],
+                f"Daytime temperature {way} {abs(big[1]):.0f}°C on "
+                f"{big[0]:%A %d %b}",
+                f"The afternoon maximum {way} from the day before — the "
+                "sharpest change in the week. Swings this size here come from "
+                "the cloud deck arriving or clearing rather than from any "
+                "change of airmass, so the air will feel different without the "
+                "season having moved.",
+                "🌡️"))
+
+        warm = [d for d in thermal_outlook.days
+                if d.departure_max is not None
+                and d.departure_max >= ANOMALY_RUN_C]
+        cool = [d for d in thermal_outlook.days
+                if d.departure_max is not None
+                and d.departure_max <= -ANOMALY_RUN_C]
+        for run, word, icon in ((warm, "above", "📈"), (cool, "below", "📉")):
+            if len(run) >= ANOMALY_RUN_DAYS:
+                mean = sum(d.departure_max for d in run) / len(run)
+                alerts.append(ShiftAlert(
+                    "info", run[0].day,
+                    f"Afternoons running {abs(mean):.0f}°C {word} normal",
+                    f"{len(run)} of the next seven days sit {abs(mean):.1f}°C "
+                    f"{word} the ten-year average for this week. Those normals "
+                    "are computed here from ERA5, not from IMD's official "
+                    "1991–2020 series, so read the direction and the rough "
+                    "size rather than the exact figure.",
+                    icon))
 
         hot = [d for d in thermal_outlook.days
                if d.heat_index is not None and d.heat_index >= 41]

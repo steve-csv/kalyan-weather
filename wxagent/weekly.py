@@ -26,12 +26,12 @@ from . import config as C
 from . import (
     climate, oscillations, plain, rainsource as rsmod, regions, report,
     synoptic, systems, thermal,
-    upstream, web,
+    upstream, web, withdrawal,
 )
 from .diagnostics import (
     compass, daily_rain_spread, diagnose_day, imd_category, lift_profile,
-    moisture_profile, orographic_reading, season_for, stability_profile,
-    window_indices,
+    moisture_profile, orographic_reading, season_for, set_season_override,
+    stability_profile, window_indices,
 )
 from .doctrine import DISCLAIMER, assess_confidence
 from .notify import notify
@@ -465,6 +465,26 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
 
     pf = fetch_point(C.HOME, days=days + 1)
     ens = fetch_ensemble(C.HOME, days=days + 1)
+
+    # The same monsoon diagnosis the daily bulletin runs. Without it the two
+    # pages disagree about the season for the fortnight around withdrawal -
+    # one reading the calendar, the other the fields.
+    mstate = None
+    try:
+        hist = fetch_point(C.HOME, days=1,
+                           past_days=withdrawal.LOOKBACK_DAYS,
+                           models=[m for m in C.MODELS
+                                   if m.key == PRIMARY_MODEL] or None)
+        mstate = withdrawal.diagnose(hist, today=start, primary=PRIMARY_MODEL)
+        if mstate.effective_season != season:
+            if not quiet:
+                print(f"  → season by diagnosis: {mstate.effective_season} "
+                      f"(calendar said {season})")
+            season = mstate.effective_season
+            set_season_override(season)
+    except Exception as exc:                        # noqa: BLE001
+        if not quiet:
+            print(f"  ! monsoon-state diagnosis unavailable ({exc})")
 
     if not quiet:
         print(f"  fetching {len(WEEKLY_KEYS)} MMR sites...")

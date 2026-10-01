@@ -904,7 +904,32 @@ def classify_regime(moist: MoistureProfile, lift: LiftProfile,
         )
 
     # Non-monsoon seasons run on conditional instability plus a trigger.
+    #
+    # CAPE is the fuel, not the ignition. On 1 Oct 2026 this branch read 3960
+    # J/kg and told the reader a storm "can switch on within half an hour" -
+    # on a day the models put at 3%, with the terrain-normal flow DESCENDING
+    # at -4.3 m/s and 58% humidity at 925 hPa. Extreme CAPE under subsidence
+    # is a loaded gun in a locked case, and the monsoon branches above already
+    # name their limiting ingredient rather than asserting a cause the
+    # ingredients contradict. These do the same now.
+    sinking = orog <= -1.0
     if cape_peak >= 1500 and moderate_moist:
+        if sinking:
+            return (
+                "INSTABILITY WITHOUT A TRIGGER",
+                "Large buoyant energy, but the low-level flow is sinking - "
+                "Handbook Ch.4's conditional instability with the condition "
+                "unmet.",
+                "There is more than enough energy aloft for a violent storm, "
+                "and nothing to set it off here: the terrain-normal component "
+                f"is descending at {abs(orog):.1f} m/s, which warms and dries "
+                "the layer that would have to rise. Expect a hot, heavy, "
+                "rainless day. The energy matters anyway, because it does not "
+                "take much to unlock it - a sea-breeze front, an easterly "
+                "wave or a passing trough - and when that happens the first "
+                "storm is likely to be severe rather than ordinary. Watch the "
+                "hills before the city.",
+            )
         return (
             "CONVECTIVE / THUNDERSTORM RISK",
             "Strong instability with adequate moisture - Handbook Ch.4's "
@@ -915,6 +940,17 @@ def classify_regime(moist: MoistureProfile, lift: LiftProfile,
             "unpredictable; that it can fire is not.",
         )
     if cape_peak >= 500 and moderate_moist:
+        if sinking:
+            return (
+                "SETTLED UNDER SINKING AIR",
+                "Some instability, but the flow is descending and nothing is "
+                "lifting it.",
+                "Moderate buoyant energy with the low-level flow sinking at "
+                f"{abs(orog):.1f} m/s across the terrain. Subsidence caps the "
+                "day: hazy sun, warm afternoons and no organised rain, with at "
+                "most an isolated cell over the hills where the ground does the "
+                "lifting instead of the wind.",
+            )
         return (
             "ISOLATED CONVECTION POSSIBLE",
             "Moderate instability. Garden-variety storms plausible given a "
@@ -1033,8 +1069,30 @@ def burst_risk(stab, moist, lift, zone: str,
         )
     return level, note
 
+# The calendar is the default, not the authority. `withdrawal.diagnose()` reads
+# whether the monsoon is actually over the region and the run installs its
+# verdict here, so the regime classifier, the forecast line and the page labels
+# all follow the same answer instead of each re-deriving it from the month.
+# Set once per run; a run that cannot diagnose leaves it alone and gets the
+# calendar, which is what the agent always used before.
+_SEASON_OVERRIDE: str | None = None
+
+
+def set_season_override(season: str | None) -> None:
+    global _SEASON_OVERRIDE
+    _SEASON_OVERRIDE = season
+
+
 def season_for(day: date) -> str:
-    return C.SEASONS[day.month]
+    cal = C.SEASONS[day.month]
+    if _SEASON_OVERRIDE is None:
+        return cal
+    # Only the monsoon/post-monsoon boundary is diagnosable from these fields.
+    # Nothing here can tell February from March, so the override is ignored
+    # outside the months where withdrawal or a late onset is in question.
+    if cal in ("monsoon", "post_monsoon"):
+        return _SEASON_OVERRIDE
+    return cal
 
 
 def lead_time_guidance(lead_hours: int) -> tuple[str, str]:

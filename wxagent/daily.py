@@ -27,11 +27,11 @@ from . import (
     recent as recentmod,
     reconcile,
     nowcast, observed, plain, report, synoptic, systems, thermal,
-    upstream, web,
+    upstream, web, withdrawal,
 )
 from .diagnostics import (
     burst_risk, compass, day_slices, diagnose_day, lift_profile,
-    orographic_reading, season_for, window_indices,
+    orographic_reading, season_for, set_season_override, window_indices,
 )
 from .doctrine import assess_confidence, daypart_breakdown, headline
 from .notify import notify
@@ -282,6 +282,36 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     trough_t, offshore_t, inland_t = synoptic.fetch_synoptic(days=7)
     sp = synoptic.build(trough_t, offshore_t, inland_t, today, season)
 
+    # Where the monsoon actually is, which the calendar does not know. This
+    # needs the last ten days, and `past_days` on the main fetch would shift
+    # every hourly index downstream, so it takes its own one-model request.
+    if not quiet:
+        print("  diagnosing the monsoon's state (onset / break / withdrawal)...")
+    mstate = None
+    try:
+        hist = fetch_point(C.HOME, days=1,
+                           past_days=withdrawal.LOOKBACK_DAYS,
+                           models=[m for m in C.MODELS
+                                   if m.key == PRIMARY_MODEL] or None)
+        mstate = withdrawal.diagnose(
+            hist, today=today, primary=PRIMARY_MODEL,
+            trough_lat=getattr(sp.trough, "axis_lat", None))
+    except Exception as exc:                       # noqa: BLE001
+        # A failed diagnosis must not cost the bulletin. Falling back to the
+        # calendar is what the agent did for its whole life until now.
+        if not quiet:
+            print(f"  ! monsoon-state diagnosis unavailable ({exc})")
+    if mstate is not None and mstate.effective_season != season:
+        if not quiet:
+            print(f"  → season by diagnosis: {mstate.effective_season} "
+                  f"(calendar said {season})")
+        season = mstate.effective_season
+        # Installed globally for this run so the regime classifier, the
+        # forecast line and the page labels agree with the monsoon-status
+        # card instead of each asking the calendar again.
+        set_season_override(season)
+        sp = synoptic.build(trough_t, offshore_t, inland_t, today, season)
+
     if not quiet:
         print("  tracking low pressure systems...")
     sys_pic = systems.analyse(days=7, today=today, quiet=quiet)
@@ -339,9 +369,14 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         print("  sampling what fell over the last IMD day...")
     obs = observed.fetch_observed(now=issued, quiet=quiet)
 
+    # Where the monsoon is leads the synoptic section: it is the frame every
+    # other feature in it gets read inside. The markdown carries the criteria
+    # table; the page gets the same facts as a structured card, because
+    # _synoptic_html would render a pipe table as literal pipes.
     body = report.render_daily(
         dd, conf, C.HOME, pf, windows, links,
-        synoptic.render(sp, sys_pic), PRIMARY_MODEL, issued,
+        withdrawal.render(mstate) + synoptic.render(sp, sys_pic),
+        PRIMARY_MODEL, issued,
     )
 
     # Fetched here rather than beside its section below, because the top line
@@ -463,6 +498,20 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         synoptic_text=_synoptic_html(synoptic.render(sp, sys_pic)),
     )
     payload["gradientVerdict"] = grad_verdict
+    if mstate is not None and mstate.state != "outside":
+        payload["monsoonState"] = {
+            "state": mstate.state, "label": mstate.label,
+            "sentence": mstate.sentence,
+            "calendar": C.SEASON_LABELS.get(mstate.calendar_season,
+                                            mstate.calendar_season),
+            "diagnosed": C.SEASON_LABELS.get(mstate.effective_season,
+                                             mstate.effective_season),
+            "disagrees": mstate.effective_season != mstate.calendar_season,
+            "met": mstate.met, "of": len(mstate.criteria),
+            "criteria": [{"name": n, "ok": ok, "why": w}
+                         for n, ok, w in mstate.criteria],
+            "note": mstate.source_note,
+        }
     payload["rainSource"] = {
         "key": rsrc.key, "label": rsrc.label,
         "headline": rsrc.headline, "detail": rsrc.detail,

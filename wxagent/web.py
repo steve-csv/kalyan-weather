@@ -3639,6 +3639,37 @@ function render(){
       <p class="rhead" style="margin:0">${mdBold(D.nowLine)}</p></div>`;
   }
 
+  /* ---- where the monsoon is ----
+     Ahead of everything else, because it is the frame the rest gets read
+     inside. The calendar used to decide this on its own, and on 1 Oct 2026 it
+     announced the post-monsoon while the westerly was still running and a low
+     sat 139 km offshore. The four rows are IMD's own withdrawal tests, shown
+     whether or not they are met - a reader can check them against an IMD
+     chart, which is the point. */
+  if (D.monsoonState && D.monsoonState.sentence){
+    const M = D.monsoonState;
+    h += `<div class="card"><h2>Where the monsoon is</h2>
+      <p class="rhead"><b>${esc(M.label)}.</b> ${esc(M.sentence)}</p>
+      ${M.disagrees
+        ? `<div class="warn">The calendar calls this
+           <b>${esc(M.calendar)}</b>; the fields say <b>${esc(M.diagnosed)}</b>,
+           and the wording on this page follows the fields. A date cannot know
+           where the monsoon is.</div>`
+        : ''}
+      <table style="margin-top:12px"><thead><tr>
+        <th>IMD withdrawal test</th><th>Reads as</th><th>Evidence</th>
+      </tr></thead><tbody>
+      ${(M.criteria || []).map(c => `<tr>
+        <td>${esc(c.name)}</td>
+        <td><span class="pill ${c.ok ? 's-warning' : 's-good'}"
+            style="padding:2px 9px;font-size:12px;white-space:nowrap"
+            ><span class="dot"></span>${c.ok ? 'met' : 'not met'}</span></td>
+        <td>${esc(c.why)}</td></tr>`).join('')}
+      </tbody></table>
+      <div class="quote">${esc(M.note)}</div>
+    </div>`;
+  }
+
   /* ---- what KIND of rain ----
      Placed before the amounts. Millimetres alone cannot tell a reader what a
      day will feel like: twelve from the monsoon is a grey hours-long soak,
@@ -4106,7 +4137,13 @@ function render(){
         synthesises tide times, so check them here.</span></a>
     </div></div>`;
 
-  h += `<footer>Independent interpretation, not an official IMD product.<br>
+  h += `<footer>An unofficial forecast for Kalyan West, Mumbai and the wider MMR —
+    rain, temperature, heat and cold, monsoon onset and withdrawal — written the way an
+    independent regional forecaster writes: naming the mechanism, saying which way it could
+    go, and publishing its own score.<br>
+    It is <b>not</b> an IMD product and carries no authority. Where this page and IMD differ,
+    IMD is the official position. Heatwave, cold-wave, cyclone and withdrawal calls here are
+    unofficial readings of the criteria, never declarations.<br>
     For flooding, lightning, transport and emergency decisions, follow IMD nowcasts, warnings and
     local authority instructions.</footer>`;
 
