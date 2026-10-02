@@ -3639,6 +3639,43 @@ function render(){
       <p class="rhead" style="margin:0">${mdBold(D.nowLine)}</p></div>`;
   }
 
+  /* ---- morning visibility ----
+     Shown per model rather than as one verdict, because the models disagree
+     about dawn humidity at this point more than they disagree about almost
+     anything else: over January 2026 every flagged morning was ECMWF and ICON
+     against GFS, which ran 4-10C drier and reported 24 km. A single headline
+     would hide the one thing a reader needs in order to decide whether to
+     leave early. */
+  if (D.fog && D.fog.length){
+    h += `<div class="card"><h2>Morning visibility</h2>
+      ${D.fog.map(f => `
+        <p class="rhead"><b>${esc(f.day)} — ${esc(
+          f.level === 'haze' ? 'haze' :
+          f.level === 'dense' ? 'dense fog' :
+          f.level === 'fog' ? 'fog' : 'mist')}</b>
+          <span class="muted">(${f.agree} of ${f.total} models)</span></p>
+        <p class="pt">${mdBold(f.sentence)}</p>
+        <div class="scroll"><table style="white-space:nowrap"><thead><tr>
+          <th>Model</th><th>Call</th><th>Dew-point gap</th><th>Wind</th>
+          <th>Overnight cooling</th><th>Visibility</th>
+        </tr></thead><tbody>
+        ${(f.models || []).map(m => `<tr>
+          <td>${esc(m.name)}</td>
+          <td><b>${esc(m.level === 'none' ? 'nothing' : m.level)}</b></td>
+          <td class="num">${m.dep === null ? '—' : m.dep.toFixed(1) + '&deg;C'}</td>
+          <td class="num">${m.wind === null ? '—' : m.wind.toFixed(1) + ' m/s'}</td>
+          <td class="num">${m.cool === null ? '—' : m.cool.toFixed(0) + '&deg;C'}</td>
+          <td class="num">${m.vis === null || m.vis === undefined ? 'not published'
+            : (m.vis >= 10000 ? 'clear' : Math.round(m.vis) + ' m')}</td>
+          </tr>`).join('')}
+        </tbody></table></div>`).join('')}
+      <div class="quote">Fog is diagnosed from the ingredients — a small
+        dew-point gap, light wind, clear sky and a big overnight temperature
+        fall — because only GFS publishes a visibility field for this point.
+        IMD's fog warnings are the official ones.</div>
+    </div>`;
+  }
+
   /* ---- where the monsoon is ----
      Ahead of everything else, because it is the frame the rest gets read
      inside. The calendar used to decide this on its own, and on 1 Oct 2026 it

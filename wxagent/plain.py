@@ -798,7 +798,8 @@ def _spell_phrase(day: date, run: int, open_ended: bool) -> dict[str, str]:
 
 def detect_shifts(diagnoses: Sequence, *,
                   thermal_outlook=None,
-                  systems_picture=None) -> list[ShiftAlert]:
+                  systems_picture=None,
+                  fog_mornings=None) -> list[ShiftAlert]:
     """
     Scan the forecast sequence for the transitions worth interrupting someone
     over. A run of similar days generates nothing; the turn generates an alert.
@@ -1085,6 +1086,21 @@ def detect_shifts(diagnoses: Sequence, *,
                 "humid coastal city these measure different things — no "
                 "heatwave declared does not mean no heat risk.",
                 "🥵"))
+
+    # ---- morning visibility ----------------------------------------------
+    # Only the first one. A fog spell runs for several mornings in a row and
+    # one alert per morning would bury everything else on the page.
+    for f in (fog_mornings or []):
+        if f.level == "none":
+            continue
+        sev = "warning" if f.level == "dense" else "watch"
+        title = {"haze": "Haze, not fog",
+                 "mist": "Mist around dawn",
+                 "fog": "Fog around dawn",
+                 "dense": "Dense fog around dawn"}[f.level]
+        alerts.append(ShiftAlert(
+            sev, f.day, f"{title}, {f.day:%A %d %b}", f.sentence, "🌫️"))
+        break
 
     # ---- synoptic systems ------------------------------------------------
     if systems_picture is not None:

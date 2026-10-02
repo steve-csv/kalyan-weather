@@ -50,6 +50,10 @@ HOURLY_FIELDS: tuple[str, ...] = (
     "wind_gusts_10m",
     "cape",
     "convective_inhibition",
+    # GFS alone publishes this for the point; ECMWF and ICON return nulls for
+    # every hour. fog.py diagnoses from the ingredients for that reason and
+    # uses this only as one model's corroboration.
+    "visibility",
     "total_column_integrated_water_vapour",
     "freezing_level_height",
     # Pressure levels - Guide s1.2 "weather is three-dimensional"

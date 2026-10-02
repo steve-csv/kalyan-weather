@@ -26,7 +26,7 @@ from . import (
     rainsource as rsmod,
     recent as recentmod,
     reconcile,
-    nowcast, observed, plain, report, synoptic, systems, thermal,
+    fog, nowcast, observed, plain, report, synoptic, systems, thermal,
     upstream, web, withdrawal,
 )
 from .diagnostics import (
@@ -349,8 +349,15 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     thermal_out = thermal.analyse(C.HOME, pf, week_days,
                                   primary_model=PRIMARY_MODEL, quiet=quiet)
 
+    # Morning visibility. Costs no fetch: the ingredients ride along on the
+    # point data already in hand.
+    fog_mornings = fog.outlook(pf, week_days)
+    if not quiet and fog_mornings:
+        print(f"  morning visibility: {len(fog_mornings)} morning(s) flagged")
+
     alerts = plain.detect_shifts(week_diag, thermal_outlook=thermal_out,
-                                 systems_picture=sys_pic)
+                                 systems_picture=sys_pic,
+                                 fog_mornings=fog_mornings)
 
     plain_days = []
     for wd in week_diag:
@@ -375,7 +382,8 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     # _synoptic_html would render a pipe table as literal pipes.
     body = report.render_daily(
         dd, conf, C.HOME, pf, windows, links,
-        withdrawal.render(mstate) + synoptic.render(sp, sys_pic),
+        withdrawal.render(mstate) + fog.render(fog_mornings)
+        + synoptic.render(sp, sys_pic),
         PRIMARY_MODEL, issued,
     )
 
@@ -498,6 +506,18 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         synoptic_text=_synoptic_html(synoptic.render(sp, sys_pic)),
     )
     payload["gradientVerdict"] = grad_verdict
+    if fog_mornings:
+        payload["fog"] = [{
+            "day": f"{f.day:%a %d %b}", "level": f.level,
+            "sentence": f.sentence, "agree": f.agree, "total": f.total,
+            "models": [{"name": m.model, "level": m.level,
+                        "dep": None if m.depression is None
+                        else round(m.depression, 1),
+                        "wind": None if m.wind is None else round(m.wind, 1),
+                        "cool": None if m.cooling is None
+                        else round(m.cooling, 1),
+                        "vis": m.visibility_m} for m in f.models],
+        } for f in fog_mornings]
     if mstate is not None and mstate.state != "outside":
         payload["monsoonState"] = {
             "state": mstate.state, "label": mstate.label,
