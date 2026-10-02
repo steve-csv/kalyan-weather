@@ -834,6 +834,16 @@ def classify_regime(moist: MoistureProfile, lift: LiftProfile,
     moderate_moist = moist.depth_class in ("deep", "moderate")
     cape_peak = stab.cape_peak or 0.0
 
+    # Descending, not merely weak. Every "weak flow" test below is an upper
+    # bound, so without this a terrain-normal component of -5 m/s - air
+    # pouring DOWN the lee of the Ghats - satisfies `orog < OROG_WEAK` and
+    # gets described as "weak onshore flow". That is how 2 Oct 2026 announced
+    # "sunshine returns and local heating takes over as the trigger... rain
+    # becomes isolated, afternoon-weighted" on a 0% day with the flow from
+    # the ENE. Offshore is not a weaker version of onshore; it is the other
+    # direction, and it suppresses the rain the sentence was promising.
+    sinking = orog <= -1.0
+
     if season == "monsoon":
         if orog >= C.OROG_STRONG and deep:
             return (
@@ -875,6 +885,26 @@ def classify_regime(moist: MoistureProfile, lift: LiftProfile,
                 f"Onshore flow supplies steady lift. {limiter} Expect repeated "
                 "spells rather than a soaking, with the windward Ghats still "
                 "taking noticeably more than the coast.",
+            )
+        if sinking:
+            # The retreating-monsoon signature on this coast: the 850 hPa
+            # flow has gone round to the east or north-east, so instead of
+            # being lifted over the Ghats the air descends them, warming and
+            # drying as it comes. It is why a withdrawal week is hot and
+            # bright rather than merely rainless, and why the nights go cold
+            # at the same time - the same dry column radiates away after dark.
+            return (
+                "OFFSHORE FLOW — MONSOON IN RETREAT",
+                "The 850 hPa flow has reversed: air is descending the Ghats "
+                "rather than being lifted over them.",
+                "The terrain-normal component is "
+                f"{abs(orog):.1f} m/s the wrong way, which cancels the lift "
+                "the Konkan's rain depends on and warms the air on the way "
+                "down. Expect hot bright afternoons, a wide gap between day "
+                "and night temperatures, and no organised rain while this "
+                "holds. What rain there is goes to the windward side of the "
+                "hills or out to sea, not to the city. This reverses when the "
+                "westerly returns or a system pushes moisture back onshore.",
             )
         if orog < C.OROG_WEAK and cape_peak >= 800:
             return (

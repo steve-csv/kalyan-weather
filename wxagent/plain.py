@@ -1042,6 +1042,38 @@ def detect_shifts(diagnoses: Sequence, *,
                     "size rather than the exact figure.",
                     icon))
 
+        # ---- one criterion met, the other not -----------------------------
+        # IMD needs BOTH an absolute threshold and a departure from normal, so
+        # a day can be the most abnormal of the month and still correctly not
+        # be a heatwave. On 2 Oct 2026 Kalyan ran +4.5C - the departure
+        # criterion exactly - at 35.3C, which is 1.7C under the coastal
+        # threshold, and the page said nothing day-specific about it: the only
+        # heat line was a weekly average. A near miss is worth naming, and
+        # naming WHICH half is missing is the difference between a reader
+        # trusting the silence and wondering about it.
+        from .thermal import HEAT_DEPARTURE, HEAT_THRESHOLD
+        thresh = HEAT_THRESHOLD.get(thermal_outlook.station_type, 37.0)
+        near = [d for d in thermal_outlook.days
+                if d.tmax is not None and d.departure_max is not None
+                and not d.heat_flag
+                and d.departure_max >= HEAT_DEPARTURE
+                and d.tmax < thresh]
+        if near and not thermal_outlook.heat_spell:
+            d0 = max(near, key=lambda d: d.departure_max)
+            alerts.append(ShiftAlert(
+                "watch", d0.day,
+                f"Unusually hot for the date, {d0.day:%A %d %b}",
+                f"{d0.tmax:.0f}°C is {d0.departure_max:+.1f}°C against the "
+                f"ten-year normal — IMD's departure criterion for a heatwave "
+                f"is +{HEAT_DEPARTURE:g}°C, so that half is met. The other "
+                f"half is not: a coastal heatwave also needs "
+                f"{thresh:g}°C absolute, and this is {thresh - d0.tmax:.1f}°C "
+                "short. No heatwave would be declared, and it will still be "
+                "one of the hottest days of the month for the date."
+                + (f" Feels like {d0.heat_index:.0f}°C with the humidity."
+                   if d0.heat_index is not None else ""),
+                "🌡️"))
+
         hot = [d for d in thermal_outlook.days
                if d.heat_index is not None and d.heat_index >= 41]
         if hot and not thermal_outlook.heat_spell:
