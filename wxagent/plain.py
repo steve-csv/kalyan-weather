@@ -29,7 +29,7 @@ from datetime import date, datetime, timedelta
 from typing import Sequence
 
 from . import config as C
-from .diagnostics import season_for
+from .diagnostics import compass, season_for
 
 # --------------------------------------------------------------------------
 # Plain-language vocabulary
@@ -132,6 +132,17 @@ LOW_PROB_MONSOON_RAIN_RATE = 0.22
 SWING_ALERT_C = 3.0
 ANOMALY_RUN_C = 2.0
 ANOMALY_RUN_DAYS = 3
+
+# Feels-like, on IMD's heat-index scale. Its "danger" band opens at 41C, so a
+# watch a degree below it gives a day's notice rather than announcing the
+# problem on the morning it arrives.
+FEELS_WATCH_C = 40.0
+FEELS_DANGER_C = 45.0
+
+# Surface wind, from IMD's own kmph thresholds: 35 kmph starts the fishermen's
+# advisory, 45 is "squally", 55 is where the wording turns to damage.
+WIND_STRONG_MS = 9.7
+WIND_SQUALLY_MS = 12.5
 
 
 # Phrases that already name their own subject. The dry headline prefixes
@@ -799,7 +810,8 @@ def _spell_phrase(day: date, run: int, open_ended: bool) -> dict[str, str]:
 def detect_shifts(diagnoses: Sequence, *,
                   thermal_outlook=None,
                   systems_picture=None,
-                  fog_mornings=None) -> list[ShiftAlert]:
+                  fog_mornings=None,
+                  wind_days=None) -> list[ShiftAlert]:
     """
     Scan the forecast sequence for the transitions worth interrupting someone
     over. A run of similar days generates nothing; the turn generates an alert.
@@ -1075,17 +1087,70 @@ def detect_shifts(diagnoses: Sequence, *,
                    if d0.heat_index is not None else ""),
                 "🌡️"))
 
-        hot = [d for d in thermal_outlook.days
-               if d.heat_index is not None and d.heat_index >= 41]
-        if hot and not thermal_outlook.heat_spell:
+        # ---- feels-like ---------------------------------------------------
+        # Graded rather than a single 41C trip wire, because the number people
+        # actually experience is the humid one and it crosses IMD's own
+        # heat-index bands well before the dry-bulb crosses a heatwave
+        # threshold. The gap against the thermometer is stated every time: it
+        # IS the humidity, and it is the part that surprises people.
+        from .thermal import heat_index_band
+        hot = sorted((d for d in thermal_outlook.days
+                      if d.heat_index is not None
+                      and d.heat_index >= FEELS_WATCH_C),
+                     key=lambda d: -d.heat_index)
+        if hot:
+            d0 = hot[0]
+            band = heat_index_band(d0.heat_index)
+            gap = (d0.heat_index - d0.tmax) if d0.tmax is not None else None
+            danger = d0.heat_index >= FEELS_DANGER_C
+            run = [d for d in thermal_outlook.days
+                   if d.heat_index is not None
+                   and d.heat_index >= FEELS_WATCH_C]
             alerts.append(ShiftAlert(
-                "watch", hot[0].day,
-                f"Oppressive humid heat {hot[0].day:%A %d %b}",
-                f"Feels like {hot[0].heat_index:.0f}°C even though the actual "
-                "temperature stays well under any heatwave threshold. In a "
-                "humid coastal city these measure different things — no "
-                "heatwave declared does not mean no heat risk.",
+                "warning" if danger else "watch", d0.day,
+                (f"Unofficial heat-index {'danger' if danger else 'alert'} — "
+                 f"feels like {d0.heat_index:.0f}°C {d0.day:%a %d %b}"),
+                (f"The thermometer reads {d0.tmax:.0f}°C"
+                 if d0.tmax is not None else "The air is cooler than this")
+                + (f", but with the humidity it will feel like "
+                   f"**{d0.heat_index:.0f}°C**"
+                   + (f" — the moisture is adding {gap:.0f}°C on its own."
+                      if gap is not None and gap >= 2 else ".")
+                   if True else "")
+                + (f" {band[0]} on IMD's heat-index scale: {band[1]}"
+                   if band else "")
+                + (f" {len(run)} of the next seven days reach this."
+                   if len(run) > 1 else "")
+                + " This is a reading of the heat-index criteria, not an IMD "
+                  "declaration — and a humid coastal city can be dangerous on "
+                  "a day no heatwave would ever be called.",
                 "🥵"))
+
+    # ---- wind -------------------------------------------------------------
+    windy = [w for w in (wind_days or [])
+             if w.max_gust is not None and w.max_gust >= WIND_STRONG_MS]
+    if windy:
+        w0 = max(windy, key=lambda w: w.max_gust)
+        squally = w0.max_gust >= WIND_SQUALLY_MS
+        alerts.append(ShiftAlert(
+            "warning" if squally else "watch", w0.day,
+            (f"{'Squally' if squally else 'Strong'} wind "
+             f"{w0.day:%A %d %b} — gusts to {w0.max_gust * 3.6:.0f} kmph"),
+            (f"Sustained around {w0.max_ms * 3.6:.0f} kmph from the "
+             f"{compass(w0.prevailing)}, gusting {w0.max_gust * 3.6:.0f}. "
+             if w0.max_ms is not None else "")
+            + ("IMD calls 45 kmph and above squally; above 55 it starts "
+               "warning about damage. " if squally else
+               "IMD's fishermen's advisory starts at 35 kmph. ")
+            + "Secure anything loose on balconies and terraces, and expect "
+              "the sea to be rough."
+            + (f" The models bracket the peak between "
+               f"{w0.gust_spread[0] * 3.6:.0f} and "
+               f"{w0.gust_spread[1] * 3.6:.0f} kmph, so treat the top of "
+               "that as the planning number."
+               if w0.gust_spread
+               and (w0.gust_spread[1] - w0.gust_spread[0]) >= 2.0 else ""),
+            "💨"))
 
     # ---- morning visibility ----------------------------------------------
     # Only the first one. A fog spell runs for several mornings in a row and

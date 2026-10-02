@@ -536,6 +536,131 @@ KB: list[dict] = [
              "rain means a wet but predictable day, while thunderstorms mean "
              "a dry morning and a dangerous afternoon.",
     },
+    # ---- elements added after the rain engine ---------------------------
+    {
+        # Distinct from "withdrawal" above, which is the WEATHER of the
+        # retreat. This one is the method: how the page decides it happened.
+        "id": "withdrawal_test",
+        "keys": [r"how.*(know|decide|tell).*monsoon",
+                 r"withdrawal (test|criteri)", r"imd.*criteri",
+                 r"(is|has) the monsoon (over|ended|gone|withdrawn)",
+                 r"season (over|chang)"],
+        "t": "How I decide the monsoon has gone",
+        "a": "I stopped letting the calendar decide this. October the 1st is "
+             "not a withdrawal, it's a date — the Konkan has lost the monsoon "
+             "anywhere from the last days of September to the third week of "
+             "October. So I read IMD's own four tests off the last ten days: "
+             "five rainless days, the 850 hPa westerly gone, the column dried "
+             "out, and the monsoon trough no longer sitting over the plains. "
+             "I show you all four whether or not they're met, so you can "
+             "check them against an IMD chart.\n\n"
+             "The hard part is that a BREAK and a WITHDRAWAL look identical "
+             "in those fields — dry, westerly gone, drier air. The only thing "
+             "telling them apart is the date and what happens next, so I "
+             "won't call a withdrawal before the last week of September "
+             "however dry it gets. And IMD declares it, not me.",
+    },
+    {
+        "id": "fog_how",
+        "keys": [r"\bfog", r"\bmist\b", r"\bhaze\b", r"visibilit",
+                 r"how.*(spot|detect|know).*fog", r"\bdhund\b", r"smog"],
+        "t": "How I forecast fog, and why haze is different",
+        "a": "Radiation fog needs four things at once, and missing any one of "
+             "them is why most cold nights produce nothing. The air has to "
+             "cool to within a degree or two of its dew point; the wind has "
+             "to be light, because dead calm only wets the grass and anything "
+             "over about 3 m/s mixes it into low cloud instead; the sky has "
+             "to be clear so the ground can radiate its heat away; and — the "
+             "one I got wrong first — the night has to actually COOL. My "
+             "first version flagged ten of ten September mornings, because "
+             "saturated air at dawn is simply what the monsoon is. Nothing "
+             "was condensing out of it. A Kalyan January night falls 14-16°C "
+             "from the afternoon peak; a monsoon night falls four or five.\n\n"
+             "Kalyan fogs more readily than Colaba or Santacruz — inland, on "
+             "the Ulhas, without the sea holding the night temperature up.\n\n"
+             "Fog is not haze. Fog is water and burns off an hour or two "
+             "after sunrise. Haze is dry particulate in a shallow inversion "
+             "and it does not burn off — it waits for wind. I tell you which "
+             "one it is, because that decides whether eleven o'clock is "
+             "clear.\n\n"
+             "One honest caveat: only GFS publishes a visibility field here, "
+             "and over January it ran 4-10°C drier at dawn than ECMWF and "
+             "ICON and called every one of those mornings clear. When the "
+             "models split like that I show you all three rather than "
+             "averaging them into a confidence none of them has.",
+    },
+    {
+        "id": "wind_sea_breeze",
+        "keys": [r"\bwind\b", r"breez", r"\bgust", r"squall",
+                 r"sea ?breeze", r"land ?breeze", r"\bhawa\b", r"kmph"],
+        "t": "The wind, and the sea breeze that runs the afternoon",
+        "a": "For most of the year the daily cycle matters more here than the "
+             "synoptic one. The land heats faster than the sea, pressure "
+             "falls over it, and from late morning air floods in off the "
+             "water. That sea breeze is why a Mumbai afternoon is survivable "
+             "— and why Kalyan waits longer for it, because the front has "
+             "30-odd km of land to cross before it gets here. It arrives as a "
+             "shift rather than a freshening: the wind swings round to the "
+             "west, picks up, and the humidity jumps at the same time.\n\n"
+             "At night it reverses, weakly. The land cools below the sea and "
+             "the flow drains back offshore. That land breeze is light and "
+             "stable, which is exactly what lets fog and haze settle — so the "
+             "wind and the visibility answers keep pointing at each other.\n\n"
+             "For thresholds I use IMD's: 35 kmph starts the fishermen's "
+             "advisory, 45 kmph is 'squally', and above 55 the wording turns "
+             "to damage. I quote gusts, not the average, because the gust is "
+             "what moves things.",
+    },
+    {
+        "id": "feels_like",
+        "keys": [r"feels? like", r"heat index", r"apparent temp", r"humidex",
+                 r"real ?feel", r"why.*(so )?(humid|sticky|muggy)",
+                 r"oppressiv"],
+        "t": "What 'feels like' is, and what it leaves out",
+        "a": "It's the NWS heat index: temperature and humidity, nothing "
+             "else. In a city whose dew point sits in the mid-20s for half "
+             "the year that's the right primary measure, and it's the one "
+             "IMD frames its own heat-index product around. The gap between "
+             "it and the thermometer IS the humidity — 34°C at 50% humidity "
+             "feels like 40°C, and no amount of staring at the forecast "
+             "temperature tells you that.\n\n"
+             "Two things it gets wrong, in opposite directions. It's a SHADE "
+             "value, so standing in the sun is worse than the number. And it "
+             "assumes light wind, so a good sea breeze takes some back. "
+             "That's why I report the wind separately instead of burying it "
+             "inside one figure — you can judge the breeze yourself, you "
+             "can't unpick it from a single number.\n\n"
+             "I checked it against Open-Meteo's own apparent temperature, "
+             "which does model sun and wind: the two stayed within about a "
+             "degree all day and never diverged by two. Publishing both would "
+             "have cost you more confusion than it bought in accuracy.\n\n"
+             "On IMD's scale, 41-54°C is 'danger' — heat exhaustion likely, "
+             "heat stroke probable with continued exposure. A humid coastal "
+             "city gets there on days no heatwave would ever be declared.",
+    },
+    {
+        "id": "unofficial_alerts",
+        "keys": [r"unofficial", r"why.*not.*(heatwave|heat wave|declar)",
+                 r"heatwave criteria", r"cold ?wave", r"coldwave"],
+        "t": "Why my heat and cold alerts say 'unofficial'",
+        "a": "Because IMD declares them and I don't. A heatwave needs BOTH "
+             "halves of IMD's test: an absolute threshold — 37°C for a "
+             "coastal station — and a departure of at least +4.5°C from that "
+             "station's own normal. A day can be the most abnormal of the "
+             "month and still correctly not be a heatwave, which is exactly "
+             "what happened on 3 October 2026: +4.6°C above normal at 36°C, "
+             "one and a bit degrees short on the absolute. I say which half "
+             "is met and which isn't, and by how much, so the silence is "
+             "explained rather than just silent.\n\n"
+             "A formal cold wave essentially never applies on this coast, so "
+             "when I flag unusually cold nights I'm telling you the numbers "
+             "are unusual by local standards, not that anyone will declare "
+             "anything.\n\n"
+             "One caveat on all of it: the normals I compare against are "
+             "computed here from ERA5 over ten years, not IMD's official "
+             "1991-2020 series. Read the direction and the rough size, not "
+             "the exact decimal.",
+    },
     {
         "id": "official",
         "keys": [r"\bimd\b.*(alert|warning|orange|red|yellow)", r"(orange|red|yellow) alert",

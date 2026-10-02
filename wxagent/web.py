@@ -2403,6 +2403,88 @@ const SK = (() => {
     return (U.reading || `The moisture-carrying jet is ${U.jet}: ${U.jetNote}. Mid-levels: ${U.dryNote}.`)
          + (k ? `\n\n${k.a}` : '');
   }
+  /* ---- the elements added after rain ---- */
+  function monsoonAnswer(){
+    const M = pick('monsoonState');
+    if (!M) return "This view doesn't carry the monsoon-state read — it's on "
+                 + "the Kalyan daily page.";
+    let s = `**${M.label}.** ${M.sentence}`;
+    const met = (M.criteria || []).filter(c => c.ok);
+    const not = (M.criteria || []).filter(c => !c.ok);
+    if (met.length) s += `\n\nMet: ` + met.map(c => c.name.toLowerCase()).join('; ') + '.';
+    if (not.length) s += `\nNot met: ` + not.map(c => c.name.toLowerCase()).join('; ') + '.';
+    s += "\n\nIMD declares withdrawal from its own station network — this is "
+       + "me reading the same criteria off the model analysis, so treat it as "
+       + "the signature arriving rather than the date being set.";
+    return s;
+  }
+  function fogAnswer(q){
+    const F = pick('fog');
+    // Honour a named day. Answering "will it be foggy tomorrow?" with
+    // Monday's fog is true and still reads as yes.
+    const want = q ? targetDate(q) : null;
+    if (want && F && F.length){
+      const label = `${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][want.getDay()]} `
+                  + String(want.getDate()).padStart(2, '0');
+      const onDay = F.find(x => (x.day || '').startsWith(label));
+      if (!onDay)
+        return `No fog or mist expected that morning. The next one I can see `
+             + `is **${F[0].day}** — ${F[0].sentence}`;
+      return `**${onDay.day}** — ${onDay.sentence}`;
+    }
+    if (!F || !F.length)
+      return "No fog or mist in the next seven mornings. I look for four "
+           + "things together: the air cooling to within a degree or two of "
+           + "its dew point, wind under about 3 m/s, a clear sky, and a big "
+           + "overnight temperature fall — that last one is what separates "
+           + "real radiation fog from air that is merely damp.";
+    const f = F[0];
+    let s = `**${f.day}** — ${f.sentence}`;
+    if (F.length > 1) s += `\n\n${F.length} mornings flagged this week.`;
+    s += "\n\nOnly GFS publishes a visibility field for this point, so I work "
+       + "from the ingredients and show you each model separately rather than "
+       + "averaging a disagreement into false confidence.";
+    return s;
+  }
+  function windAnswer(){
+    const W = pick('wind');
+    if (!W || !W.length) return "No wind read on this view.";
+    const w = W[0];
+    let s = `**${w.day}** — ${w.sentence}`;
+    const gusty = W.filter(x => x.gustKmph && x.gustKmph >= 35);
+    if (gusty.length){
+      const top = gusty.reduce((a, b) => b.gustKmph > a.gustKmph ? b : a);
+      s += `\n\nWindiest: **${top.day}**, gusting ${top.gustKmph} kmph. `
+         + `IMD's fishermen's advisory starts at 35 kmph and "squally" at 45.`;
+    } else {
+      s += `\n\nNothing above IMD's 35 kmph advisory threshold this week.`;
+    }
+    const sb = W.filter(x => x.seaBreezeHour !== null && x.seaBreezeHour !== undefined);
+    if (sb.length)
+      s += `\n\nThe sea breeze reaches Kalyan around ${sb[0].seaBreezeHour}:00 `
+         + `on ${sb[0].day} — it arrives later here than on the shore because `
+         + `the front has 30-odd km of land to cross first.`;
+    return s;
+  }
+  function feelsAnswer(){
+    const W = pick('wind');
+    if (!W || !W.length) return heatAnswer();
+    const withFeel = W.filter(x => x.feels !== null && x.feels !== undefined);
+    if (!withFeel.length) return heatAnswer();
+    const top = withFeel.reduce((a, b) => b.feels > a.feels ? b : a);
+    let s = `Worst on **${top.day}**: feels like **${top.feels}°C** against a `
+          + `real ${top.temp}°C`
+          + (top.gap ? ` — the humidity alone is adding ${top.gap}°C` : '') + '.';
+    if (top.band) s += `\n\n${top.band} on IMD's heat-index scale: ${top.bandNote}`;
+    s += "\n\nThis is the NWS heat index — temperature and humidity only. It "
+       + "is a shade figure: standing in the sun is worse than this, and a "
+       + "breeze takes some back, which is why I report the wind separately "
+       + "instead of hiding it inside one number.";
+    const rest = withFeel.filter(x => x !== top && x.feels >= 40);
+    if (rest.length) s += `\n\n${rest.length + 1} days this week reach 40°C or more.`;
+    return s;
+  }
+
   function tideAnswer(){
     const k = kbById('tide');
     const url = pick('tideUrl');
@@ -2481,6 +2563,23 @@ const SK = (() => {
     if (/(kind|type|sort) of rain|what.*(driv|caus)|\bthunder|\blightning|\bstorm|easterl|northerl|westerl|monsoon (wind|flow)|withdraw|pulling back/.test(q)){
       ctx.route = 'type'; return rainTypeAnswer(q);
     }
+    /* Elements added after the rain engine. These sit ABOVE the
+       arrival and heat/alert routes, because "when does the sea breeze arrive"
+       matched the rain-ETA route on the word "arrive" and answered with where
+       the rain bands were. The specific question has to be asked first. */
+    if (/\bfog|mist|haze|visibilit|dhund|smog/.test(q)){
+      ctx.route = 'fog'; return fogAnswer(q);
+    }
+    if (/\bwind|breez|gust|squall|windy|hawa|storm.*wind|sea ?breeze/.test(q)){
+      ctx.route = 'wind'; return windAnswer();
+    }
+    if (/feels? like|apparent|humidex|heat index|real feel|muggy|sticky|oppressiv/.test(q)){
+      ctx.route = 'feels'; return feelsAnswer();
+    }
+    if (/monsoon.*(over|end|gone|left|withdraw|retreat|finish)|withdraw|retreat|(is|has) the monsoon|season (over|chang)/.test(q)){
+      ctx.route = 'monsoon'; return monsoonAnswer();
+    }
+
     if (/when will (it|the rain)|\breach\b|\barriv|how long (until|till|before)|coming (towards|to|here)|\beta\b/.test(q)){
       ctx.route = 'arrive'; return arrivalsAnswer(q);
     }
@@ -2559,6 +2658,10 @@ const SK = (() => {
       case 'arrive': return ["Is it raining now?", "How heavy?", "Today's forecast?", "Any warnings?"];
       case 'kb':     return ["Is it raining now?", "What kind of rain today?", "Tomorrow?", "How accurate are you?"];
       case 'alerts': return ["Any low pressure system?", "Weekend?", "Is it raining now?", "What kind of rain?"];
+      case 'fog':    return ["How do you spot fog?", "What's the wind doing?", "Tomorrow?", "Is the monsoon over?"];
+      case 'wind':   return ["When does the sea breeze arrive?", "What does it feel like?", "Any warnings?", "Tomorrow?"];
+      case 'feels':  return ["Why so humid?", "What's the wind doing?", "Any heat warnings?", "Tomorrow?"];
+      case 'monsoon':return ["What kind of rain now?", "Will it rain again?", "What's the wind doing?", "Any warnings?"];
       default:       return ["Is it raining now?", "Today?", "What kind of rain?", "Any warnings?", "How's the weekend?"];
     }
   }
@@ -3637,6 +3740,42 @@ function render(){
   if (D.nowLine){
     h += `<div class="card"><h2>Right now</h2>
       <p class="rhead" style="margin:0">${mdBold(D.nowLine)}</p></div>`;
+  }
+
+  /* ---- wind and feels-like ----
+     Feels-like sits in the second column on purpose: it is the number people
+     actually experience, and on this coast it runs several degrees above the
+     thermometer for months at a time. The gap beside it is the humidity, which
+     is the part readers find surprising. */
+  if (D.wind && D.wind.length){
+    const W = D.wind;
+    const first = W[0];
+    h += `<div class="card"><h2>Wind and how it will feel</h2>
+      ${first && first.sentence
+        ? `<p class="rhead">${mdBold(first.sentence)}</p>` : ''}
+      <div class="scroll"><table style="white-space:nowrap"><thead><tr>
+        <th>Day</th><th>Feels like</th><th>Actual</th><th>Wind</th>
+        <th>Gust</th><th>From</th>
+      </tr></thead><tbody>
+      ${W.map(w => `<tr>
+        <td>${esc(w.day)}</td>
+        <td class="num"><b>${w.feels === null || w.feels === undefined
+          ? '—' : w.feels + '&deg;C'}</b>${
+          w.gap ? ` <span class="muted">(+${w.gap})</span>` : ''}</td>
+        <td class="num">${w.temp === null || w.temp === undefined
+          ? '—' : w.temp + '&deg;C'}</td>
+        <td class="num">${w.maxMs === null || w.maxMs === undefined
+          ? '—' : w.maxMs.toFixed(0) + ' m/s'}</td>
+        <td class="num">${w.gustKmph === null || w.gustKmph === undefined
+          ? '—' : w.gustKmph + ' kmph'}</td>
+        <td>${esc(w.from || '—')}</td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="quote">Feels-like is the NWS heat index — temperature and
+        humidity only, and the bracketed figure is how much the humidity adds.
+        It is a shade value: the sun makes it worse, and a sea breeze takes
+        some back, which is why the wind is beside it rather than inside it.
+        IMD's heat-index danger band opens at 41&deg;C.</div>
+    </div>`;
   }
 
   /* ---- morning visibility ----

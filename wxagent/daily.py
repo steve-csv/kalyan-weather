@@ -27,7 +27,7 @@ from . import (
     recent as recentmod,
     reconcile,
     fog, nowcast, observed, plain, report, synoptic, systems, thermal,
-    upstream, web, withdrawal,
+    upstream, web, wind, withdrawal,
 )
 from .diagnostics import (
     burst_risk, compass, day_slices, diagnose_day, lift_profile,
@@ -352,12 +352,14 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     # Morning visibility. Costs no fetch: the ingredients ride along on the
     # point data already in hand.
     fog_mornings = fog.outlook(pf, week_days)
+    wind_days = wind.outlook(pf, week_days, PRIMARY_MODEL)
     if not quiet and fog_mornings:
         print(f"  morning visibility: {len(fog_mornings)} morning(s) flagged")
 
     alerts = plain.detect_shifts(week_diag, thermal_outlook=thermal_out,
                                  systems_picture=sys_pic,
-                                 fog_mornings=fog_mornings)
+                                 fog_mornings=fog_mornings,
+                                 wind_days=wind_days)
 
     plain_days = []
     for wd in week_diag:
@@ -382,8 +384,8 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     # _synoptic_html would render a pipe table as literal pipes.
     body = report.render_daily(
         dd, conf, C.HOME, pf, windows, links,
-        withdrawal.render(mstate) + fog.render(fog_mornings)
-        + synoptic.render(sp, sys_pic),
+        withdrawal.render(mstate) + wind.render(wind_days)
+        + fog.render(fog_mornings) + synoptic.render(sp, sys_pic),
         PRIMARY_MODEL, issued,
     )
 
@@ -506,6 +508,20 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         synoptic_text=_synoptic_html(synoptic.render(sp, sys_pic)),
     )
     payload["gradientVerdict"] = grad_verdict
+    payload["wind"] = [{
+        "day": f"{w.day:%a %d %b}",
+        "maxMs": None if w.max_ms is None else round(w.max_ms, 1),
+        "gustKmph": None if w.max_gust is None else round(w.max_gust * 3.6),
+        "from": compass(w.prevailing),
+        "beaufort": w.beaufort,
+        "seaBreezeHour": w.sea_breeze_hour,
+        "feels": None if w.feels_max is None else round(w.feels_max),
+        "temp": None if w.temp_at_feels is None else round(w.temp_at_feels),
+        "gap": None if w.feels_gap is None else round(w.feels_gap),
+        "band": w.band[0] if w.band else None,
+        "bandNote": w.band[1] if w.band else None,
+        "sentence": w.sentence,
+    } for w in wind_days if w.sentence]
     if fog_mornings:
         payload["fog"] = [{
             "day": f"{f.day:%a %d %b}", "level": f.level,
