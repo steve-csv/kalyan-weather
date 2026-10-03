@@ -1614,6 +1614,69 @@ function renderWeekly(){
           <td>${flag}</td></tr>`;
       }).join('')}
       </tbody></table></div></div>`;
+
+  /* ---- the MMR, element by element ----
+     Fog and feels-like are the two things on this page that vary most across
+     the region and in opposite directions. The coast barely fogs - the sea
+     holds the night temperature up and keeps the air moving - while the
+     inland valleys go still and cold. But the coast's dew point is higher, so
+     the same thermometer reading feels worse there. One number for "the MMR"
+     would be wrong almost everywhere in it. */
+  if (D.fogRows && D.fogRows.length){
+    const F = D.fogRows.filter(r => r.mornings > 0);
+    const clear = D.fogRows.filter(r => r.mornings === 0);
+    h += `<div class="card"><h2>Where it fogs</h2>`;
+    if (!F.length){
+      h += `<p class="sub">No fog or mist signature anywhere in the MMR this
+        week.</p>`;
+    } else {
+      h += `<div class="scroll"><table style="white-space:nowrap"><thead><tr>
+          <th>Place</th><th>Zone</th><th>Mornings</th><th>Worst</th><th>First</th>
+        </tr></thead><tbody>
+        ${F.map(r => `<tr><td>${esc(r.place)}</td><td>${esc(r.zone)}</td>
+          <td class="num">${r.mornings}</td>
+          <td><b>${esc(r.worst)}</b></td>
+          <td>${esc(r.first || '—')}</td></tr>`).join('')}
+        </tbody></table></div>`;
+      if (clear.length)
+        h += `<p class="rhow">Nothing expected at ${
+          clear.map(r => esc(r.place)).join(', ')}.</p>`;
+    }
+    h += `<div class="quote">Fog is the most local thing on this page. A
+      coastal station reporting clear can be an hour's drive from a valley
+      under a metre of it.</div></div>`;
+  }
+
+  /* NOT windRows: the MMR page already uses that key for the 850 hPa
+     orographic forcing chart, and overwriting it broke the whole page
+     with a TypeError that node --check cannot see. */
+  if (D.feelsRows && D.feelsRows.length){
+    h += `<div class="card"><h2>Where it feels worst, and where it blows</h2>
+      <div class="scroll"><table style="white-space:nowrap"><thead><tr>
+        <th>Place</th><th>Zone</th><th>Feels like</th><th>Actual</th>
+        <th>Peak gust</th><th>Sea breeze</th>
+      </tr></thead><tbody>
+      ${D.feelsRows.map(r => `<tr>
+        <td>${esc(r.place)}</td><td>${esc(r.zone)}</td>
+        <td class="num"><b>${r.feels === null || r.feels === undefined
+          ? '—' : r.feels + '&deg;C'}</b>${r.gap ? ` <span class="muted">(+${r.gap})</span>` : ''}</td>
+        <td class="num">${r.temp === null || r.temp === undefined
+          ? '—' : r.temp + '&deg;C'}</td>
+        <td class="num">${r.peakGustKmph === null || r.peakGustKmph === undefined
+          ? '—' : r.peakGustKmph + ' kmph'}</td>
+        <td class="num">${r.seaBreezeHour === null || r.seaBreezeHour === undefined
+          ? 'none' : String(r.seaBreezeHour).padStart(2,'0') + ':00'}</td>
+        </tr>`).join('')}
+      </tbody></table></div>
+      <div class="quote">Sorted by how it will feel, not by the thermometer —
+        the bracketed figure is what the humidity adds on its own, and it runs
+        widest by the water and narrowest in the rain shadow. Which place is
+        hottest and which feels worst are not the same question, and the
+        answer changes week to week. The breeze column is the sea breeze on
+        the coast; at a ghat or leeward site it is the westerly accelerating
+        through the ghat gaps, which arrives dry.</div></div>`;
+  }
+
   }
 
   /* forcing chart - the spine */

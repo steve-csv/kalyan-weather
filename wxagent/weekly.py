@@ -25,8 +25,8 @@ import re
 from . import config as C
 from . import (
     climate, oscillations, plain, rainsource as rsmod, regions, report,
-    synoptic, systems, thermal,
-    upstream, web, withdrawal,
+    fog, synoptic, systems, thermal,
+    upstream, web, wind, withdrawal,
 )
 from .diagnostics import (
     compass, daily_rain_spread, diagnose_day, imd_category, lift_profile,
@@ -804,6 +804,14 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
     web.cache_payload(drivers, C.CACHE_DIR / "drivers.json")
     weekly_payload["drivers"] = drivers
 
+    # The MMR's fog, wind and feels-like, per site. Costs no fetch: the 19
+    # site forecasts are already in hand for the rain tables, and fog in
+    # particular is the most local thing on this page - the coast and the
+    # inland valleys do not share a morning.
+    weekly_payload["fogRows"] = fog.across_sites(
+        forecasts, day_list, C.SITES_BY_KEY)
+    weekly_payload["feelsRows"] = wind.across_sites(
+        forecasts, day_list, C.SITES_BY_KEY, PRIMARY_MODEL)
     weekly_payload["thermalRows"] = [
         {"place": t.site_name, "type": t.station_type,
          "warmest": max((d.tmax for d in t.days if d.tmax is not None), default=None),

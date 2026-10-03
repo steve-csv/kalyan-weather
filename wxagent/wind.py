@@ -179,7 +179,22 @@ def _veer(frm: float, to: float) -> float:
     return d
 
 
-def assess_day(pf, day: date, primary: str = "ecmwf_ifs025") -> WindDay:
+def _breeze_name(zone: str) -> str:
+    """What an afternoon westerly actually is, where you are standing.
+
+    Detecting "sea breeze" purely from a veer to the west and a freshening
+    labelled Pune's afternoon wind a sea breeze, 100 km inland and over the
+    crest. What Pune gets is the westerly accelerating through the Bhor and
+    Khandala gaps once the Deccan heats - the same pressure gradient, a
+    different animal, and one that arrives dry rather than damp.
+    """
+    if zone in ("leeward", "ghat"):
+        return "the westerly through the ghat gaps"
+    return "the sea breeze"
+
+
+def assess_day(pf, day: date, primary: str = "ecmwf_ifs025",
+               zone: str = "") -> WindDay:
     out = WindDay(day=day)
     ms = pf.models.get(primary) or next(iter(pf.models.values()), None)
     if ms is None:
@@ -264,11 +279,11 @@ def assess_day(pf, day: date, primary: str = "ecmwf_ifs025") -> WindDay:
         out.feels_max, out.feels_at, out.temp_at_feels = best
         out.band = heat_index_band(out.feels_max)
 
-    out.sentence = _sentence(out)
+    out.sentence = _sentence(out, zone)
     return out
 
 
-def _sentence(w: WindDay) -> str:
+def _sentence(w: WindDay, zone: str = "") -> str:
     bits: list[str] = []
     if w.max_ms is not None:
         bits.append(
@@ -278,7 +293,7 @@ def _sentence(w: WindDay) -> str:
             + ".")
     if w.sea_breeze_hour is not None:
         bits.append(
-            f"The sea breeze reaches Kalyan around "
+            f"{_breeze_name(zone).capitalize()} arrives around "
             f"{w.sea_breeze_hour:02d}:00, swinging the wind round to the "
             f"{compass(w.afternoon_dir)} and freshening it — the afternoon "
             "cools and the humidity climbs at the same time.")
@@ -288,8 +303,8 @@ def _sentence(w: WindDay) -> str:
         # outside it, which is the same wind for every purpose a reader has.
         bits.append(
             f"The flow stays offshore from the {compass(w.prevailing)} — no "
-            "sea breeze to take the edge off, and the air keeps the land's "
-            "heat.")
+            f"{_breeze_name(zone)} to take the edge off, and the air keeps "
+            "the land's heat.")
     if w.max_gust is not None and w.max_gust >= STRONG_MS:
         word = ("damaging" if w.max_gust >= DAMAGING_MS
                 else "squally" if w.max_gust >= SQUALLY_MS else "strong")
@@ -315,6 +330,48 @@ def _sentence(w: WindDay) -> str:
 def outlook(pf, days: Sequence[date],
             primary: str = "ecmwf_ifs025") -> list[WindDay]:
     return [assess_day(pf, d, primary) for d in days]
+
+
+def across_sites(forecasts: dict, days: Sequence[date], sites_by_key: dict,
+                 primary: str = "ecmwf_ifs025") -> list[dict]:
+    """Wind and feels-like across the MMR.
+
+    The two separate cleanly by geography and in opposite directions, which is
+    why they belong in one table. The coast gets the sea breeze first and
+    hardest, so it is windier and its afternoons are cut short - but it is
+    also where the dew point is highest, so the same thermometer reading feels
+    worse there. Inland runs hotter and drier: a bigger number on the
+    thermometer, a smaller gap between that and what it feels like.
+    """
+    rows = []
+    for key, pf in (forecasts or {}).items():
+        site = sites_by_key.get(key)
+        if site is None or not getattr(pf, "models", None):
+            continue
+        zone = getattr(site, "zone", "")
+        ws = [assess_day(pf, d, primary, zone) for d in days]
+        gusts = [w.max_gust for w in ws if w.max_gust is not None]
+        feels = [w for w in ws if w.feels_max is not None]
+        hottest = max(feels, key=lambda w: w.feels_max) if feels else None
+        breeze = next((w.sea_breeze_hour for w in ws
+                       if w.sea_breeze_hour is not None), None)
+        rows.append({
+            "place": site.name,
+            "zone": getattr(site, "zone", ""),
+            "peakGustKmph": round(max(gusts) * 3.6) if gusts else None,
+            "seaBreezeHour": breeze,
+            "breezeKind": _breeze_name(getattr(site, "zone", "")),
+            "feels": round(hottest.feels_max) if hottest else None,
+            "temp": (round(hottest.temp_at_feels)
+                     if hottest and hottest.temp_at_feels is not None
+                     else None),
+            "gap": (round(hottest.feels_gap)
+                    if hottest and hottest.feels_gap is not None else None),
+            "worstDay": f"{hottest.day:%a %d %b}" if hottest else None,
+            "band": hottest.band[0] if hottest and hottest.band else None,
+        })
+    rows.sort(key=lambda r: -(r["feels"] or -99))
+    return rows
 
 
 def render(days: Sequence[WindDay]) -> str:

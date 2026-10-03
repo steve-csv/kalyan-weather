@@ -345,14 +345,76 @@ def outlook(pf, days: Sequence[date]) -> list[FogMorning]:
     return [f for f in out if f.level != "none"]
 
 
+def across_sites(forecasts: dict, days: Sequence[date],
+                 sites_by_key: dict) -> list[dict]:
+    """Which parts of the MMR fog, and which do not.
+
+    This is the same terrain argument the rain layer makes, and it matters
+    more here: fog is the most local thing on the page. Colaba and Santacruz
+    sit on the water, which holds the night temperature up and keeps the air
+    moving; Kalyan, Badlapur and Karjat sit inland in river valleys where the
+    night goes still and cold. A coastal station reporting clear can be an
+    hour's drive from a valley under a metre of it, so one number for "the
+    MMR" would be the wrong answer almost everywhere in it.
+    """
+    rows = []
+    for key, pf in (forecasts or {}).items():
+        site = sites_by_key.get(key)
+        if site is None or not getattr(pf, "models", None):
+            continue
+        hits = [f for f in (assess_morning(pf, d) for d in days)
+                if f.level != "none"]
+        worst = (max(hits, key=lambda f: LEVEL_RANK[f.level]) if hits
+                 else None)
+        rows.append({
+            "place": site.name,
+            "zone": getattr(site, "zone", ""),
+            "mornings": len(hits),
+            "worst": worst.level if worst else "none",
+            "worstDay": f"{worst.day:%a %d %b}" if worst else None,
+            "first": f"{hits[0].day:%a %d %b}" if hits else None,
+        })
+    rows.sort(key=lambda r: (-r["mornings"], -LEVEL_RANK[r["worst"]]))
+    return rows
+
+
 def render(mornings: Sequence[FogMorning]) -> str:
-    """Markdown block for the bulletin."""
+    """Markdown block for the bulletin.
+
+    A fog spell runs for consecutive mornings, and the first version printed
+    the full paragraph for each one - six near-identical blocks on 3 Oct 2026,
+    with the model-disagreement caveat and the clearing time repeated verbatim
+    every time. That buries the differences it exists to show. Past two
+    mornings the detail goes in a table and the prose is written once.
+    """
     hits = [f for f in mornings if f.level != "none"]
     if not hits:
         return ""
+
     out = "## Morning visibility\n"
-    for f in hits:
-        out += f"**{f.day:%A %d %b}** — {f.sentence}\n\n"
+    if len(hits) > 2:
+        worst = max(hits, key=lambda f: LEVEL_RANK[f.level])
+        out += (f"**{len(hits)} mornings in a row** carry a fog or mist "
+                f"signature, {hits[0].day:%a %d %b} to {hits[-1].day:%a %d %b}"
+                f" — the settled, clear-skied nights behind a retreating "
+                "monsoon are what make them.\n\n")
+        out += ("| Morning | Reading | Dew-point gap | Wind | Models |\n"
+                "|---|---|---|---|---|\n")
+        for f in hits:
+            low = min((m for m in f.models if m.depression is not None),
+                      key=lambda m: m.depression, default=None)
+            out += (f"| {f.day:%a %d %b} | {f.level} "
+                    f"| {low.depression:.1f}°C" if low else
+                    f"| {f.day:%a %d %b} | {f.level} | — ")
+            out += (f" | {low.wind:.1f} m/s" if low and low.wind is not None
+                    else " | — ")
+            out += f" | {f.agree} of {f.total} |\n"
+        out += (f"\n**The worst of it, {worst.day:%A %d %b}** — "
+                f"{worst.sentence}\n\n")
+    else:
+        for f in hits:
+            out += f"**{f.day:%A %d %b}** — {f.sentence}\n\n"
+
     out += ("> Fog is diagnosed from the ingredients, not read off a "
             "visibility field: only GFS publishes one for this point. IMD's "
             "fog warnings are the official ones.\n\n")
