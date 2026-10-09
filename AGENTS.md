@@ -149,6 +149,16 @@ rather than rebasing — replaying an identical build produces an empty
 cherry-pick that halts git mid-rebase waiting for a `--skip` no unattended run
 sends.
 
+**The models have standing dawn-humidity biases, so "2 of 3 agree" can mean
+one model decided it.** Over 2–9 Oct 2026 at Kalyan the dawn dew-point
+depression averaged 1.2 °C in ICON (never above 1.6), 1.8 °C in ECMWF, and
+4.5 °C in GFS (never below 2.4). ICON is a standing yes for fog, GFS a
+standing no, so every call in that regime rested on ECMWF alone while the page
+said two of three agreed. `fog.py` names the models instead of counting them.
+The same spread is why only GFS publishes a visibility field here and why it
+read 24 km on mornings the other two called fog — see the fog entries in
+`samkb.py`.
+
 **Low model probability does not mean dry.** Measured over 2024–26: in the
 0–20% band the ensemble averaged 4% and it rained on 24% of those days. All
 the members share one blind spot for locally forced convection. The wording

@@ -300,12 +300,27 @@ def _sentence(f: FogMorning) -> str:
 
     what = {"mist": "Mist or shallow ground fog",
             "fog": "Fog", "dense": "Dense fog"}[f.level]
+    # Name the models rather than counting them.
+    #
+    # "2 of 3 models agree" implies two independent confirmations. Measured
+    # over the first nine days of October at this point, it was nothing of
+    # the kind: ICON averaged 1.2C from its dew point at dawn and never rose
+    # above 1.6, GFS averaged 4.5 and never came within a degree of the
+    # threshold. One model is a standing yes and another a standing no, so
+    # every call in that regime was really ECMWF's alone. A reader who knows
+    # which models are in can weigh that; a count hides it.
+    yes = [m.model for m in f.models
+           if LEVEL_RANK[m.level] >= LEVEL_RANK["mist"]]
+    no = [m.model for m in f.models if m.model not in yes]
     body = (f"{what} likely around dawn. The air cools to within "
             f"{worst.depression:.1f}°C of its dew point with the wind at "
             f"{worst.wind:.1f} m/s"
             + (f" under {worst.low_cloud:.0f}% low cloud"
                if worst.low_cloud is not None else "")
-            + f" — {f.agree} of {f.total} models agree.")
+            + (f" — {' and '.join(yes)} see it"
+               + (f", {' and '.join(no)} do not." if no else
+                  ", and so do the others.")
+               if yes else f" — {f.agree} of {f.total} models agree."))
 
     band = next((_band(m.visibility_m) for m in f.models
                  if m.visibility_m is not None and _band(m.visibility_m)), None)
