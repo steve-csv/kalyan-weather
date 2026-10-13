@@ -317,8 +317,9 @@ def _sentence(f: FogMorning) -> str:
             f"{worst.wind:.1f} m/s"
             + (f" under {worst.low_cloud:.0f}% low cloud"
                if worst.low_cloud is not None else "")
-            + (f" — {' and '.join(yes)} see it"
-               + (f", {' and '.join(no)} do not." if no else
+            + (f" — {' and '.join(yes)} see{'s' if len(yes) == 1 else ''} it"
+               + (f", {' and '.join(no)} "
+                  f"{'does' if len(no) == 1 else 'do'} not." if no else
                   ", and so do the others.")
                if yes else f" — {f.agree} of {f.total} models agree."))
 
@@ -411,9 +412,13 @@ def render(mornings: Sequence[FogMorning]) -> str:
         worst = max(hits, key=lambda f: LEVEL_RANK[f.level])
         out += (f"**{len(hits)} mornings in a row** carry a fog or mist "
                 f"signature, {hits[0].day:%a %d %b} to {hits[-1].day:%a %d %b}"
-                f" — the settled, clear-skied nights behind a retreating "
-                "monsoon are what make them.\n\n")
-        out += ("| Morning | Reading | Dew-point gap | Wind | Models |\n"
+                " — settled nights under a clear sky, with the ground free to "
+                "radiate its heat away.\n\n")
+        # Named, not counted, for the same reason the sentence names them:
+        # ICON is a standing yes at this point and GFS a standing no, so a
+        # column reading "2 of 3" tells a reader almost nothing about which
+        # two, and the which is the whole question.
+        out += ("| Morning | Reading | Dew-point gap | Wind | Models seeing it |\n"
                 "|---|---|---|---|---|\n")
         for f in hits:
             low = min((m for m in f.models if m.depression is not None),
@@ -423,7 +428,9 @@ def render(mornings: Sequence[FogMorning]) -> str:
                     f"| {f.day:%a %d %b} | {f.level} | — ")
             out += (f" | {low.wind:.1f} m/s" if low and low.wind is not None
                     else " | — ")
-            out += f" | {f.agree} of {f.total} |\n"
+            seen = [m.model for m in f.models
+                    if LEVEL_RANK[m.level] >= LEVEL_RANK["mist"]]
+            out += f" | {', '.join(seen) if seen else '—'} |\n"
         out += (f"\n**The worst of it, {worst.day:%A %d %b}** — "
                 f"{worst.sentence}\n\n")
     else:
