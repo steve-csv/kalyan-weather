@@ -128,6 +128,63 @@ The driest quintile produced **no heavy-rain day in 316 days**. When the upstrea
 
 ---
 
+## 2b. The northeast monsoon — the one that mostly misses us
+
+Once the southwest monsoon has withdrawn (see `withdrawal.py` for how that is
+diagnosed rather than assumed), the low-level flow over the peninsula reverses
+and the **northeast monsoon** sets in, usually declared by IMD over the south
+peninsula in the third week of October. It is the other half of the Indian
+monsoon system and it is the reason October and November are not simply "after
+the rain".
+
+**The mechanism, and why it is the SW monsoon in a mirror.** Cold, dense air
+builds over the continent as the land cools; the pressure gradient reverses;
+the low-level flow turns to the northeast, crosses the **Bay of Bengal**, and
+picks up moisture on the way. It therefore arrives on India's *eastern* coast
+already loaded. Tamil Nadu, Rayalaseema, south interior Karnataka and Kerala
+take roughly half their annual rainfall from it.
+
+**For this coast, the geography is unkind.** We sit on the far side of the
+peninsula and behind the Western Ghats, so NEM moisture has to cross the whole
+landmass and then the crest to reach us — and the Ghats wring it out on the
+way, exactly as they wring out the southwest monsoon before it reaches Pune.
+**The Konkan is in the northeast monsoon's rain shadow in the same way Pune is
+in the southwest monsoon's.** That symmetry is the single most useful thing to
+hold on to about October and November here.
+
+So NEM rain reaches the MMR only when something pushes moisture unusually far
+north and west — a Bay low tracking west, an easterly wave, or a trough aloft.
+When it does arrive it is **convective and evening-weighted**, not the grey
+all-day soak of July: scattered thunderstorms rather than organised bands.
+
+**The gradient is steeply south-to-north, and it is the thing to forecast.**
+Worked example, the NEM onset of October 2026 — three-model median totals for
+15–23 Oct, read on 14 Oct:
+
+| Place | Total | Starts |
+|---|---|---|
+| Goa | 45 mm | 17 Oct |
+| Sindhudurg | 34 mm | 17 Oct |
+| Sangli | 29 mm | 17 Oct |
+| Solapur | 27 mm | 19 Oct |
+| Dharashiv | 22 mm | 19 Oct |
+| Pune | 2.9 mm | 23 Oct |
+| Mumbai | 1.7 mm | — |
+| Kalyan West | 0.2 mm | — |
+
+Two hundred kilometres of latitude separate 34 mm from 0.2 mm. A regional
+headline that says "Maharashtra" is useless at this time of year; the only
+honest NEM statement for this page names where the gradient falls off, and
+usually that is south of us.
+
+**What to check before calling NEM rain here**: is the 850 hPa flow actually
+in the NE–E quadrant (it is, almost all winter — that alone means nothing);
+is there a moisture source being advected north rather than just dry
+continental air; and do the southern regions light up first? If Goa and
+Sindhudurg are not wet, the MMR will not be either.
+
+---
+
 ## 3. Regime classification
 
 Named **before** the outcome, per Guide §12's system-thinking rule: *system → wind response → moisture transport → lifting zone → expected rain footprint.*

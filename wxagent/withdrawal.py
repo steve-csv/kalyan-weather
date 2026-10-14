@@ -60,6 +60,21 @@ DRY_RUN_NEEDED = 5
 # The monsoon westerly at 850 hPa. Outside this arc the moisture-bearing
 # current is gone, whatever the surface wind is doing.
 MONSOON_ARC = (200.0, 290.0)
+
+# The northeast monsoon's own quadrant. Once the southwest monsoon has gone
+# the flow here sits in this arc almost all winter, so being in it proves
+# nothing on its own - it is the BACKGROUND state, not an event. What makes
+# NEM rain is moisture being advected round far enough north and west to clear
+# the Ghats, and the tell for that is the southern regions wetting up first.
+# See KNOWLEDGE.md s2b: the Konkan is in the northeast monsoon's rain shadow
+# the same way Pune is in the southwest monsoon's.
+NEM_ARC = (20.0, 110.0)
+NEM_MIN_MS = 2.0
+NEM_SHARE = 0.6               # of the recent window, to call the flow set
+# IMD normally declares NEM onset over the south peninsula in the third week
+# of October. Before this there is no northeast monsoon to name, only the
+# post-withdrawal lull.
+NEM_EARLIEST = (10, 10)
 MONSOON_MIN_MS = 3.0            # below this the direction means little
 WESTERLY_SHARE = 0.4            # of the recent window, to still call it present
 
@@ -93,6 +108,7 @@ class MonsoonState:
     pwat: float | None          # mean precipitable water, mm
     mean_dir: float | None      # vector-mean 850 hPa direction
     trough_lat: float | None
+    nem_share: float = 0.0      # share of recent days with NE-E flow set
     criteria: list[tuple[str, bool, str]] = field(default_factory=list)
     sentence: str = ""
     source_note: str = ""
@@ -125,10 +141,11 @@ def _vector_mean(dirs: Sequence[float], speeds: Sequence[float]
     return (math.degrees(math.atan2(x, y)) + 360.0) % 360.0
 
 
-def _in_arc(deg: float | None) -> bool:
+def _in_arc(deg: float | None,
+            arc: tuple[float, float] = MONSOON_ARC) -> bool:
     if deg is None:
         return False
-    lo, hi = MONSOON_ARC
+    lo, hi = arc
     return lo <= deg <= hi
 
 
@@ -247,11 +264,22 @@ def diagnose(pf, *, today: date | None = None,
     core = sum(1 for _, ok, _ in crit[:3] if ok)
     too_early = (today.month, today.day) < WITHDRAWAL_EARLIEST
 
+    # Is the northeast monsoon's flow established? Only meaningful once the
+    # southwest monsoon has gone, and only ever reported as the FLOW being set
+    # - never as rain, which this coast mostly does not get from it.
+    nem_days = [d for d in recent
+                if _in_arc(_vector_mean(by_day[d]["dir"], by_day[d]["spd"]),
+                           NEM_ARC)
+                and (_mean(by_day[d]["spd"]) or 0.0) >= NEM_MIN_MS]
+    nem_share = len(nem_days) / len(recent) if recent else 0.0
+    nem_set = (nem_share >= NEM_SHARE
+               and (today.month, today.day) >= NEM_EARLIEST)
+
     # ---- state -----------------------------------------------------------
     if cal in ("winter", "pre_monsoon"):
         state = "outside"
     elif core >= 3 and not too_early:
-        state = "withdrawn"
+        state = "northeast" if nem_set else "withdrawn"
     elif core == 2 and not too_early:
         state = "withdrawing"
     elif core >= 2:
@@ -260,11 +288,12 @@ def diagnose(pf, *, today: date | None = None,
         state = "active"
 
     label, eff, sentence = _wording(state, today, cal, dry_run, share,
-                                    rh850, core)
+                                    rh850, core, mean_dir)
     return MonsoonState(
         state=state, label=label, calendar_season=cal, effective_season=eff,
         dry_run=dry_run, westerly_share=share, rh850=rh850, pwat=pwat,
         mean_dir=mean_dir, trough_lat=trough_lat, criteria=crit,
+        nem_share=nem_share,
         sentence=sentence,
         source_note=(
             f"Diagnosed from {ms.label}'s analysis of the last "
@@ -273,13 +302,32 @@ def diagnose(pf, *, today: date | None = None,
 
 
 def _wording(state: str, today: date, cal: str, dry_run: int,
-             share: float, rh850: float | None, core: int
-             ) -> tuple[str, str, str]:
+             share: float, rh850: float | None, core: int,
+             mean_dir: float | None = None) -> tuple[str, str, str]:
     """Label, effective season, and the sentence the page prints."""
     normal = "the Konkan normally loses the monsoon in the first half of October"
 
     if state == "outside":
         return (C.SEASON_LABELS.get(cal, cal), cal, "")
+
+    if state == "northeast":
+        return (
+            "Northeast monsoon flow established",
+            "post_monsoon",
+            "The southwest monsoon has gone and the low-level flow has "
+            + (f"reversed to the northeast — a mean {mean_dir:.0f}° at 850 hPa "
+               if mean_dir is not None else "reversed to the northeast ")
+            + "over the last five days. That is the northeast monsoon, which "
+            "crosses the Bay of Bengal and delivers to Tamil Nadu, "
+            "Rayalaseema and south interior Karnataka. **It mostly misses "
+            "this coast.** We sit on the far side of the peninsula and behind "
+            "the Ghats, so the Konkan is in the northeast monsoon's rain "
+            "shadow exactly as Pune is in the southwest monsoon's — the same "
+            "hills, the other wind. Rain reaches the MMR only when something "
+            "pushes moisture unusually far north and west, and when it does "
+            "it is evening thunderstorms rather than an all-day soak. The "
+            "southern regions wet up first every time: if Goa and Sindhudurg "
+            "are dry, we will be too.")
 
     if state == "withdrawn":
         return (

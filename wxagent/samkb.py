@@ -538,6 +538,42 @@ KB: list[dict] = [
     },
     # ---- elements added after the rain engine ---------------------------
     {
+        "id": "northeast_monsoon",
+        "keys": [r"northeast monsoon", r"north-?east monsoon", r"\bnem\b",
+                 r"winter monsoon", r"second monsoon", r"tamil nadu",
+                 r"october.*(rain|monsoon)"],
+        "t": "The northeast monsoon, and why it mostly misses us",
+        "a": "It's the other half of the Indian monsoon, and the one people "
+             "here hear about without ever getting much of. As the land "
+             "cools after October the pressure gradient reverses, the "
+             "low-level flow turns to the northeast, and it crosses the Bay "
+             "of Bengal picking up moisture — so it arrives on India's "
+             "EASTERN coast already loaded. Tamil Nadu, Rayalaseema, south "
+             "interior Karnataka and Kerala take about half their yearly "
+             "rain from it. IMD usually declares its onset over the south "
+             "peninsula in the third week of October.\n\n"
+             "The geography is unkind to us. We are on the far side of the "
+             "peninsula and behind the Western Ghats, so that moisture has "
+             "to cross the whole landmass and then the crest — and the hills "
+             "wring it out on the way, exactly as they wring out the "
+             "southwest monsoon before it reaches Pune. The Konkan sits in "
+             "the northeast monsoon's rain shadow the same way Pune sits in "
+             "the southwest monsoon's. Same hills, other wind. That one "
+             "sentence explains most of our October and November.\n\n"
+             "When it does reach the MMR it is because something pushed "
+             "moisture unusually far north and west — a Bay low tracking "
+             "west, an easterly wave, a trough aloft — and it shows up as "
+             "scattered evening thunderstorms, not the grey all-day soak of "
+             "July.\n\n"
+             "The gradient runs steeply south to north, and that is the "
+             "thing to watch. In the October 2026 onset the models put Goa "
+             "at 45 mm and Sindhudurg at 34 mm over nine days while Kalyan "
+             "got 0.2 mm — two hundred kilometres between a wet week and "
+             "nothing at all. If Goa and Sindhudurg are not wet, we will not "
+             "be either, so that is the check I make before believing any "
+             "'rain for Maharashtra' headline at this time of year.",
+    },
+    {
         # Distinct from "withdrawal" above, which is the WEATHER of the
         # retreat. This one is the method: how the page decides it happened.
         "id": "withdrawal_test",
