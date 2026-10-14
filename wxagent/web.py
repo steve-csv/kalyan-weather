@@ -1370,6 +1370,53 @@ function meter(rank){
 }
 
 /* ---------- weekly layout ---------- */
+  /* Both pages carry this now. The Bay of Bengal is the engine behind
+     any northeast-monsoon rain that reaches Maharashtra - the moisture
+     crosses the peninsula from there - so once the NEM flow is
+     established the daily page needs it as much as the weekly one.
+     KNOWLEDGE.md s2b has the geography. */
+  function basinsHtml(){
+    if (!(D.basins && D.basins.length)) return "";
+    const nem = D.monsoonState && D.monsoonState.state === "northeast";
+    let h = "";
+      h += `<div class="card"><h2>Where this week's lows form</h2>
+        <p class="sub" style="margin:-6px 0 14px">Arabian Sea or Bay of Bengal —
+          and what each would mean here.</p>
+        <div class="bas">` +
+        D.basins.map(b => `<div class="basin s-${esc(b.status)}">
+          <div class="bhead">
+            <span class="bpin">${b.basin === 'Arabian Sea' ? 'W' : 'E'}</span>
+            <span class="bname2">${esc(b.basin)}</span>
+            <span class="bstat">${esc(b.status)}</span>
+          </div>
+          <div class="bline">${mdBold(b.headline)}</div>
+          <div class="bdet">${mdBold(b.detail)}</div>
+          ${b.closestKm != null ? `<div class="bfacts">
+            ${b.genesis ? `<span><b>Forms</b> ${esc(b.genesis)}</span>` : '<span><b>Already present</b></span>'}
+            <span><b>Depth</b> ${b.depth} hPa</span>
+            <span><b>Closest</b> ${b.closestKm.toLocaleString()} km</span>
+          </div>` : ''}
+          <div class="blinks">
+            <a class="lk" href="${esc(b.windyPressure)}" target="_blank" rel="noopener">
+              <b>Live pressure on Windy</b><span>Closed isobars are the thing to look for.</span></a>
+            <a class="lk" href="${esc(b.windyWind)}" target="_blank" rel="noopener">
+              <b>Live 850 hPa wind</b><span>A closed circulation shows here before the pressure field.</span></a>
+          </div>
+        </div>`).join('') +
+        `</div>
+        <div class="quote">Windy is the eye check; the numbers here come from
+          ECMWF via Open-Meteo. Windy's free point API returns deliberately
+          scrambled values, so it is never used as a data source on this page.</div>
+      </div>`;
+    if (nem) h += `<div class="warn">The northeast monsoon flow is
+      established, so the <b>Bay of Bengal</b> is the basin that matters
+      now: its moisture crosses the peninsula to reach us, and a Bay low
+      tracking west is the usual way northeast-monsoon rain gets far
+      enough north to touch the MMR at all. A quiet Bay in October means
+      a dry fortnight here whatever the Arabian Sea is doing.</div>`;
+    return h;
+  }
+
 function renderWeekly(){
   const T = D.thresholds;
   let h = '';
@@ -1488,37 +1535,7 @@ function renderWeekly(){
      while an Arabian Sea low pulling off toward Oman can leave the coast
      drier. So the card leads with the basin and the direction of travel, not
      with distance. */
-  if (D.basins && D.basins.length){
-    h += `<div class="card"><h2>Where this week's lows form</h2>
-      <p class="sub" style="margin:-6px 0 14px">Arabian Sea or Bay of Bengal —
-        and what each would mean here.</p>
-      <div class="bas">` +
-      D.basins.map(b => `<div class="basin s-${esc(b.status)}">
-        <div class="bhead">
-          <span class="bpin">${b.basin === 'Arabian Sea' ? 'W' : 'E'}</span>
-          <span class="bname2">${esc(b.basin)}</span>
-          <span class="bstat">${esc(b.status)}</span>
-        </div>
-        <div class="bline">${mdBold(b.headline)}</div>
-        <div class="bdet">${mdBold(b.detail)}</div>
-        ${b.closestKm != null ? `<div class="bfacts">
-          ${b.genesis ? `<span><b>Forms</b> ${esc(b.genesis)}</span>` : '<span><b>Already present</b></span>'}
-          <span><b>Depth</b> ${b.depth} hPa</span>
-          <span><b>Closest</b> ${b.closestKm.toLocaleString()} km</span>
-        </div>` : ''}
-        <div class="blinks">
-          <a class="lk" href="${esc(b.windyPressure)}" target="_blank" rel="noopener">
-            <b>Live pressure on Windy</b><span>Closed isobars are the thing to look for.</span></a>
-          <a class="lk" href="${esc(b.windyWind)}" target="_blank" rel="noopener">
-            <b>Live 850 hPa wind</b><span>A closed circulation shows here before the pressure field.</span></a>
-        </div>
-      </div>`).join('') +
-      `</div>
-      <div class="quote">Windy is the eye check; the numbers here come from
-        ECMWF via Open-Meteo. Windy's free point API returns deliberately
-        scrambled values, so it is never used as a data source on this page.</div>
-    </div>`;
-  }
+  h += basinsHtml();
 
   /* ---- systems ---- */
   if (D.systems){
@@ -3908,6 +3925,8 @@ function render(){
       <div class="quote">${esc(M.note)}</div>
     </div>`;
   }
+
+  h += basinsHtml();
 
   /* ---- what KIND of rain ----
      Placed before the amounts. Millimetres alone cannot tell a reader what a

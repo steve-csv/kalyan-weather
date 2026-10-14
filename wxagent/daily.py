@@ -384,7 +384,11 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     # _synoptic_html would render a pipe table as literal pipes.
     body = report.render_daily(
         dd, conf, C.HOME, pf, windows, links,
-        withdrawal.render(mstate) + wind.render(wind_days)
+        withdrawal.render(mstate)
+        + systems.render_basins(
+            systems.basin_outlook(sys_pic),
+            cyclone_window=bool(sys_pic and sys_pic.cyclone_window))
+        + wind.render(wind_days)
         + fog.render(fog_mornings) + synoptic.render(sp, sys_pic),
         PRIMARY_MODEL, issued,
     )
@@ -508,6 +512,16 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         synoptic_text=_synoptic_html(synoptic.render(sp, sys_pic)),
     )
     payload["gradientVerdict"] = grad_verdict
+    # The Bay of Bengal is the engine behind northeast-monsoon rain, so the
+    # daily page carries the basin outlook too now, not just the MMR week.
+    _basins = systems.basin_outlook(sys_pic)
+    payload["basins"] = [
+        {"basin": b.basin, "status": b.status, "headline": b.headline,
+         "detail": b.detail, "genesis": b.genesis_day,
+         "depth": round(b.peak_depth, 1), "closestKm": b.closest_km,
+         "windyPressure": b.windy_pressure, "windyWind": b.windy_wind}
+        for b in _basins
+    ]
     payload["wind"] = [{
         "day": f"{w.day:%a %d %b}",
         "maxMs": None if w.max_ms is None else round(w.max_ms, 1),
