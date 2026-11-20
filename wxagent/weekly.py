@@ -55,6 +55,11 @@ WEEKLY_KEYS = (
 # protected, Kalyan sits inland of that protection, Pune is on the plateau.
 THERMAL_KEYS = ("santacruz", "kalyan_west", "karjat", "pune")
 
+# Below this, the coldest night on the list is cold enough to be worth a
+# ranking. Matheran's monsoon nights sit around 19-20C, so this keeps the
+# card to the cool season without reading the calendar.
+COLD_SHOW_C = 18.0
+
 WIND_ARROWS = {
     "N": "↓", "NNE": "↓", "NE": "↙", "ENE": "↙",
     "E": "←", "ESE": "←", "SE": "↖", "SSE": "↖",
@@ -660,6 +665,17 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
 
     out += regions.render(region_outlooks, lead=region_lead)
 
+    # The coldest places on the whole list, from the 19 site forecasts already
+    # in hand - the thermal outlook below covers only four sites, so a
+    # ranking drawn from it would be a ranking of four. Shown when there is
+    # real cold to rank: in a monsoon week every night is 22-25C and the list
+    # would be trivia.
+    coldest = thermal.coldest_places(forecasts, day_list, C.SITES_BY_KEY,
+                                     primary=PRIMARY_MODEL)
+    show_cold = bool(coldest["top"]) and coldest["top"][0]["tmin"] <= COLD_SHOW_C
+    if show_cold:
+        out += thermal.render_coldest(coldest)
+
     if thermals:
         out += report.h(2, "Heat and cold across the region")
         out += ("Handbook Ch.19 makes this a gradient, not a number: coastal "
@@ -880,6 +896,7 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
         "sentence": a.sentence,
     } for a in aq_days]
     weekly_payload["aqiCaveat"] = aqi.CAVEAT
+    weekly_payload["coldest"] = coldest if show_cold else None
     weekly_payload["thermalRows"] = [
         {"place": t.site_name, "type": t.station_type,
          "warmest": max((d.tmax for d in t.days if d.tmax is not None), default=None),

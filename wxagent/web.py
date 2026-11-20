@@ -359,6 +359,10 @@ _TEMPLATE = r"""<!doctype html>
      the brand colour is a severity scale nobody can read at a glance. All
      four are measured at 4.5:1 or better on --surface-1. */
   --good:#2e7d32; --warning:#9a6a00; --serious:#b85009; --critical:#c0271f;
+  /* Cold. The only hue on the page that means temperature rather than
+     severity - the coldest-places card needed one, and red/amber already
+     mean "danger". About 6.8:1 on --surface-1. */
+  --cold:#1f5f9e;
   --radius:12px;
 }
 
@@ -376,6 +380,7 @@ _TEMPLATE = r"""<!doctype html>
     --seq-100:#4a3701; --seq-250:#6b5002; --seq-350:#8a6603;
     --seq-400:#c08f04; --seq-450:#eab308; --seq-550:#f8cd4e; --seq-650:#fde68a;
     --good:#62c168; --warning:#e5b93a; --serious:#ef8a4a; --critical:#ef5f52;
+    --cold:#7fb3e6;
   }
 }
 :root[data-theme="dark"]{
@@ -389,6 +394,7 @@ _TEMPLATE = r"""<!doctype html>
   --seq-100:#4a3701; --seq-250:#6b5002; --seq-350:#8a6603;
   --seq-400:#c08f04; --seq-450:#eab308; --seq-550:#f8cd4e; --seq-650:#fde68a;
   --good:#62c168; --warning:#e5b93a; --serious:#ef8a4a; --critical:#ef5f52;
+  --cold:#7fb3e6;
 }
 
 /* Motion: one easing curve for the whole page, and a single global stop.
@@ -789,6 +795,18 @@ footer{color:var(--muted);font-size:12px;line-height:1.65;margin-top:26px;text-a
   font-variant-numeric:tabular-nums}
 .rgm{font-size:11px;color:var(--muted);margin-top:4px;
   font-variant-numeric:tabular-nums}
+
+/* coldest places on the list */
+.ctiles{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.ctile{position:relative;background:var(--plane);border:1px solid var(--border);
+  border-left:4px solid var(--cold);border-radius:11px;padding:13px 14px 13px 48px}
+.crank{position:absolute;left:12px;top:15px;width:25px;height:25px;border-radius:50%;
+  background:var(--cold);color:var(--surface-1);display:grid;place-items:center;
+  font-family:var(--font-ui);font-weight:700;font-size:13px}
+.cplace{font-weight:700;font-size:14px;line-height:1.3}
+.ctemp{font-family:var(--font-ui);font-size:27px;font-weight:700;color:var(--cold);
+  line-height:1.15;margin:3px 0 2px;font-variant-numeric:tabular-nums}
+.ctile .note{font-size:12px;color:var(--text-secondary)}
 
 /* basin outlook */
 .bas{display:grid;gap:12px}
@@ -1419,6 +1437,40 @@ function meter(rank){
     return h;
   }
 
+/* ---- the coldest places on the list ----
+   Shared by both pages, computed once in thermal.coldest_places so they give
+   the same answer. The top three are nearly always altitude - Matheran, the
+   ghat stations, the Pune plateau - which is worth knowing for anyone going
+   up and says nothing to someone in Dombivli, so the coldest place in the
+   lowland belt sits underneath. Places a fraction of a degree apart are
+   called level rather than ranked. */
+function coldestHtml(){
+  const c = D.coldest;
+  if (!c || !c.top || !c.top.length) return '';
+  const lvl = (c.level || []).map(r => r.place);
+  const lvlTxt = lvl.length === 0 ? ''
+    : (lvl.length === 1 ? lvl[0] : lvl.slice(0, -1).join(', ') + ' and ' + lvl[lvl.length - 1]);
+  const lw = c.lowland;
+  return `<div class="card"><h2>Coldest places this week</h2>
+    <div class="ctiles">
+    ${c.top.map((r, i) => `<div class="ctile">
+      <span class="crank">${i + 1}</span>
+      <div class="cplace">${esc(r.place)}${r.elev != null && r.elev >= 150
+        ? ` <span class="muted" style="font-weight:500;font-size:12px">${r.elev} m</span>` : ''}</div>
+      <div class="ctemp">${r.tmin.toFixed(1)}°C</div>
+      <div class="note">${esc(r.day)} · models ${r.lo.toFixed(1)}–${r.hi.toFixed(1)}°</div>
+    </div>`).join('')}
+    </div>
+    ${lvlTxt ? `<p class="rhow">${esc(lvlTxt)} ${lvl.length === 1 ? 'is' : 'are'} level with
+      #${c.top.length} — within 0.3°C, which is inside the noise of any one model.</p>` : ''}
+    ${lw ? `<div class="quote"><b>In the lowland belt:</b> ${esc(lw.place)} is coldest,
+      ${lw.tmin.toFixed(1)}°C on ${esc(lw.day)} (models ${lw.lo.toFixed(1)}–${lw.hi.toFixed(1)}°).
+      The top of the list is altitude; this is the cold most people wake up in.
+      A 25 km model smooths the valley floor into warmer surroundings, so the
+      coldest pockets run lower still.</div>` : ''}
+  </div>`;
+}
+
 function renderWeekly(){
   const T = D.thresholds;
   // Weather mode on the MMR page too - see the daily render for why.
@@ -1456,6 +1508,8 @@ function renderWeekly(){
     h += `<div class="card"><h2>⚡ Major weather shifts this week</h2>
       <p class="sub" style="margin:0">None — the pattern holds steady all week.</p></div>`;
   }
+
+  h += coldestHtml();
 
   /* ---- area by area across the MMR ----
      A weekly RAIN ranking. Out of the monsoon it appears only when some area
@@ -2174,9 +2228,26 @@ const SK = (() => {
 
   /* Cold is its own question. heatAnswer used to answer "is it getting
      cold?" in November with the WARMEST day of the week. */
-  function coldAnswer(){
+  function coldestLine(){
+    const c = pick('coldest');
+    if (!c || !c.top || !c.top.length) return '';
+    let s = 'Coldest on the list this week: '
+      + c.top.map((r, i) => `**${i + 1}. ${r.place}** ${r.tmin.toFixed(1)}°C (${r.day})`).join(', ') + '.';
+    if (c.level && c.level.length)
+      s += ` ${c.level.map(r => r.place).join(' and ')} ${c.level.length === 1 ? 'is' : 'are'} level with #${c.top.length}.`;
+    if (c.lowland)
+      s += `\n\nIn the lowland belt it's **${c.lowland.place}**, ${c.lowland.tmin.toFixed(1)}°C on ${c.lowland.day} — the top three are altitude, this is the cold most people wake up in.`;
+    return s;
+  }
+
+  function coldAnswer(q){
+    // "Where is it coldest?" wants the ranking first, not Kalyan's night.
+    if (q && /where|which (place|area|town|city)|coldest place|top ?(3|three)|hill station|ghat/.test(q)){
+      const line = coldestLine();
+      if (line) return line;
+    }
     const t = thermal();
-    if (!t || !t.days || !t.days.length) return heatAnswer();
+    if (!t || !t.days || !t.days.length) return coldestLine() || heatAnswer();
     const ok = t.days.filter(d => d.tmin != null);
     if (!ok.length) return heatAnswer();
     const c = ok.reduce((a, b) => b.tmin < a.tmin ? b : a);
@@ -2197,6 +2268,8 @@ const SK = (() => {
     s += "\n\nThe coldest hour is just before sunrise. Kalyan's valley floor "
        + "runs colder than a 25 km model cell can show — cold air pools there "
        + "on still, clear nights.";
+    const line = coldestLine();
+    if (line) s += '\n\n' + line;
     return s;
   }
 
@@ -2740,7 +2813,7 @@ const SK = (() => {
       ctx.route = 'cyclone'; return cycloneAnswer();
     }
     if (/\bcold|chill|thand|winter|sweater|jacket|minimum temp|coldest|night.*(cold|cool)/.test(q)){
-      ctx.route = 'cold'; return coldAnswer();
+      ctx.route = 'cold'; return coldAnswer(q);
     }
     if (/\bfog|mist|haze|visibilit|dhund/.test(q)){
       ctx.route = 'fog'; return fogAnswer(q);
@@ -4102,6 +4175,7 @@ function render(){
 
   if (weatherMode){
     h += todayCard();
+    h += coldestHtml();
     h += alertsCard();
     h += aqiCard();
     h += basinsHtml();

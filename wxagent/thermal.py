@@ -454,3 +454,119 @@ def render(to: ThermalOutlook) -> str:
 
     out += f"> {to.caveat}\n"
     return out
+
+
+# --------------------------------------------------------------------------
+# The coldest places on the list
+# --------------------------------------------------------------------------
+#
+# Ranked on the primary model's night minimum, the same model the rest of this
+# module reads, with the other models' range carried beside each place rather
+# than averaged in. That range is not decoration: on 20 Nov 2026 Colaba ran
+# from 13.2C in one model to 24.0C in another - a grid cell sitting over land
+# - and Panvel from 13.3 to 20.0, so a lowland ranking can turn on which model
+# you ask.
+#
+# Two things about the answer are predictable and said rather than hidden.
+# The top of the list is altitude: Matheran, the ghat stations and the Pune
+# plateau take it every winter night, which is true and worth knowing for
+# anyone going up, and tells someone in Dombivli nothing. So the coldest
+# place in the lowland belt is reported as well, because the inland Ulhas
+# valley runs several degrees colder than the coast and that is the cold most
+# readers actually wake up in. And places a fraction of a degree apart are
+# called level, not ranked: 0.1C is inside the noise of any one model.
+
+COLD_TIE_C = 0.3
+LOWLAND_ZONES = ("coastal", "transition")
+
+
+def coldest_places(forecasts: dict, days: Sequence[date], sites_by_key: dict,
+                   *, primary: str = "ecmwf_ifs025", n: int = 3) -> dict:
+    """Rank the list's places by their coldest night in the window.
+
+    Returns {"top": [...n...], "level": [...], "lowland": {...} | None}, each
+    entry a dict of place, zone, tmin (primary model), lo/hi (all models),
+    day (label) and elevation in metres.
+    """
+    def nightly_min(pf, ms):
+        t = ms.get("temperature_2m")
+        best = None
+        for d in days:
+            vals = []
+            for i, ts in enumerate(pf.times):
+                if i >= len(t) or t[i] is None:
+                    continue
+                try:
+                    if datetime.fromisoformat(ts).date() == d:
+                        vals.append(t[i])
+                except ValueError:
+                    continue
+            if vals and (best is None or min(vals) < best[0]):
+                best = (min(vals), d)
+        return best
+
+    rows = []
+    for key, pf in (forecasts or {}).items():
+        site = sites_by_key.get(key)
+        if site is None or not getattr(pf, "models", None):
+            continue
+        per = {}
+        for mk, ms in pf.models.items():
+            b = nightly_min(pf, ms)
+            if b is not None:
+                per[mk] = b
+        if not per:
+            continue
+        main = per.get(primary) or min(per.values())
+        vals = [v for v, _ in per.values()]
+        rows.append({
+            "place": site.name, "zone": getattr(site, "zone", ""),
+            "tmin": round(main[0], 1),
+            "lo": round(min(vals), 1), "hi": round(max(vals), 1),
+            "day": f"{main[1]:%a %d %b}",
+            "elev": (round(pf.elevation_m)
+                     if getattr(pf, "elevation_m", None) is not None else None),
+        })
+    if not rows:
+        return {"top": [], "level": [], "lowland": None}
+
+    rows.sort(key=lambda r: r["tmin"])
+    top = rows[:n]
+    # Places just outside the top that are level with the last one in it.
+    level = [r for r in rows[n:]
+             if r["tmin"] - top[-1]["tmin"] <= COLD_TIE_C]
+    lowland = None
+    if not any(r["zone"] in LOWLAND_ZONES for r in top):
+        lowland = next((r for r in rows if r["zone"] in LOWLAND_ZONES), None)
+    return {"top": top, "level": level, "lowland": lowland}
+
+
+def render_coldest(c: dict) -> str:
+    """Markdown block for the bulletins."""
+    top = c.get("top") or []
+    if not top:
+        return ""
+    out = "## Coldest places on the list\n\n"
+    out += "| # | Place | Coldest night | Low | Across models |\n"
+    out += "|---|---|---|---|---|\n"
+    for i, r in enumerate(top, 1):
+        elev = f" ({r['elev']} m)" if r.get("elev") and r["elev"] >= 150 else ""
+        out += (f"| {i} | **{r['place']}**{elev} | {r['day']} | "
+                f"**{r['tmin']:.1f}°C** | {r['lo']:.1f}–{r['hi']:.1f}°C |\n")
+    out += "\n"
+    if c.get("level"):
+        lv = [r["place"] for r in c["level"]]
+        names = (lv[0] if len(lv) == 1
+                 else ", ".join(lv[:-1]) + " and " + lv[-1])
+        out += (f"{names} {'is' if len(c['level']) == 1 else 'are'} level "
+                f"with #{len(top)} — within {COLD_TIE_C:g}°C, which is inside "
+                "the noise of any one model.\n\n")
+    lw = c.get("lowland")
+    if lw:
+        out += (f"**In the lowland belt:** {lw['place']} is coldest, "
+                f"{lw['tmin']:.1f}°C on {lw['day']} (models "
+                f"{lw['lo']:.1f}–{lw['hi']:.1f}°C). The top of the list is "
+                "altitude; this is the cold most people wake up in. A 25 km "
+                "model smooths the valley floor into warmer surroundings, so "
+                "the coldest pockets run lower still.\n\n")
+    return out

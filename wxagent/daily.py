@@ -349,6 +349,23 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     thermal_out = thermal.analyse(C.HOME, pf, week_days,
                                   primary_model=PRIMARY_MODEL, quiet=quiet)
 
+    # The coldest places on the MMR list. Its own batched request for the
+    # same 19 sites the weekly run fetches, so both pages give the same
+    # answer - the gradient fetch above covers nine sites for three days and
+    # would rank a different list. Skipped, never fatal, if it fails.
+    coldest = None
+    try:
+        from .weekly import COLD_SHOW_C, WEEKLY_KEYS
+        cold_fc = fetch_sites([C.SITES_BY_KEY[k] for k in WEEKLY_KEYS
+                               if k in C.SITES_BY_KEY], days=8)
+        c = thermal.coldest_places(cold_fc, week_days, C.SITES_BY_KEY,
+                                   primary=PRIMARY_MODEL)
+        if c["top"] and c["top"][0]["tmin"] <= COLD_SHOW_C:
+            coldest = c
+    except Exception as exc:                        # noqa: BLE001
+        if not quiet:
+            print(f"  ! coldest-places ranking unavailable ({exc})")
+
     # Morning visibility. Costs no fetch: the ingredients ride along on the
     # point data already in hand.
     fog_mornings = fog.outlook(pf, week_days)
@@ -396,7 +413,9 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         + systems.render_basins(
             systems.basin_outlook(sys_pic),
             cyclone_window=bool(sys_pic and sys_pic.cyclone_window))
-        + aqi.render(aqi_days) + wind.render(wind_days)
+        + aqi.render(aqi_days)
+        + (thermal.render_coldest(coldest) if coldest else "")
+        + wind.render(wind_days)
         + fog.render(fog_mornings) + synoptic.render(sp, sys_pic),
         PRIMARY_MODEL, issued,
     )
@@ -530,6 +549,7 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         "sentence": a.sentence,
     } for a in aqi_days]
     payload["aqiCaveat"] = aqi.CAVEAT
+    payload["coldest"] = coldest
     # Rain-first in the monsoon, weather-first otherwise - from the DIAGNOSED
     # season, so a late withdrawal keeps the rain page for as long as the
     # monsoon is actually here and an early one hands over as soon as it goes.
