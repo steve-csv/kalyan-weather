@@ -58,6 +58,12 @@ wxagent/
                   radar_glyphs.py holds the digit templates that read the
                   C-band's printed scan time
   rainsource.py   what KIND of rain: monsoon, easterly, system, storms
+  withdrawal.py   where the monsoon is - onset, break, withdrawal, and the
+                  northeast monsoon - diagnosed, never read off the calendar
+  fog.py          radiation fog, mist and haze, per model, never averaged
+  wind.py         surface wind, the sea breeze, and feels-like
+  aqi.py          air quality on CPCB's national scale, from Open-Meteo's
+                  air-quality endpoint (CAMS) through sources._get_json
   regions.py      Maharashtra and neighbours, in forecasters' regions
   samkb.py        Sam's written notes, shipped into the page
   plain.py        the forecaster-register wording layer
@@ -158,6 +164,28 @@ said two of three agreed. `fog.py` names the models instead of counting them.
 The same spread is why only GFS publishes a visibility field here and why it
 read 24 km on mornings the other two called fog — see the fog entries in
 `samkb.py`.
+
+**This was built in a monsoon, and it breaks when the season changes.** On
+20 Nov 2026, the first winter it ran through, the daily build crashed: the
+track-record summary formatted the average error on wet days unconditionally,
+and a 35-day window with no wet days has none. The same run found the page
+headed "rain forecast" over a 0% hero, the MMR week labelled "BREAK / SUBDUED
+— the monsoon engine is idling", Bay of Bengal text about dragging "the
+monsoon trough", a systems alert promising "widespread rain" in a week every
+model called dry, and the northeast-monsoon state switched off because the
+calendar said winter. None of it could show up between June and September.
+Anything you change, run it against an out-of-season date before trusting it.
+The page now has a weather mode (`pageMode`, from the diagnosed season) that
+leads with temperature, air, cyclones and cold; keep both modes rendering.
+
+**The air-quality model's ozone is its weakest number, and it decides the
+index.** On the first run ozone drove CAMS's AQI on five of six days and put
+Sunday at "very poor 304" while particulates said 192 — the inverse of a
+Mumbai winter, where official stations usually name PM10 or PM2.5. PM10 also
+came out nearly equal to PM2.5, which real road and building dust would not
+allow. The full CPCB index is still shown, with its driver named; alerts and
+health advice key on the particulate index (`AQIDay.pm_index`). Do not let an
+ozone-only number raise an alert.
 
 **Low model probability does not mean dry.** Measured over 2024–26: in the
 0–20% band the ensemble averaged 4% and it rained on 24% of those days. All

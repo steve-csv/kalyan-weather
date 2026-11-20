@@ -26,7 +26,7 @@ from . import (
     rainsource as rsmod,
     recent as recentmod,
     reconcile,
-    fog, nowcast, observed, plain, report, synoptic, systems, thermal,
+    aqi, fog, nowcast, observed, plain, report, synoptic, systems, thermal,
     upstream, web, wind, withdrawal,
 )
 from .diagnostics import (
@@ -353,13 +353,21 @@ def run(target_day: date | None = None, *, quiet: bool = False,
     # point data already in hand.
     fog_mornings = fog.outlook(pf, week_days)
     wind_days = wind.outlook(pf, week_days, PRIMARY_MODEL)
+
+    # Air quality. A separate request to Open-Meteo's air-quality endpoint -
+    # same provider, no new dependency - and the one new data source in the
+    # winter rework. aqi.py says at length what the model cannot see.
+    if not quiet:
+        print("  reading air quality (CAMS, on CPCB's national scale)...")
+    aqi_days = aqi.outlook(week_days)
     if not quiet and fog_mornings:
         print(f"  morning visibility: {len(fog_mornings)} morning(s) flagged")
 
     alerts = plain.detect_shifts(week_diag, thermal_outlook=thermal_out,
                                  systems_picture=sys_pic,
                                  fog_mornings=fog_mornings,
-                                 wind_days=wind_days)
+                                 wind_days=wind_days,
+                                 aqi_days=aqi_days)
 
     plain_days = []
     for wd in week_diag:
@@ -388,7 +396,7 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         + systems.render_basins(
             systems.basin_outlook(sys_pic),
             cyclone_window=bool(sys_pic and sys_pic.cyclone_window))
-        + wind.render(wind_days)
+        + aqi.render(aqi_days) + wind.render(wind_days)
         + fog.render(fog_mornings) + synoptic.render(sp, sys_pic),
         PRIMARY_MODEL, issued,
     )
@@ -512,6 +520,20 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         synoptic_text=_synoptic_html(synoptic.render(sp, sys_pic)),
     )
     payload["gradientVerdict"] = grad_verdict
+    payload["aqi"] = [{
+        "day": f"{a.day:%a %d %b}", "aqi": a.aqi, "category": a.category,
+        "dominant": aqi.NAMES.get(a.dominant, a.dominant),
+        "pmIndex": a.pm_index,
+        "pmCategory": aqi.category(a.pm_index)[0] if a.pm_index else None,
+        "ozoneLed": a.ozone_led,
+        "clean": a.cleanest_hour, "dirty": a.dirtiest_hour,
+        "sentence": a.sentence,
+    } for a in aqi_days]
+    payload["aqiCaveat"] = aqi.CAVEAT
+    # Rain-first in the monsoon, weather-first otherwise - from the DIAGNOSED
+    # season, so a late withdrawal keeps the rain page for as long as the
+    # monsoon is actually here and an early one hands over as soon as it goes.
+    payload["pageMode"] = "rain" if season == "monsoon" else "weather"
     # The Bay of Bengal is the engine behind northeast-monsoon rain, so the
     # daily page carries the basin outlook too now, not just the MMR week.
     _basins = systems.basin_outlook(sys_pic)
@@ -558,8 +580,12 @@ def run(target_day: date | None = None, *, quiet: bool = False,
                                              mstate.effective_season),
             "disagrees": mstate.effective_season != mstate.calendar_season,
             "met": mstate.met, "of": len(mstate.criteria),
-            "criteria": [{"name": n, "ok": ok, "why": w}
-                         for n, ok, w in mstate.criteria],
+            # The southwest monsoon's withdrawal tests answered their question
+            # in October. Showing them again in December would be a table of
+            # settled facts presented as if they were still in play.
+            "criteria": ([] if mstate.calendar_season == "winter" else
+                         [{"name": n, "ok": ok, "why": w}
+                          for n, ok, w in mstate.criteria]),
             "note": mstate.source_note,
         }
     payload["rainSource"] = {

@@ -536,6 +536,88 @@ KB: list[dict] = [
              "rain means a wet but predictable day, while thunderstorms mean "
              "a dry morning and a dangerous afternoon.",
     },
+    # ---- winter ---------------------------------------------------------
+    {
+        "id": "aqi_winter",
+        "keys": [r"why.*(air|aqi|pollution).*(worse|bad|poor)",
+                 r"winter.*(air|pollution|smog)", r"\binversion\b",
+                 r"why.*smog", r"how.*aqi.*(work|calculat)", r"cpcb",
+                 r"\bsafar\b"],
+        "t": "Why the air is worst in winter, and how I read it",
+        "a": "Because the air stops moving. In the monsoon a deep, windy "
+             "westerly and the rain itself scrub everything out. From "
+             "November the nights go still and clear, the ground cools fast, "
+             "and a lid of warmer air forms a few hundred metres up — an "
+             "inversion. Everything emitted in the evening, from traffic, "
+             "construction, industry and burning, stays trapped under it at "
+             "breathing height. Kalyan, Dombivli and Bhiwandi sit in a basin "
+             "where that happens readily. By midday the sun has mixed the "
+             "layer deep and the sea breeze is coming in, which is why the "
+             "cleanest hours are around noon and the worst are late "
+             "evening.\n\n"
+             "I use India's own index — CPCB's National AQI — not the American "
+             "one, because the bands and names differ and the Indian ones are "
+             "what you'll see in the news and on the station boards: good, "
+             "satisfactory, moderately polluted, poor, very poor, severe.\n\n"
+             "Two honest caveats. The numbers come from CAMS, a global model "
+             "on a grid of about 40 km: it can't see a junction or a building "
+             "site, and global models tend to read low over Indian cities, so "
+             "treat my figure as a floor. And its ozone is the least reliable "
+             "thing it produces here — when ozone is what drives its index, I "
+             "tell you the particulate reading instead, because that's what "
+             "the official stations usually name in a Mumbai winter. For the "
+             "real number, SAFAR-Mumbai and the CPCB/MPCB stations are the "
+             "authority.",
+    },
+    {
+        "id": "winter_cold",
+        "keys": [r"why.*(cold|chilly|thand)", r"cold ?wave", r"how cold",
+                 r"winter.*(kalyan|mumbai|night)", r"western disturbance"],
+        "t": "Why the nights turn cold, and what counts as a cold wave",
+        "a": "Clear skies and dry air. With no cloud overhead and little "
+             "water vapour to hold the heat in, the ground radiates its "
+             "warmth straight out to space after dark, and the air touching "
+             "it cools with it. That's why winter days here can still reach "
+             "the low 30s while the nights fall to the mid-teens — a "
+             "day-night swing twice what the monsoon gives. The sharpest "
+             "drops usually come a day or two after a western disturbance "
+             "passes over north India, when a dry northerly sets in behind "
+             "it.\n\n"
+             "Kalyan feels it more than Mumbai does. It's inland, away from "
+             "the sea that holds the island's nights up, and it sits in the "
+             "Ulhas valley where cold air drains down and pools on still "
+             "nights — colder than a 25 km model cell can show.\n\n"
+             "A cold wave, officially, needs two things on this coast: the "
+             "night at least 4.5° below its normal for the date, AND down to "
+             "15°C or lower — on two nights running before IMD declares "
+             "anything. It almost never happens here. So when I flag a cold "
+             "night I tell you which half is met and how far off the other "
+             "is, because 'no cold wave' doesn't mean it won't feel cold at "
+             "six in the morning.",
+    },
+    {
+        "id": "cyclone_season",
+        "keys": [r"cyclone season", r"when.*cyclone", r"cyclone.*(mumbai|hit|reach)",
+                 r"bay of bengal.*cyclone", r"(name|naming).*cyclone"],
+        "t": "Cyclone season on this coast",
+        "a": "There are two windows: April to June, before the monsoon sets "
+             "in, and October to December, after it leaves. The Arabian Sea "
+             "is the basin that can hit Mumbai directly — most of its storms "
+             "still curve away towards Gujarat, Oman or Pakistan, but the "
+             "ones that don't are the ones to watch. The Bay of Bengal is "
+             "busier, especially in November, but its storms land on the "
+             "east coast; they reach us only by crossing the peninsula "
+             "westward, weakening as they go, and sometimes emerging into "
+             "the Arabian Sea to re-form. That re-forming, not the crossing, "
+             "is the usual route to an unseasonal downpour here.\n\n"
+             "I track lows in both seas from the models' pressure and wind "
+             "fields, and I label their strength conservatively — a coarse "
+             "model can't resolve a cyclone's core, so a 'depression-strength "
+             "circulation' on this page is a model estimate, not a "
+             "classification. Naming a cyclone, grading it, and issuing its "
+             "warnings is IMD's job. For anything actually heading for land, "
+             "their bulletins are what to act on.",
+    },
     # ---- elements added after the rain engine ---------------------------
     {
         "id": "northeast_monsoon",

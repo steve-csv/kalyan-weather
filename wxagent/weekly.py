@@ -25,7 +25,7 @@ import re
 from . import config as C
 from . import (
     climate, oscillations, plain, rainsource as rsmod, regions, report,
-    fog, synoptic, systems, thermal,
+    aqi, fog, synoptic, systems, thermal,
     upstream, web, wind, withdrawal,
 )
 from .diagnostics import (
@@ -144,8 +144,59 @@ def wind_profile_strip(pf, days: list[date]) -> str:
             f"{row_lbl}\n{row_bar}\n{row_val}\n\n{thresholds}\n```\n")
 
 
-def week_regime(pf, days: list[date]) -> tuple[str, str]:
+def _winter_regime(pf, days: list[date]) -> tuple[str, str]:
+    """The week outside the monsoon, classified by what the season is made of.
+
+    The monsoon ladder below names phases of an engine that is not running
+    from October to May: on 20 Nov 2026 it headed the MMR page "BREAK /
+    SUBDUED - the monsoon engine is idling". Out of season the questions are
+    where the air is coming from and whether any rain is in it at all.
+    """
+    import math
+    ms = pf.models.get(PRIMARY_MODEL) or next(iter(pf.models.values()))
+    x = y = 0.0
+    rain = 0.0
+    for d in days:
+        idx = window_indices(pf.times, d, 0, 24)
+        dirs, spd, pr = (ms.get("wind_direction_850hPa"),
+                         ms.get("wind_speed_850hPa"), ms.get("precipitation"))
+        for i in idx:
+            if i < len(dirs) and i < len(spd) and dirs[i] is not None \
+                    and spd[i] is not None:
+                x += spd[i] * math.sin(math.radians(dirs[i]))
+                y += spd[i] * math.cos(math.radians(dirs[i]))
+            if i < len(pr) and pr[i] is not None:
+                rain += pr[i]
+    mean_dir = (math.degrees(math.atan2(x, y)) + 360.0) % 360.0 \
+        if (x or y) else None
+
+    if rain >= 5.0:
+        return ("UNSEASONAL RAIN", (
+            f"About {rain:.0f} mm in the week at Kalyan in the primary model — "
+            "a rain signal outside the season's usual pattern. Out of the "
+            "monsoon that almost always means a western disturbance passing "
+            "to the north or a system crossing the peninsula; the systems card "
+            "says which, and whether it is reaching this far west."))
+    continental = mean_dir is not None and (mean_dir >= 315 or mean_dir <= 135)
+    if continental:
+        return ("SETTLED · DRY CONTINENTAL AIR", (
+            f"The flow comes off the land, from the {compass(mean_dir)} on "
+            "average: clear skies, cool nights, warm hazy afternoons, and air "
+            "that stays trapped near the ground overnight. Out of the monsoon "
+            "this is the normal state, and the week is made of temperature, "
+            "air quality and morning visibility rather than rain."))
+    return ("SETTLED · SEA-BREEZE DAYS", (
+        f"Light flow from the {compass(mean_dir)}: mild humid afternoons "
+        "cooled by the sea breeze, and milder nights than a northerly week "
+        "brings. Air quality tends to be better on days the sea breeze "
+        "arrives early and strong."))
+
+
+def week_regime(pf, days: list[date], season: str = "monsoon"
+                ) -> tuple[str, str]:
     """Classify the week as a whole - active spell, break, or mixed."""
+    if season != "monsoon":
+        return _winter_regime(pf, days)
     ms = pf.models.get(PRIMARY_MODEL) or next(iter(pf.models.values()))
     comps = []
     for d in days:
@@ -496,7 +547,7 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
     trough_t, offshore_t, inland_t = synoptic.fetch_synoptic(days=days + 1)
     sp = synoptic.build(trough_t, offshore_t, inland_t, start, season)
 
-    regime, regime_note = week_regime(pf, day_list)
+    regime, regime_note = week_regime(pf, day_list, season)
 
     if not quiet:
         print("  tracking low pressure systems...")
@@ -812,6 +863,23 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
         forecasts, day_list, C.SITES_BY_KEY)
     weekly_payload["feelsRows"] = wind.across_sites(
         forecasts, day_list, C.SITES_BY_KEY, PRIMARY_MODEL)
+
+    # Weather-first outside the monsoon, as on the daily page. And air
+    # quality for the region as ONE series: CAMS's ~40 km grid puts most of
+    # the MMR in two or three cells, so a per-site table would show
+    # near-identical numbers and imply a precision the model does not have.
+    weekly_payload["pageMode"] = "rain" if season == "monsoon" else "weather"
+    aq_days = aqi.outlook(day_list)
+    weekly_payload["aqi"] = [{
+        "day": f"{a.day:%a %d %b}", "aqi": a.aqi, "category": a.category,
+        "dominant": aqi.NAMES.get(a.dominant, a.dominant),
+        "pmIndex": a.pm_index,
+        "pmCategory": aqi.category(a.pm_index)[0] if a.pm_index else None,
+        "ozoneLed": a.ozone_led,
+        "clean": a.cleanest_hour, "dirty": a.dirtiest_hour,
+        "sentence": a.sentence,
+    } for a in aq_days]
+    weekly_payload["aqiCaveat"] = aqi.CAVEAT
     weekly_payload["thermalRows"] = [
         {"place": t.site_name, "type": t.station_type,
          "warmest": max((d.tmax for d in t.days if d.tmax is not None), default=None),

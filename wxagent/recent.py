@@ -172,10 +172,18 @@ class Record:
                       "since then has no observation to score against yet, so "
                       "a recent day marked as a miss elsewhere on this page is "
                       "not yet counted here.")
+        # No wet days, no wet-day error. This clause was formatted
+        # unconditionally, so the first fully dry 35-day window - 20 Nov 2026,
+        # the first winter this agent ran through - crashed the daily build
+        # before it reached the all-dry branch below that exists to explain
+        # exactly that case. A rain-season assumption that only breaks when
+        # the season changes.
+        wet_err = (f", and on days it rained the average error was "
+                   f"**{self.mae_wet:.1f} mm**"
+                   if self.mae_wet is not None else "")
         core = (f"Over the last **{len(v)} verified {plural}**, the one-day "
                 f"forecast landed in the right IMD rainfall band on "
-                f"**{self.band_accuracy:.0%}** of them, and on days it rained "
-                f"the average error was **{self.mae_wet:.1f} mm**.{window}")
+                f"**{self.band_accuracy:.0%}** of them{wet_err}.{window}")
         if br is not None and br >= 0.98:
             return (core + f" It also called rain correctly on all {len(v)} — "
                     "but **every one of those days rained**, so that particular "

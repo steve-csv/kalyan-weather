@@ -276,7 +276,14 @@ def diagnose(pf, *, today: date | None = None,
                and (today.month, today.day) >= NEM_EARLIEST)
 
     # ---- state -----------------------------------------------------------
-    if cal in ("winter", "pre_monsoon"):
+    if cal == "winter" and today.month in (11, 12) and nem_set:
+        # The northeast monsoon runs October to December - November is
+        # Tamil Nadu's wettest month and the Bay's peak cyclone month - but
+        # this branch used to return "outside" for anything the calendar calls
+        # winter, so on 20 Nov 2026 the page stopped saying the Bay of Bengal
+        # was the basin that mattered in exactly the month it matters most.
+        state = "northeast"
+    elif cal in ("winter", "pre_monsoon"):
         state = "outside"
     elif core >= 3 and not too_early:
         state = "northeast" if nem_set else "withdrawn"
@@ -289,6 +296,8 @@ def diagnose(pf, *, today: date | None = None,
 
     label, eff, sentence = _wording(state, today, cal, dry_run, share,
                                     rh850, core, mean_dir)
+    if cal == "winter":
+        eff = cal
     return MonsoonState(
         state=state, label=label, calendar_season=cal, effective_season=eff,
         dry_run=dry_run, westerly_share=share, rh850=rh850, pwat=pwat,
@@ -392,8 +401,11 @@ def render(st: MonsoonState | None) -> str:
     if st is None or st.state == "outside" or not st.sentence:
         return ""
     out = f"## Monsoon status\n**{st.label}.** {st.sentence}\n\n"
-    out += "| IMD withdrawal test | Reads as | Evidence |\n|---|---|---|\n"
-    for name, ok, why in st.criteria:
-        out += f"| {name} | {'met' if ok else 'not met'} | {why} |\n"
+    # In November and December the withdrawal tests are settled history, not
+    # something still in play.
+    if st.calendar_season != "winter":
+        out += "| IMD withdrawal test | Reads as | Evidence |\n|---|---|---|\n"
+        for name, ok, why in st.criteria:
+            out += f"| {name} | {'met' if ok else 'not met'} | {why} |\n"
     out += f"\n> {st.source_note}\n\n"
     return out

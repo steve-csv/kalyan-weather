@@ -133,6 +133,12 @@ SWING_ALERT_C = 3.0
 ANOMALY_RUN_C = 2.0
 ANOMALY_RUN_DAYS = 3
 
+# A cold night worth naming even though no cold wave is in prospect. IMD's
+# departure criterion is -4.5C; flagging from -3.5C gives a reader the nights
+# that will actually feel cold on a coast where the formal test almost never
+# passes.
+COLD_NEAR_DEP_C = 3.5
+
 # Feels-like, on IMD's heat-index scale. Its "danger" band opens at 41C, so a
 # watch a degree below it gives a day's notice rather than announcing the
 # problem on the morning it arrives.
@@ -811,7 +817,8 @@ def detect_shifts(diagnoses: Sequence, *,
                   thermal_outlook=None,
                   systems_picture=None,
                   fog_mornings=None,
-                  wind_days=None) -> list[ShiftAlert]:
+                  wind_days=None,
+                  aqi_days=None) -> list[ShiftAlert]:
     """
     Scan the forecast sequence for the transitions worth interrupting someone
     over. A run of similar days generates nothing; the turn generates an alert.
@@ -1036,6 +1043,84 @@ def detect_shifts(diagnoses: Sequence, *,
                 "season having moved.",
                 "🌡️"))
 
+        # ---- the nights ---------------------------------------------------
+        # In winter the story is the minimum, not the maximum, and the swing
+        # detector above only ever looked at afternoons. A night falling
+        # several degrees in a day or two is what people feel at 6 a.m., and
+        # in this season it is usually a northerly arriving after a western
+        # disturbance has passed to the north - a change of airmass, unlike
+        # the afternoon swings, so it tends to last.
+        nights = [d for d in thermal_outlook.days if d.tmin is not None]
+        if len(nights) >= 2:
+            drops = []
+            for i in range(1, len(nights)):
+                # Up to two days back: a cold push usually lands over two
+                # nights rather than one.
+                ref = max(nights[max(0, i - 2):i], key=lambda d: d.tmin)
+                drops.append((nights[i], ref, nights[i].tmin - ref.tmin))
+            fall = min(drops, key=lambda x: x[2])
+            if fall[2] <= -SWING_ALERT_C:
+                d1, d0, delta = fall
+                alerts.append(ShiftAlert(
+                    "watch" if d1.tmin <= 15.0 else "info", d1.day,
+                    f"Nights turn colder — down to {d1.tmin:.0f}°C by "
+                    f"{d1.day:%A %d %b}",
+                    f"The minimum falls {abs(delta):.0f}°C from "
+                    f"{d0.tmin:.0f}°C on {d0.day:%a %d}"
+                    + (f", which is {d1.departure_min:+.1f}°C against the "
+                       "ten-year normal for the date"
+                       if d1.departure_min is not None else "")
+                    + ". A drop this size in winter is usually a dry northerly "
+                      "arriving behind a western disturbance - a new airmass "
+                      "rather than a clear night, so it tends to stay for a "
+                      "few days. The coldest hour is just before sunrise.",
+                    "🌙"))
+
+        # ---- one cold criterion met, the other not -------------------------
+        # The mirror of the heat near-miss above, and it matters for the same
+        # reason: IMD needs BOTH an absolute minimum AND a departure from
+        # normal. On 21-22 Nov 2026 Kalyan's nights ran -4.0 and -4.1C against
+        # normal at 16.6C - a whisker off the -4.5C departure and above the
+        # 15C coastal threshold - and the page said nothing about it.
+        from .thermal import COLD_THRESHOLD
+        cold_thresh = COLD_THRESHOLD.get(thermal_outlook.station_type, 15.0)
+        chilly = [d for d in thermal_outlook.days
+                  if d.tmin is not None and d.departure_min is not None
+                  and d.departure_min <= -COLD_NEAR_DEP_C]
+        if chilly and len(thermal_outlook.cold_spell) < 2:
+            c0 = min(chilly, key=lambda d: d.departure_min)
+            dep_met = c0.departure_min <= -4.5
+            abs_met = c0.tmin <= cold_thresh
+            if dep_met and abs_met:
+                half = ("Both halves of IMD's test are met on this night, "
+                        "but IMD needs two consecutive nights before it "
+                        "declares anything.")
+            elif dep_met:
+                half = (f"The departure half is met; the absolute half is "
+                        f"not — a coastal cold wave also needs "
+                        f"{cold_thresh:g}°C or below, and this is "
+                        f"{c0.tmin - cold_thresh:.1f}°C above it.")
+            else:
+                half = (f"That is {abs(c0.departure_min + 4.5):.1f}°C short "
+                        f"of IMD's −4.5°C departure criterion, and "
+                        f"{c0.tmin - cold_thresh:.1f}°C above the "
+                        f"{cold_thresh:g}°C coastal threshold.")
+            alerts.append(ShiftAlert(
+                "watch", c0.day,
+                f"Unusually cold night for the date, {c0.day:%A %d %b}",
+                # One decimal: the margins here are fractions of a degree,
+                # and "17C is 1.6C above 15C" reads as an arithmetic error.
+                f"{c0.tmin:.1f}°C is "
+                f"{c0.departure_min:+.1f}°C".replace("-", "−")
+                + f" against the ten-year normal. {half} No cold wave would "
+                "be declared on "
+                "this coast — Handbook Ch.18 says one essentially never is — "
+                "and it will still be one of the coldest nights of the month "
+                "for the date. Inland valleys and the hills run colder than "
+                "this; a 25 km grid smooths the Ulhas valley floor into its "
+                "warmer surroundings.",
+                "🥶"))
+
         warm = [d for d in thermal_outlook.days
                 if d.departure_max is not None
                 and d.departure_max >= ANOMALY_RUN_C]
@@ -1152,6 +1237,51 @@ def detect_shifts(diagnoses: Sequence, *,
                and (w0.gust_spread[1] - w0.gust_spread[0]) >= 2.0 else ""),
             "💨"))
 
+    # ---- air quality --------------------------------------------------
+    # Keyed on the PARTICULATE index, not the full AQI - see aqi.AQIDay.
+    # pm_index for why an ozone-led "very poor" must not raise an alert on
+    # its own. The full figure and its driver are still stated in the text.
+    aq = [a for a in (aqi_days or []) if a.pm_index is not None]
+    if aq:
+        from .aqi import POOR, VERY_POOR, NAMES, category
+        worst = max(aq, key=lambda a: a.pm_index)
+        if worst.pm_index >= POOR:
+            cat, health = category(worst.pm_index)
+            alerts.append(ShiftAlert(
+                "warning" if worst.pm_index >= VERY_POOR else "watch",
+                worst.day,
+                f"{cat} air, {worst.day:%A %d %b} — particulate AQI "
+                f"{worst.pm_index}",
+                f"{health} The worst hours are around "
+                f"{(worst.dirtiest_hour or 21):02d}:00, when the mixed layer "
+                "has collapsed and the evening's emissions stay at breathing "
+                "height; the cleanest are around midday. Keep strenuous "
+                "exercise to the middle of the day, and keep windows shut "
+                "after dark. This is a model reading on CPCB's scale and it "
+                "tends to run low — check SAFAR or the CPCB station for the "
+                "official figure.",
+                "😷"))
+        else:
+            # Not yet poor, but say when it is heading there. A rise of half
+            # a category inside the week is the thing worth a sentence.
+            first = aq[0]
+            if worst.pm_index - first.pm_index >= 50 and worst is not first:
+                alerts.append(ShiftAlert(
+                    "info", worst.day,
+                    f"Air quality worsening into {worst.day:%A %d %b}",
+                    f"The particulate index climbs from {first.pm_index} to "
+                    f"{worst.pm_index} — {category(worst.pm_index)[0].lower()}"
+                    f" — as the wind slackens and the nights hold the smoke "
+                    f"down."
+                    + (f" The model's full index, which adds ozone, reads "
+                       f"{worst.aqi} ({worst.category.lower()}) that day; "
+                       "ozone is its least reliable pollutant here, so the "
+                       "particulate figure is the one to plan around."
+                       if worst.ozone_led and worst.aqi >= POOR else "")
+                    + " People with asthma or heart conditions should keep "
+                      "evening exertion down.",
+                    "😷"))
+
     # ---- morning visibility ----------------------------------------------
     # Only the first one. A fog spell runs for several mornings in a row and
     # one alert per morning would bury everything else on the page.
@@ -1180,8 +1310,18 @@ def detect_shifts(diagnoses: Sequence, *,
         # them; the disagreement becomes sub-points underneath.
         events = sorted(systems_picture.events,
                         key=lambda e: e.closest.distance_km)
+        # Does anything in the week actually rain? The reasoning attached to
+        # each event describes what such a low CAN do; on 20 Nov 2026 it told
+        # readers an inland low 546 km away meant "rain becomes widespread
+        # and longer-lasting" in a week every model put at 0% under dry
+        # continental air. The same trap rainsource.classify() closes for the
+        # rain-type card: name a mechanism only with an outcome to go with it.
+        week_dry = all(getattr(getattr(d, "rain", None), "hi", 0.0)
+                       < C.MEASURABLE_RAIN_MM for d in diagnoses)
         for e in events[:MAX_SYSTEM_ALERTS]:
             sev = "warning" if e.relevance == "high" else "watch"
+            if week_dry:
+                sev = "info"
             # Lead with how close it comes and when: the two facts a reader
             # needs to decide whether it concerns them at all.
             when = e.closest_day()
@@ -1197,30 +1337,80 @@ def detect_shifts(diagnoses: Sequence, *,
                     if when else
                     f"Closest approach about **{e.closest.distance_km:,.0f} km** "
                     f"from Kalyan, minimum pressure {press}. ")
+            reasoning = e.reasoning
+            if week_dry:
+                reasoning = ("**It does not bring rain here this week** — no "
+                             "model turns it into anything measurable at "
+                             "Kalyan, because the air over Maharashtra is too "
+                             "dry for its ascent to produce any. It is listed "
+                             "so you know it is there, and so a change in the "
+                             "models has somewhere to show up. What such a low "
+                             "can do when the moisture is there: "
+                             + reasoning[:1].lower() + reasoning[1:])
             alerts.append(ShiftAlert(
-                sev, None, e.headline, lead + e.reasoning, "🌀",
+                sev, None, e.headline, lead + reasoning, "🌀",
                 points=e.possibilities()))
         extra = len(events) - MAX_SYSTEM_ALERTS
         if extra > 0:
             nearest_extra = events[MAX_SYSTEM_ALERTS].closest
+            monsoon_now = season_for(diagnoses[0].day) == "monsoon" \
+                if diagnoses else False
             alerts.append(ShiftAlert(
                 "info", None,
                 f"{extra} further weak circulation"
                 f"{'s' if extra > 1 else ''} tracked, none closer than "
                 f"{nearest_extra.distance_km:,.0f} km",
-                "The monsoon trough usually has several shallow centres "
-                "embedded in it at once. They are listed in full in the "
-                "systems section of the weekly bulletin; none of them comes "
-                "close enough to change what the days above say, which is why "
-                "they are summarised here rather than alerted individually.",
+                ("The monsoon trough usually has several shallow centres "
+                 "embedded in it at once. " if monsoon_now else
+                 "The models carry several shallow circulations at any time, "
+                 "most of which never organise. ")
+                + "They are listed in full in the systems section of the "
+                "weekly bulletin; none of them comes close enough to change "
+                "what the days above say, which is why they are summarised "
+                "here rather than alerted individually.",
                 "🌀"))
         if systems_picture.cyclone_window:
+            # Say what is actually in the water. On 20 Nov 2026 this line read
+            # "Arabian Sea cyclone window - this month sits in one of the two
+            # cyclone windows" while a depression-strength circulation sat in
+            # the Bay of Bengal, mentioned only further down the page. In the
+            # season the basins are the point, so the alert carries both.
+            from .systems import basin_outlook
+            live = [b for b in basin_outlook(systems_picture)
+                    if b.status != "quiet"]
+            strong = [b for b in live
+                      if "depression" in b.peak_label
+                      or "cyclone" in b.peak_label]
+            near = [b for b in strong
+                    if b.closest_km is not None and b.closest_km < 800]
+            if live:
+                lines = []
+                for b in live:
+                    when = ("already present" if not b.genesis_day
+                            else f"forming around {b.genesis_day}")
+                    lines.append(
+                        f"**{b.basin}** — {b.peak_label}, {when}"
+                        + (f", closest about {b.closest_km:,} km from Kalyan"
+                           if b.closest_km is not None else "") + ".")
+                body = (" ".join(lines) + " The basins card below has the "
+                        "track and what each would mean here. Strength is "
+                        "estimated conservatively from a coarse model; naming "
+                        "and grading a cyclone is IMD's job, and their "
+                        "bulletins are what to act on.")
+                title = ("Cyclone season — depression-strength system in the "
+                         + " and ".join(b.basin for b in strong)
+                         if strong else
+                         "Cyclone season — lows in "
+                         + " and ".join(b.basin for b in live))
+            else:
+                body = ("This month sits in one of the two cyclone windows "
+                        "for this coast, and both seas are quiet in the "
+                        "models this week. Track official IMD cyclone "
+                        "bulletins — they are authoritative and this tool "
+                        "explicitly is not.")
+                title = "Cyclone season — both seas quiet"
             alerts.append(ShiftAlert(
-                "info", None, "Arabian Sea cyclone window",
-                "This month sits in one of the two cyclone windows for this "
-                "coast. Track official IMD cyclone bulletins — they are "
-                "authoritative and this tool explicitly is not.",
-                "🌪️"))
+                "watch" if near else "info", None, title, body, "🌪️"))
 
     # De-duplicate by title, keep the most severe, then order.
     seen: dict[str, ShiftAlert] = {}

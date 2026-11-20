@@ -238,8 +238,10 @@ def render(payload: dict, windy_links: list, model_links: list, *,
         [{"title": lk.title, "url": lk.url, "why": lk.why} for lk in model_links],
         ensure_ascii=False)
 
+    site = payload.get('site', 'Kalyan West')
     title = ("Mumbai MMR — week ahead" if payload.get("page") == "weekly"
-             else f"Rain forecast — {payload.get('site', 'Kalyan West')}")
+             else f"Weather — {site}" if payload.get("pageMode") == "weather"
+             else f"Rain forecast — {site}")
 
     return _TEMPLATE.replace("__TITLE__", _escape(title)) \
                     .replace("__DATA__", data) \
@@ -1419,6 +1421,8 @@ function meter(rank){
 
 function renderWeekly(){
   const T = D.thresholds;
+  // Weather mode on the MMR page too - see the daily render for why.
+  const wkWeather = D.pageMode === 'weather';
   let h = '';
   h += `<header>
     <div>
@@ -1453,8 +1457,12 @@ function renderWeekly(){
       <p class="sub" style="margin:0">None — the pattern holds steady all week.</p></div>`;
   }
 
-  /* ---- area by area across the MMR ---- */
-  if (D.areas && D.areas.length){
+  /* ---- area by area across the MMR ----
+     A weekly RAIN ranking. Out of the monsoon it appears only when some area
+     actually expects rain; a table of zeros ranked against each other says
+     nothing. */
+  const areaRain = (D.areas || []).some(a => (a.weekMm || 0) >= 2.5);
+  if (D.areas && D.areas.length && (!wkWeather || areaRain)){
     const maxWk = Math.max(...D.areas.map(a => a.weekMm), 1);
     h += `<div class="card"><h2>Across the MMR — area by area</h2>
       <p class="sub" style="margin:-6px 0 14px">The MMR is not one forecast.
@@ -1482,8 +1490,11 @@ function renderWeekly(){
 
   h += trackHtml(D);
 
-  /* ---- upstream drivers (Somali jet, mid-level dry air) ---- */
-  if (D.upstream && D.upstream.available){
+  /* ---- upstream drivers (Somali jet, mid-level dry air) ----
+     The Somali jet is the monsoon's moisture supply; in winter it is not
+     blowing towards us at all, and this card would describe its absence at
+     length. Weather mode leaves it out, on both pages. */
+  if (D.pageMode !== 'weather' && D.upstream && D.upstream.available){
     const u = D.upstream;
     const jetTone = /very strong|strong/.test(u.jet) ? 'good'
                   : /weak/.test(u.jet) ? 'bad' : 'neu';
@@ -1696,6 +1707,17 @@ function renderWeekly(){
 
   }
 
+  /* Outside the monsoon these three cards describe an engine that has
+     stopped. "Orographic forcing - the spine of this outlook" headed the MMR
+     page on 20 Nov 2026 under a NNE wind that was not forcing anything, above
+     a monsoon-trough table for a trough that no longer exists. Air quality
+     takes the slot instead; the rainfall matrix returns whenever there is
+     rain to tabulate, in any season. */
+  const wkRain = (D.siteRows || []).some(s => (s.week || 0) >= 2.5);
+  if (wkWeather){
+    h += aqiCard();
+  }
+  if (!wkWeather){
   /* forcing chart - the spine */
   const fRows = D.windRows.map(r => ({
     v: Math.max(0, r.orographic), label: r.short,
@@ -1730,9 +1752,11 @@ function renderWeekly(){
     <div class="quote">A trough hugging the foothills (&ge;28&deg;N) for several consecutive days is
       the break signal. A trough back over the plains is the active signal. Watch the
       <i>direction of travel</i> across the week, not any single day.</div></div>`;
+  }
 
   /* MMR matrix */
   const zoneOrder = {coastal:0, transition:1, ghat:2, leeward:3};
+  if (!wkWeather || wkRain)
   h += `<div class="card"><h2>Rainfall across the MMR</h2>
     <div class="scroll"><table><thead><tr><th>Site</th><th>Zone</th>
       ${D.siteRows[0].cells.map(c => `<th class="num">${esc(c.short)}</th>`).join('')}
@@ -2146,6 +2170,68 @@ const SK = (() => {
       : `${list.length} things worth knowing about:`;
     return lead + "\n\n"
          + list.map(a => `${a.icon} **${a.title}**\n${a.body}`).join('\n\n');
+  }
+
+  /* Cold is its own question. heatAnswer used to answer "is it getting
+     cold?" in November with the WARMEST day of the week. */
+  function coldAnswer(){
+    const t = thermal();
+    if (!t || !t.days || !t.days.length) return heatAnswer();
+    const ok = t.days.filter(d => d.tmin != null);
+    if (!ok.length) return heatAnswer();
+    const c = ok.reduce((a, b) => b.tmin < a.tmin ? b : a);
+    let s = `Coldest night: **${c.day}**, down to **${c.tmin.toFixed(1)}°C**`;
+    if (c.depMin != null)
+      s += ` — ${Math.abs(c.depMin).toFixed(1)}° ${c.depMin < 0 ? 'below' : 'above'} the normal for the date`;
+    s += '.';
+    const d = c.depMin;
+    if (d != null && d <= -4.5 && c.tmin <= 15)
+      s += "\n\nBoth halves of IMD's cold-wave test are met that night — "
+         + "but it needs two nights in a row before anything is declared, and "
+         + "on this coast it almost never is.";
+    else if (d != null && d <= -3.5)
+      s += `\n\nThat's cold for the date but not a cold wave: IMD wants `
+         + `4.5° below normal AND 15°C or lower on this coast. `
+         + (d > -4.5 ? `It's ${(d + 4.5).toFixed(1)}° short on the first, ` : `The first is met, `)
+         + (c.tmin > 15 ? `${(c.tmin - 15).toFixed(1)}° short on the second.` : `and the second too.`);
+    s += "\n\nThe coldest hour is just before sunrise. Kalyan's valley floor "
+       + "runs colder than a 25 km model cell can show — cold air pools there "
+       + "on still, clear nights.";
+    return s;
+  }
+
+  function aqiAnswer(){
+    const A = pick('aqi');
+    if (!A || !A.length) return "This view doesn't carry the air-quality read — it's on the Kalyan daily page.";
+    const today = A[0];
+    const worst = A.reduce((a, b) => (b.pmIndex || 0) > (a.pmIndex || 0) ? b : a);
+    let s = today.sentence || '';
+    if (worst !== today && worst.pmIndex != null)
+      s += `\n\nWorst this week: **${worst.day}**, particulate index ${worst.pmIndex} (${(worst.pmCategory || '').toLowerCase()}).`;
+    s += "\n\nThis is a model reading on India's CPCB scale. It can't see a "
+       + "junction or a building site and tends to run low over Indian cities "
+       + "— for the official number, check SAFAR-Mumbai or the nearest CPCB "
+       + "station. The shape is the useful part: cleanest around midday, "
+       + "worst late evening.";
+    return s;
+  }
+
+  function cycloneAnswer(){
+    const B = pick('basins') || [];
+    if (!B.length) return systemAnswer();
+    // The headline already opens with the basin's name; drop it so the
+    // answer does not read "Arabian Sea — developing. Arabian Sea — ...".
+    let s = B.map(b => {
+      const head = (b.headline || '').split('**').join('')
+        .replace(b.basin + ' — ', '');
+      return `**${b.basin}** (${b.status}): ${head}`
+        + (b.closestKm != null ? ` Closest approach about ${b.closestKm.toLocaleString()} km.` : '');
+    }).join('\n\n');
+    s += "\n\nI label strength conservatively from the model's wind ring, and "
+       + "a coarse model can't resolve a cyclone's core. Naming a cyclone and "
+       + "issuing its warnings is IMD's job, not mine — follow their bulletins "
+       + "for anything that's actually heading for land.";
+    return s;
   }
 
   function heatAnswer(){
@@ -2647,7 +2733,16 @@ const SK = (() => {
        arrival and heat/alert routes, because "when does the sea breeze arrive"
        matched the rain-ETA route on the word "arrive" and answered with where
        the rain bands were. The specific question has to be asked first. */
-    if (/\bfog|mist|haze|visibilit|dhund|smog/.test(q)){
+    if (/\baqi\b|air quality|pollut|smog|pm ?2\.?5|pm ?10|breath|pradushan/.test(q)){
+      ctx.route = 'aqi'; return aqiAnswer();
+    }
+    if (/cyclon|depression|bay of bengal|arabian sea|landfall|toofan|tufan|chakrivadal/.test(q)){
+      ctx.route = 'cyclone'; return cycloneAnswer();
+    }
+    if (/\bcold|chill|thand|winter|sweater|jacket|minimum temp|coldest|night.*(cold|cool)/.test(q)){
+      ctx.route = 'cold'; return coldAnswer();
+    }
+    if (/\bfog|mist|haze|visibilit|dhund/.test(q)){
       ctx.route = 'fog'; return fogAnswer(q);
     }
     if (/\bwind|breez|gust|squall|windy|hawa|storm.*wind|sea ?breeze/.test(q)){
@@ -2742,6 +2837,9 @@ const SK = (() => {
       case 'wind':   return ["When does the sea breeze arrive?", "What does it feel like?", "Any warnings?", "Tomorrow?"];
       case 'feels':  return ["Why so humid?", "What's the wind doing?", "Any heat warnings?", "Tomorrow?"];
       case 'monsoon':return ["What kind of rain now?", "Will it rain again?", "What's the wind doing?", "Any warnings?"];
+      case 'aqi':    return ["Why is winter air worse?", "Is it getting cold?", "Any fog?", "Any warnings?"];
+      case 'cold':   return ["Is this a cold wave?", "How's the air?", "Any fog tomorrow?", "Any cyclones?"];
+      case 'cyclone':return ["Will it reach Mumbai?", "Is it getting cold?", "How's the air?", "Any warnings?"];
       default:       return ["Is it raining now?", "Today?", "What kind of rain?", "Any warnings?", "How's the weekend?"];
     }
   }
@@ -3800,15 +3898,195 @@ function showView(which){
 const statusText = {none:'No meaningful rain', good:'Light', warning:'Moderate',
                     serious:'Heavy', critical:'Very heavy'};
 
+/* ---- weather mode: today at a glance ----------------------------------
+   The hero outside the monsoon. A 0% rain probability in 46px type was what a
+   reader met first on 20 Nov 2026, above a night running four degrees below
+   normal and a week of worsening air. The figures a winter reader wants are
+   the high and the low, how far each sits from normal, what it feels like,
+   and what the air is like - so those lead. */
+function airPlan(a){
+  // The figure to plan around: particulates when ozone is driving the model's
+  // index, for the reason aqi.AQIDay.pm_index gives.
+  if (!a) return null;
+  return a.ozoneLed && a.pmIndex != null
+    ? {v: a.pmIndex, cat: a.pmCategory, note: 'particulates'}
+    : {v: a.aqi, cat: a.category, note: a.dominant};
+}
+function airTone(cat){
+  return /good|satisf/i.test(cat || '') ? 's-good'
+       : /moderate/i.test(cat || '') ? 's-warning'
+       : /^poor/i.test(cat || '') ? 's-serious'
+       : cat ? 's-critical' : 's-none';
+}
+function todayCard(){
+  const th = D.thermal && D.thermal.days && D.thermal.days[0];
+  if (!th) return '';
+  const w = (D.wind || [])[0] || null;
+  const a = (D.aqi || [])[0] || null;
+  const plan = airPlan(a);
+  const fogSoon = (D.fog || [])[0] || null;
+  const num = v => v === null || v === undefined ? '–' : Math.round(v);
+  const dep = v => v === null || v === undefined ? ''
+    : (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(1) + '°';
+  const side = (v, when) => v === null || v === undefined ? ''
+    : Math.abs(v) < 0.75 ? `near normal ${when}`
+    : `${Math.abs(v).toFixed(1)}° ${v > 0 ? 'above' : 'below'} normal ${when}`;
+  const cap = [side(th.depMax, 'by day'), side(th.depMin, 'by night')]
+    .filter(Boolean).join(', ');
+  // Dry winter air: the heat index sits at or below the thermometer, so
+  // "feels like 29C at its hottest" beside a 31C high read as a contradiction
+  // on 20 Nov 2026, and its "+2" belonged to a cooler hour. When humidity is
+  // not adding anything at the hottest part of the day, say so.
+  const muggy = w && w.feels != null && th.tmax != null && w.feels > th.tmax + 0.5;
+  return `<div class="card">
+    <div class="hero">
+      <div class="fig">${num(th.tmax)}° <span style="opacity:.55">/ ${num(th.tmin)}°</span></div>
+      <div class="cap">today's high and low${cap ? `<br><span class="muted">${esc(cap)}</span>` : ''}</div>
+    </div>
+    <p class="headline">
+      ${plan ? `<span class="pill ${airTone(plan.cat)}"><span class="dot"></span>Air: ${esc(plan.cat)}</span>&nbsp;` : ''}
+      ${muggy ? `feels like <b>${w.feels}°C</b> at its hottest` : 'dry air — it feels like the thermometer'}
+      ${w && w.maxMs != null ? ` · wind ${Math.round(w.maxMs * 3.6)} kmph${w.gustKmph != null ? `, gusting ${w.gustKmph}` : ''}, from the ${esc(w.from)}` : ''}
+    </p>
+    <div class="tiles" style="margin-top:14px">
+      <div class="tile"><div class="lab">High</div><div class="val">${num(th.tmax)}°C</div>
+        <div class="note">${dep(th.depMax)} vs normal</div></div>
+      <div class="tile"><div class="lab">Low</div><div class="val">${num(th.tmin)}°C</div>
+        <div class="note">${dep(th.depMin)} vs normal</div></div>
+      <div class="tile"><div class="lab">Feels like</div><div class="val">${muggy ? w.feels + '°C' : num(th.tmax) + '°C'}</div>
+        <div class="note">${muggy ? `humidity adds +${Math.round(w.feels - th.tmax)}° at the peak` : 'dry air adds nothing'}</div></div>
+      <div class="tile"><div class="lab">Air quality</div><div class="val">${plan ? plan.v : '–'}</div>
+        <div class="note">${plan ? esc(plan.cat) + ' · ' + esc(plan.note) : 'no reading'}${a && a.ozoneLed ? `<br>full index ${a.aqi}, ozone-led` : ''}</div></div>
+      <div class="tile"><div class="lab">Wind</div><div class="val">${w && w.gustKmph != null ? w.gustKmph : '–'}<span style="font-size:14px;font-weight:500"> kmph</span></div>
+        <div class="note">peak gust${w && w.from ? ', from the ' + esc(w.from) : ''}</div></div>
+      <div class="tile"><div class="lab">Morning visibility</div><div class="val" style="font-size:19px">${fogSoon ? esc(fogSoon.level) : 'clear'}</div>
+        <div class="note">${fogSoon ? 'next: ' + esc(fogSoon.day) : 'no fog signal this week'}</div></div>
+      <div class="tile"><div class="lab">Rain</div><div class="val">${D.probability != null ? D.probability + '%' : '–'}</div>
+        <div class="note">chance of 2.5 mm+</div></div>
+    </div>
+  </div>`;
+}
+
+/* ---- air quality, day by day ---- */
+function aqiCard(){
+  const A = D.aqi || [];
+  if (!A.length) return '';
+  return `<div class="card"><h2>Air quality — next ${A.length} days</h2>
+    <p class="rhead">${mdBold(A[0].sentence || '')}</p>
+    <div class="scroll"><table style="white-space:nowrap"><thead><tr>
+      <th>Day</th><th>Plan around</th><th>Model AQI</th><th>Driven by</th>
+      <th>Cleanest</th><th>Worst</th>
+    </tr></thead><tbody>
+    ${A.map(a => { const p = airPlan(a); return `<tr>
+      <td>${esc(a.day)}</td>
+      <td><span class="pill ${airTone(p.cat)}" style="padding:2px 9px;font-size:12px">
+        <span class="dot"></span>${p.v} · ${esc(p.cat)}</span></td>
+      <td class="num">${a.aqi}</td>
+      <td>${esc(a.dominant)}</td>
+      <td class="num">${a.clean != null ? String(a.clean).padStart(2,'0') + ':00' : '–'}</td>
+      <td class="num">${a.dirty != null ? String(a.dirty).padStart(2,'0') + ':00' : '–'}</td>
+    </tr>`; }).join('')}
+    </tbody></table></div>
+    <div class="quote">${esc(D.aqiCaveat || '')} "Plan around" is the
+      particulate reading wherever ozone is what drives the model's index —
+      ozone is its least reliable pollutant here, and particulates are what the
+      official stations usually name in a Mumbai winter.</div>
+  </div>`;
+}
+
 function render(){
   if (D.page === 'weekly') return renderWeekly();
   const c = D.confidence, ing = D.ingredients;
   const probTxt = D.probability !== null ? D.probability + '%' : D.modelAgreement;
   let h = '';
 
+  /* Which page this is. The monsoon gets the rain-first page this agent was
+     built as; every other season gets weather first - temperature, air,
+     cyclones, cold - because those are what the season is made of. Decided in
+     Python from the DIAGNOSED season (withdrawal.py), never the calendar. */
+  const weatherMode = D.pageMode === 'weather';
+  const rainWeek = (D.outlook || []).some(o =>
+    (o.probability || 0) >= 30 || (o.hi || o.rainHi || 0) >= 2.5);
+  const showRain = !weatherMode || (D.probability || 0) >= 20
+    || (D.rainHi || 0) >= 2.5 || rainWeek;
+
+  const alertsCard = () => {
+    let h = '';
+  if (D.alerts && D.alerts.length){
+      h += `<div class="card" style="border-color:var(--alert-edge)">
+        <h2>⚡ Major weather shifts — next 7 days</h2>
+        ${D.alerts.map(a => `<div class="alert a-${esc(a.severity)}">
+          <div class="ai">${esc(a.icon)}</div>
+          <div><div class="at"><span class="tag">${esc(a.label)}</span> ${esc(a.title)}</div>
+          <div class="ab">${mdBold(a.body)}${subList(a.points)}</div></div></div>`).join('')}
+      </div>`;
+    } else {
+      h += `<div class="card"><h2>⚡ Major weather shifts</h2>
+        <p class="sub" style="margin:0">No major shifts in the next seven days —
+          the pattern holds steady throughout.</p></div>`;
+    }
+    return h;
+  };
+  const systemsCard = () => {
+    let h = '';
+    /* ---- systems ---- */
+    if (D.systems){
+      const sy = D.systems;
+      h += `<div class="card"><h2>Low pressure systems, troughs and storms</h2>
+        <p style="margin:0 0 12px">${esc(sy.trough)}</p>`;
+      if (sy.list && sy.list.length){
+        h += sy.list.map(s => `<div class="sysrow">
+          <div class="at"><span class="tag t-${esc(s.relevance)}">${esc(s.relevance)}</span> ${esc(s.headline)}</div>
+          <div class="ab">${esc(s.reasoning)}${subList(s.points)}</div>
+          <div class="pc">Closest approach ~${s.distanceKm} km · minimum ${s.pressure} hPa · ${s.motion==='unresolved' ? `resolved over ${s.durationH} h — too short to say if it is moving` : s.motion==='slow' ? `moves under one grid cell in ${s.durationH} h` : `moves ${s.movedKm} km in ${s.durationH} h`}</div>
+        </div>`).join('');
+      } else {
+        h += `<p class="sub">No significant low pressure area or depression tracked
+          within range this week. Rain will be driven by the broad monsoon flow and
+          terrain rather than by an organised system.</p>`;
+      }
+      if (sy.cycloneWindow){
+        h += `<div class="quote"><b>Cyclone season.</b> This month falls in an
+          Arabian Sea cyclone window. For anything beyond casual tracking, IMD's
+          official cyclone bulletins are authoritative and this tool is not.</div>`;
+      }
+      h += `</div>`;
+    }
+    return h;
+  };
+  const thermalCard = () => {
+    let h = '';
+    /* ---- heat & cold ---- */
+    if (D.thermal && D.thermal.days && D.thermal.days.length){
+      const th = D.thermal;
+      h += `<div class="card"><h2>Heat and cold — next 7 days</h2>
+        <p style="margin:0 0 12px"><b>${esc(th.headline)}.</b></p>
+        <div class="scroll"><table><thead><tr><th>Day</th><th class="num">Max</th>
+          <th class="num">vs normal</th><th class="num">Min</th>
+          <th class="num">Feels like</th><th>Flag</th></tr></thead><tbody>
+        ${th.days.map(d => {
+          let flag = '';
+          if (d.heatFlag === 'severe-criteria') flag = '<span class="tag t-critical">severe heat</span>';
+          else if (d.heatFlag === 'heatwave-criteria') flag = '<span class="tag t-warning">heatwave criteria</span>';
+          else if (d.coldFlag) flag = '<span class="tag t-watch">cold criteria</span>';
+          else if (d.heatIndex >= 41) flag = '<span class="tag t-warning">danger (feels-like)</span>';
+          else if (d.heatIndex >= 32) flag = '<span class="tag t-watch">extreme caution</span>';
+          return `<tr><td>${esc(d.day)}</td>
+            <td class="num">${d.tmax === null ? '--' : d.tmax.toFixed(0)+'°'}</td>
+            <td class="num">${d.depMax === null ? '--' : (d.depMax>=0?'+':'')+d.depMax.toFixed(1)}</td>
+            <td class="num">${d.tmin === null ? '--' : d.tmin.toFixed(0)+'°'}</td>
+            <td class="num">${d.heatIndex === null ? '--' : d.heatIndex.toFixed(0)+'°'}</td>
+            <td>${flag}</td></tr>`;
+        }).join('')}
+        </tbody></table></div>
+        <div class="quote">${esc(th.caveat)}</div></div>`;
+    }
+    return h;
+  };
+
   h += `<header>
     <div>
-      <h1>${esc(D.site)} — rain forecast</h1>
+      <h1>${esc(D.site)} — ${weatherMode ? 'weather' : 'rain forecast'}</h1>
       <p class="sub">${esc(D.validDate)} · issued ${esc(D.issued)} · ${esc(D.season)}</p>
     </div>
     ${navHtml('today')}
@@ -3820,6 +4098,15 @@ function render(){
   if (D.nowLine){
     h += `<div class="card"><h2>Right now</h2>
       <p class="rhead" style="margin:0">${mdBold(D.nowLine)}</p></div>`;
+  }
+
+  if (weatherMode){
+    h += todayCard();
+    h += alertsCard();
+    h += aqiCard();
+    h += basinsHtml();
+    h += systemsCard();
+    h += thermalCard();
   }
 
   /* ---- wind and feels-like ----
@@ -3912,7 +4199,7 @@ function render(){
            and the wording on this page follows the fields. A date cannot know
            where the monsoon is.</div>`
         : ''}
-      <table style="margin-top:12px"><thead><tr>
+      ${(M.criteria || []).length ? `<table style="margin-top:12px"><thead><tr>
         <th>IMD withdrawal test</th><th>Reads as</th><th>Evidence</th>
       </tr></thead><tbody>
       ${(M.criteria || []).map(c => `<tr>
@@ -3921,19 +4208,19 @@ function render(){
             style="padding:2px 9px;font-size:12px;white-space:nowrap"
             ><span class="dot"></span>${c.ok ? 'met' : 'not met'}</span></td>
         <td>${esc(c.why)}</td></tr>`).join('')}
-      </tbody></table>
+      </tbody></table>` : ''}
       <div class="quote">${esc(M.note)}</div>
     </div>`;
   }
 
-  h += basinsHtml();
+  if (!weatherMode) h += basinsHtml();
 
   /* ---- what KIND of rain ----
      Placed before the amounts. Millimetres alone cannot tell a reader what a
      day will feel like: twelve from the monsoon is a grey hours-long soak,
      twelve from an easterly storm is one violent quarter-hour. The driver
      also decides WHERE it lands, because an easterly reverses the terrain. */
-  if (D.rainSource && D.rainSource.headline){
+  if (showRain && D.rainSource && D.rainSource.headline){
     const S = D.rainSource;
     const tw = S.thunder === 'likely' ? 'Thunderstorms likely'
              : S.thunder === 'possible' ? 'Thunderstorms possible' : '';
@@ -3956,19 +4243,7 @@ function render(){
     </div>`;
   }
 
-  if (D.alerts && D.alerts.length){
-    h += `<div class="card" style="border-color:var(--alert-edge)">
-      <h2>⚡ Major weather shifts — next 7 days</h2>
-      ${D.alerts.map(a => `<div class="alert a-${esc(a.severity)}">
-        <div class="ai">${esc(a.icon)}</div>
-        <div><div class="at"><span class="tag">${esc(a.label)}</span> ${esc(a.title)}</div>
-        <div class="ab">${mdBold(a.body)}${subList(a.points)}</div></div></div>`).join('')}
-    </div>`;
-  } else {
-    h += `<div class="card"><h2>⚡ Major weather shifts</h2>
-      <p class="sub" style="margin:0">No major shifts in the next seven days —
-        the pattern holds steady throughout.</p></div>`;
-  }
+  if (!weatherMode) h += alertsCard();
 
   h += summaryHtml();
   h += windyMapHtml();
@@ -4017,6 +4292,13 @@ function render(){
     h += `</div>`;
   }
 
+  /* Rain detail - hero, tiles, hourly rates, model comparison, terrain
+     gradient, dayparts and the live radar. Every one of these reads zero
+     through a dry winter, and on 20 Nov 2026 a dozen of them sat above
+     the heat-and-cold card a reader actually needed. Shown whenever
+     there is rain to show, in any season - a January western
+     disturbance still gets the full treatment. */
+  if (showRain){
   /* hero + headline */
   h += `<div class="card">
     <div class="hero">
@@ -4211,12 +4493,17 @@ function render(){
         safety-critical.</div>
     </div>`;
   }
+  }
+
 
 
   h += trackHtml(D);
 
-  /* ---- upstream drivers (Somali jet, mid-level dry air) ---- */
-  if (D.upstream && D.upstream.available){
+  /* ---- upstream drivers (Somali jet, mid-level dry air) ----
+     The Somali jet is the monsoon's moisture supply; in winter it is not
+     blowing towards us at all, and this card would describe its absence at
+     length. Weather mode leaves it out, on both pages. */
+  if (D.pageMode !== 'weather' && D.upstream && D.upstream.available){
     const u = D.upstream;
     const jetTone = /very strong|strong/.test(u.jet) ? 'good'
                   : /weak/.test(u.jet) ? 'bad' : 'neu';
@@ -4262,29 +4549,7 @@ function render(){
     h += `</div>`;
   }
 
-  /* ---- systems ---- */
-  if (D.systems){
-    const sy = D.systems;
-    h += `<div class="card"><h2>Low pressure systems, troughs and storms</h2>
-      <p style="margin:0 0 12px">${esc(sy.trough)}</p>`;
-    if (sy.list && sy.list.length){
-      h += sy.list.map(s => `<div class="sysrow">
-        <div class="at"><span class="tag t-${esc(s.relevance)}">${esc(s.relevance)}</span> ${esc(s.headline)}</div>
-        <div class="ab">${esc(s.reasoning)}${subList(s.points)}</div>
-        <div class="pc">Closest approach ~${s.distanceKm} km · minimum ${s.pressure} hPa · ${s.motion==='unresolved' ? `resolved over ${s.durationH} h — too short to say if it is moving` : s.motion==='slow' ? `moves under one grid cell in ${s.durationH} h` : `moves ${s.movedKm} km in ${s.durationH} h`}</div>
-      </div>`).join('');
-    } else {
-      h += `<p class="sub">No significant low pressure area or depression tracked
-        within range this week. Rain will be driven by the broad monsoon flow and
-        terrain rather than by an organised system.</p>`;
-    }
-    if (sy.cycloneWindow){
-      h += `<div class="quote"><b>Cyclone season.</b> This month falls in an
-        Arabian Sea cyclone window. For anything beyond casual tracking, IMD's
-        official cyclone bulletins are authoritative and this tool is not.</div>`;
-    }
-    h += `</div>`;
-  }
+if (!weatherMode) h += systemsCard();
 
   /* ---- who gets this system, and when ----
      The regional forecasters people actually follow answer a question this
@@ -4334,31 +4599,7 @@ function render(){
     h += `</div>`;
   }
 
-  /* ---- heat & cold ---- */
-  if (D.thermal && D.thermal.days && D.thermal.days.length){
-    const th = D.thermal;
-    h += `<div class="card"><h2>Heat and cold — next 7 days</h2>
-      <p style="margin:0 0 12px"><b>${esc(th.headline)}.</b></p>
-      <div class="scroll"><table><thead><tr><th>Day</th><th class="num">Max</th>
-        <th class="num">vs normal</th><th class="num">Min</th>
-        <th class="num">Feels like</th><th>Flag</th></tr></thead><tbody>
-      ${th.days.map(d => {
-        let flag = '';
-        if (d.heatFlag === 'severe-criteria') flag = '<span class="tag t-critical">severe heat</span>';
-        else if (d.heatFlag === 'heatwave-criteria') flag = '<span class="tag t-warning">heatwave criteria</span>';
-        else if (d.coldFlag) flag = '<span class="tag t-watch">cold criteria</span>';
-        else if (d.heatIndex >= 41) flag = '<span class="tag t-warning">danger (feels-like)</span>';
-        else if (d.heatIndex >= 32) flag = '<span class="tag t-watch">extreme caution</span>';
-        return `<tr><td>${esc(d.day)}</td>
-          <td class="num">${d.tmax === null ? '--' : d.tmax.toFixed(0)+'°'}</td>
-          <td class="num">${d.depMax === null ? '--' : (d.depMax>=0?'+':'')+d.depMax.toFixed(1)}</td>
-          <td class="num">${d.tmin === null ? '--' : d.tmin.toFixed(0)+'°'}</td>
-          <td class="num">${d.heatIndex === null ? '--' : d.heatIndex.toFixed(0)+'°'}</td>
-          <td>${flag}</td></tr>`;
-      }).join('')}
-      </tbody></table></div>
-      <div class="quote">${esc(th.caveat)}</div></div>`;
-  }
+if (!weatherMode){ h += thermalCard(); h += aqiCard(); }
 
   /* ingredients */
   h += `<div class="card"><h2>Ingredients — checked before the rain layer</h2><div class="scroll"><table>

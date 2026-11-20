@@ -1372,6 +1372,12 @@ def basin_outlook(sp: SystemsPicture | None) -> list[BasinReport]:
         return []
 
     out: list[BasinReport] = []
+    # The month decides which account of a Bay system is true - see below.
+    try:
+        _m = datetime.fromisoformat(sp.times[0]).month if sp.times else 7
+    except (ValueError, TypeError):
+        _m = 7
+    monsoon = C.SEASONS.get(_m) == "monsoon"
     for basin in BASINS:
         # A track belongs to the sea it FORMED over, not the one it happens to
         # be deepest in.
@@ -1436,7 +1442,46 @@ def basin_outlook(sp: SystemsPicture | None) -> list[BasinReport]:
                     f"closest approach to Kalyan about "
                     f"**{rep.closest_km:,} km**."]
 
-            if basin == "Bay of Bengal":
+            if basin == "Bay of Bengal" and not monsoon:
+                # Outside the monsoon there is no trough to drag and no
+                # westerly to strengthen, and the old wording said both on
+                # 20 Nov 2026 about a depression off Andhra. A post-monsoon
+                # Bay system reaches this coast another way: it carries
+                # northeast-monsoon moisture across the peninsula, wets south
+                # and central Maharashtra first, and occasionally emerges
+                # into the Arabian Sea to re-form - which, not the crossing,
+                # is the usual route to an unseasonal Konkan downpour.
+                b = lead.track_bearing
+                if b is not None and 230 <= b <= 330:
+                    bits.append(
+                        "It is heading west, and in this season that is the "
+                        "one route by which a Bay system matters here. It "
+                        "carries northeast-monsoon moisture across the "
+                        "peninsula: south and central Maharashtra see the "
+                        "rain first, the Konkan only if the system holds "
+                        "together all the way to the west coast. Its remnant "
+                        "can emerge into the Arabian Sea and re-form there, "
+                        "which is the usual route to an unseasonal downpour "
+                        "on this coast. Expect any response here **two to "
+                        "four days after** it crosses the east coast.")
+                elif lead.motion == "unresolved":
+                    bits.append(
+                        "Its direction of travel is not yet resolved. In this "
+                        "season a Bay system reaches the Konkan only by "
+                        "crossing the peninsula **westward**, usually as a "
+                        "weakening low that rains on south and central "
+                        "Maharashtra first. One that recurves north-east "
+                        "towards Odisha, Bengal or Bangladesh, or stalls over "
+                        "the water, does nothing here. Watch the track for a "
+                        "day before reading anything into it.")
+                else:
+                    bits.append(
+                        "It is **not** heading west. A post-monsoon Bay "
+                        "system that turns north or north-east recurves "
+                        "towards Odisha, Bengal or Bangladesh and leaves "
+                        "Maharashtra dry; this one should not reach the "
+                        "Konkan.")
+            elif basin == "Bay of Bengal":
                 # The west-northwest sentence is the mechanism, not a label -
                 # it only applies to a system actually going that way. Printed
                 # unconditionally it told readers a low "tracks west-northwest"
