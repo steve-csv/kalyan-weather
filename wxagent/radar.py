@@ -74,6 +74,15 @@ PRODUCTS = {
     "sri": "https://mausam.imd.gov.in/Radar/sri_mum.gif",
 }
 
+# When Colaba is down IMD keeps serving the same URLs, with HTTP 200, a fresh
+# Last-Modified and a photograph of the radome in place of a scan. On 21 Nov
+# 2026 both products were that photograph, 572 x 461 and captioned "DWR
+# OBSERVATION SUSPENDED". The run used to report "colour key not found -
+# layout may have changed" and the page simply lost its second radar without
+# saying why. A frame too small to hold the colour key is not a scan.
+# Holds the reason per product for the latest fetch; empty when it read.
+UNAVAILABLE: dict[str, str] = {}
+
 # Marshall-Palmer, Z = 200 R^1.6, inverted.
 #
 # This is a population average over many storms, not a measurement of this
@@ -228,6 +237,7 @@ def fetch(product: str = "maxz", *, quiet: bool = True) -> RadarScan | None:
     url = PRODUCTS.get(product)
     if url is None:
         return None
+    UNAVAILABLE.pop(product, None)
     # Cache-bust: IMD serves these with long cache headers and a stale frame
     # reported as "now" is worse than no radar at all.
     url = f"{url}?t={datetime.now():%Y%m%d%H%M%S}"
@@ -250,6 +260,17 @@ def fetch(product: str = "maxz", *, quiet: bool = True) -> RadarScan | None:
         return None
 
     w, h = im.size
+    legend_bottom = LEGEND_TOP_Y + LEGEND_PITCH * (len(LEGEND_DBZ) - 1)
+    if w <= LEGEND_X or h <= legend_bottom:
+        UNAVAILABLE[product] = (
+            "Colaba's radar is not publishing scans: IMD is showing a "
+            "photograph of the radome in place of the radar image, which it "
+            "does when the radar is down or its observation is suspended.")
+        if not quiet:
+            print(f"  ! Colaba radar: placeholder image ({w}x{h}), "
+                  "not a scan - radar down or observation suspended")
+        return None
+
     pixels = list(im.getdata())
 
     # Read the colour key out of THIS image, so a palette change is picked up
@@ -884,6 +905,9 @@ def fetch_best(*, quiet: bool = True,
     lead, other = _choose(c, s, quiet=quiet)
     if lead is not None:
         lead.check_ok, lead.check_note = can_check(lead, other)
+        if other is None and s is None and UNAVAILABLE.get("maxz"):
+            lead.check_note = (UNAVAILABLE["maxz"] + " So this reading has "
+                               "no second radar to confirm or doubt it.")
         if lead.check_note and not quiet:
             print(f"  ! {lead.check_note}")
     return lead, other

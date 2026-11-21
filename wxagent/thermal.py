@@ -475,32 +475,53 @@ def render(to: ThermalOutlook) -> str:
 # valley runs several degrees colder than the coast and that is the cold most
 # readers actually wake up in. And places a fraction of a degree apart are
 # called level, not ranked: 0.1C is inside the noise of any one model.
+#
+# A night is 18:00 to 09:00 and is named by the dawn it ends in. The first
+# version took the minimum over each calendar date, and the cloud build at
+# 13:18 on 21 Nov 2026 ranked all four places on THAT morning - a cold that
+# had already come and gone - and labelled it "Sat 21 Nov", which a reader at
+# lunchtime takes to mean tonight. A night whose dawn is already past at issue
+# time is dropped; the one still under way at a 06:15 build is kept.
 
 COLD_TIE_C = 0.3
 LOWLAND_ZONES = ("coastal", "transition")
+NIGHT_START_H = 18
+NIGHT_END_H = 9
 
 
 def coldest_places(forecasts: dict, days: Sequence[date], sites_by_key: dict,
-                   *, primary: str = "ecmwf_ifs025", n: int = 3) -> dict:
+                   *, primary: str = "ecmwf_ifs025", n: int = 3,
+                   now: datetime | None = None) -> dict:
     """Rank the list's places by their coldest night in the window.
+
+    `days` are the dawns: the night into each date, 18:00 the evening before
+    to 09:00. With `now`, nights already over by then are skipped.
 
     Returns {"top": [...n...], "level": [...], "lowland": {...} | None}, each
     entry a dict of place, zone, tmin (primary model), lo/hi (all models),
     day (label) and elevation in metres.
     """
+    nights = []
+    for d in days:
+        end = datetime(d.year, d.month, d.day, NIGHT_END_H)
+        if now is not None and now >= end:
+            continue
+        nights.append((d, end - timedelta(hours=24 - NIGHT_START_H
+                                          + NIGHT_END_H), end))
+
     def nightly_min(pf, ms):
         t = ms.get("temperature_2m")
+        stamps = []
+        for ts in pf.times:
+            try:
+                stamps.append(datetime.fromisoformat(ts))
+            except ValueError:
+                stamps.append(None)
         best = None
-        for d in days:
-            vals = []
-            for i, ts in enumerate(pf.times):
-                if i >= len(t) or t[i] is None:
-                    continue
-                try:
-                    if datetime.fromisoformat(ts).date() == d:
-                        vals.append(t[i])
-                except ValueError:
-                    continue
+        for d, start, end in nights:
+            vals = [t[i] for i, st in enumerate(stamps)
+                    if st is not None and i < len(t) and t[i] is not None
+                    and start <= st <= end]
             if vals and (best is None or min(vals) < best[0]):
                 best = (min(vals), d)
         return best
@@ -523,7 +544,7 @@ def coldest_places(forecasts: dict, days: Sequence[date], sites_by_key: dict,
             "place": site.name, "zone": getattr(site, "zone", ""),
             "tmin": round(main[0], 1),
             "lo": round(min(vals), 1), "hi": round(max(vals), 1),
-            "day": f"{main[1]:%a %d %b}",
+            "day": f"night into {main[1]:%a %d %b}",
             "elev": (round(pf.elevation_m)
                      if getattr(pf, "elevation_m", None) is not None else None),
         })
@@ -547,7 +568,7 @@ def render_coldest(c: dict) -> str:
     if not top:
         return ""
     out = "## Coldest places on the list\n\n"
-    out += "| # | Place | Coldest night | Low | Across models |\n"
+    out += "| # | Place | When | Low | Across models |\n"
     out += "|---|---|---|---|---|\n"
     for i, r in enumerate(top, 1):
         elev = f" ({r['elev']} m)" if r.get("elev") and r["elev"] >= 150 else ""
@@ -564,7 +585,7 @@ def render_coldest(c: dict) -> str:
     lw = c.get("lowland")
     if lw:
         out += (f"**In the lowland belt:** {lw['place']} is coldest, "
-                f"{lw['tmin']:.1f}°C on {lw['day']} (models "
+                f"{lw['tmin']:.1f}°C on the {lw['day']} (models "
                 f"{lw['lo']:.1f}–{lw['hi']:.1f}°C). The top of the list is "
                 "altitude; this is the cold most people wake up in. A 25 km "
                 "model smooths the valley floor into warmer surroundings, so "

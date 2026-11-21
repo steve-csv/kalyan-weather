@@ -137,6 +137,19 @@ every few minutes — so a radar that stalled hours ago looks live. The C-band's
 printed stamp is read off the image (`radar_glyphs.py`); Colaba's is an upload
 time and the page says "published", never "scanned".
 
+**A suspended radar still answers 200 OK.** On 21 Nov 2026 both Colaba
+products were a photograph of the radome captioned "DWR OBSERVATION
+SUSPENDED", served at the usual URLs with a fresh Last-Modified. The run
+called it "layout may have changed" and the page lost its second radar without
+saying why. `radar.fetch()` now treats a frame too small to hold the colour
+key as not-a-scan, and the lead radar's check note tells the reader.
+
+**A night is not a date.** The coldest-places ranking first took each
+calendar date's minimum, so a 13:18 build ranked that morning's cold, already
+over, and labelled it "Sat 21 Nov", which a reader at lunchtime takes to mean
+tonight. Nights run 18:00–09:00, are named by the dawn they end in, and are
+dropped once that dawn has passed.
+
 **One radar cannot referee another unless it is seeing.** Clutter is
 site-specific, so the other radar is the natural check — but on 22 Sep 2026
 Colaba showed one speck in 250 km while the C-band had an organised sea band,

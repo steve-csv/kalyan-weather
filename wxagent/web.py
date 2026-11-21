@@ -1464,7 +1464,7 @@ function coldestHtml(){
     ${lvlTxt ? `<p class="rhow">${esc(lvlTxt)} ${lvl.length === 1 ? 'is' : 'are'} level with
       #${c.top.length} — within 0.3°C, which is inside the noise of any one model.</p>` : ''}
     ${lw ? `<div class="quote"><b>In the lowland belt:</b> ${esc(lw.place)} is coldest,
-      ${lw.tmin.toFixed(1)}°C on ${esc(lw.day)} (models ${lw.lo.toFixed(1)}–${lw.hi.toFixed(1)}°).
+      ${lw.tmin.toFixed(1)}°C on the ${esc(lw.day)} (models ${lw.lo.toFixed(1)}–${lw.hi.toFixed(1)}°).
       The top of the list is altitude; this is the cold most people wake up in.
       A 25 km model smooths the valley floor into warmer surroundings, so the
       coldest pockets run lower still.</div>` : ''}
@@ -2236,7 +2236,7 @@ const SK = (() => {
     if (c.level && c.level.length)
       s += ` ${c.level.map(r => r.place).join(' and ')} ${c.level.length === 1 ? 'is' : 'are'} level with #${c.top.length}.`;
     if (c.lowland)
-      s += `\n\nIn the lowland belt it's **${c.lowland.place}**, ${c.lowland.tmin.toFixed(1)}°C on ${c.lowland.day} — the top three are altitude, this is the cold most people wake up in.`;
+      s += `\n\nIn the lowland belt it's **${c.lowland.place}**, ${c.lowland.tmin.toFixed(1)}°C on the ${c.lowland.day} — the top three are altitude, this is the cold most people wake up in.`;
     return s;
   }
 

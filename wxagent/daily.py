@@ -359,7 +359,7 @@ def run(target_day: date | None = None, *, quiet: bool = False,
         cold_fc = fetch_sites([C.SITES_BY_KEY[k] for k in WEEKLY_KEYS
                                if k in C.SITES_BY_KEY], days=8)
         c = thermal.coldest_places(cold_fc, week_days, C.SITES_BY_KEY,
-                                   primary=PRIMARY_MODEL)
+                                   primary=PRIMARY_MODEL, now=issued)
         if c["top"] and c["top"][0]["tmin"] <= COLD_SHOW_C:
             coldest = c
     except Exception as exc:                        # noqa: BLE001

@@ -670,8 +670,9 @@ def run(start: date | None = None, *, days: int = 7, quiet: bool = False,
     # ranking drawn from it would be a ranking of four. Shown when there is
     # real cold to rank: in a monsoon week every night is 22-25C and the list
     # would be trivia.
-    coldest = thermal.coldest_places(forecasts, day_list, C.SITES_BY_KEY,
-                                     primary=PRIMARY_MODEL)
+    coldest = thermal.coldest_places(
+        forecasts, day_list, C.SITES_BY_KEY, primary=PRIMARY_MODEL,
+        now=issued if start == issued.date() else None)
     show_cold = bool(coldest["top"]) and coldest["top"][0]["tmin"] <= COLD_SHOW_C
     if show_cold:
         out += thermal.render_coldest(coldest)
